@@ -1,3 +1,7 @@
+### README
+# This is a mapping of final_state_mode to HLT triggers included in branches "Trigger_[final_state_mode]"
+# Very similar in design to "TriggerList.py" in NanoTauAnalysis.
+
 triggers_dictionary = {
   "ditau" : [
              "HLT_DoubleMediumChargedIsoPFTauHPS40_Trk1_eta2p1", # Run2, only for Era F study

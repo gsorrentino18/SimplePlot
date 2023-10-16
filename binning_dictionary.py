@@ -1,3 +1,7 @@
+### README ###
+# binning for different variables are defined below and are separated by use-case
+# All variables are assumed to be linearly binned.
+ 
 binning_dictionary = {
 #  var  : (nBins, xmin, xmax),
 #  ditau

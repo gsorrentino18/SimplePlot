@@ -1,5 +1,13 @@
 from XSec import XSecRun3 as XSec
 
+### README ###
+# this file contains small dictionaries combining information for MC processes 
+# MC_dictionary SHOULD contain one entry for each type of sample, it should    
+# it references the smaller dictionaries color_dictionary and label_dictionary 
+# for additionaly information. Cross-sections are read in from XSec.py, and
+# NWEvents are hand-coded (to be removed later). Plot scaling for all 
+# non-signal processes are set to 1 by default.
+
 color_dictionary = {
   "ggH": "#0000ff", # blue
   "VBF": "#ff0000", # red
@@ -83,12 +91,12 @@ MC_dictionary = {
   "WWTo2L2Nu"    : {"XSec": XSec["WWTo2L2Nu"], "NWevents": 264682597.7669993,
                     "label": "VV", "color": color_dictionary["VV"],
                     "plot_scaling" : 1},
-  #"WWTo4Q"       : {"XSec": XSec["WWTo4Q"], "NWevents": 4983316073.657991,
-  #                  "label": "VV", "color": color_dictionary["VV"],
-  #                  "plot_scaling" : 1},
-  #"WWToLNu2Q"    : {"XSec": XSec["WWToLNu2Q"], "NWevents": 0,
-  #                  "label": "VV", "color": color_dictionary["VV"],
-  #                  "plot_scaling" : 1},
+  "WWTo4Q"       : {"XSec": XSec["WWTo4Q"], "NWevents": 4983316073.657991,
+                    "label": "VV", "color": color_dictionary["VV"],
+                    "plot_scaling" : 1},
+  "WWToLNu2Q"    : {"XSec": XSec["WWToLNu2Q"], "NWevents": 0,
+                    "label": "VV", "color": color_dictionary["VV"],
+                    "plot_scaling" : 1},
 
   "WZTo3L1Nu"    : {"XSec": XSec["WZTo3L1Nu"], "NWevents": 48195008.27371989,
                     "label": "VV", "color": color_dictionary["VV"],
@@ -100,15 +108,15 @@ MC_dictionary = {
                     "label": "VV", "color": color_dictionary["VV"],
                     "plot_scaling" : 1},
 
-  #"ZZTo2L2Nu"    : {"XSec": XSec["ZZTo2L2Nu"], "NWevents": 51651062.90956998,
-  #                  "label": "VV", "color": color_dictionary["VV"],
-  #                  "plot_scaling" : 1},
+  "ZZTo2L2Nu"    : {"XSec": XSec["ZZTo2L2Nu"], "NWevents": 51651062.90956998,
+                    "label": "VV", "color": color_dictionary["VV"],
+                    "plot_scaling" : 1},
   "ZZTo2L2Q"     : {"XSec": XSec["ZZTo2L2Q"], "NWevents": 343533147.0025,
                     "label": "VV", "color": color_dictionary["VV"],
                     "plot_scaling" : 1},
-  #"ZZTo2Nu2Q"    : {"XSec": XSec["ZZTo2Nu2Q"], "NWevents": 0,
-  #                  "label": "VV", "color": color_dictionary["VV"],
-  #                  "plot_scaling" : 1},
+  "ZZTo2Nu2Q"    : {"XSec": XSec["ZZTo2Nu2Q"], "NWevents": 0,
+                    "label": "VV", "color": color_dictionary["VV"],
+                    "plot_scaling" : 1},
   "ZZTo4L"       : {"XSec": XSec["ZZTo4L"], "NWevents": 69812228.61073996,
                     "label": "VV", "color": color_dictionary["VV"],
                     "plot_scaling" : 1},
