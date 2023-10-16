@@ -1,4 +1,3 @@
-# I'll make my own plotter, with blackjack and hookers!
 # Authored by Braden Allmond, Sep 11, 2023
  
 # libraries
@@ -25,6 +24,10 @@ luminosities = {
 }
 
 def get_midpoints(input_bins):
+  '''
+  From an input array of increasing values, return the values halfway between each value.
+  The input array is size N, and the output array is size N-1
+  '''
   midpoints = []
   for i, ibin in enumerate(input_bins):
     if (i+1 != len(input_bins)):
@@ -34,12 +37,24 @@ def get_midpoints(input_bins):
 
 
 def setup_ratio_plot():
+  '''
+  Define a standard plot format with a plotting area on top, and a ratio area below.
+  The plots share the x-axis, and other functions should handle cosmetic additions/subtractions.
+  '''
   gs = gridspec_kw = {'height_ratios': [4, 1], 'hspace': 0}
   fig, (upper_ax, lower_ax) = plt.subplots(nrows=2, sharex=True, gridspec_kw=gridspec_kw)
   return (upper_ax, lower_ax)
 
 
 def make_bins(variable_name):
+  '''
+  Create a linear numpy array to use for histogram binning.
+  Information for binning is referenced from a python dictionary in a separate file.
+  A check is made on bin edges to see if they end in 1 or 0.1, which generally 
+  result in better plots with edges that align with axes tickmarks.
+  
+  This method returns only linearly spaced bins
+  '''
   nbins, xmin, xmax = binning_dictionary[variable_name]
   check_uniformity = (xmax-xmin)/nbins
   if (check_uniformity % 1 != 0 and check_uniformity % 0.1 != 0):
@@ -49,23 +64,11 @@ def make_bins(variable_name):
   return xbins
 
 
-def plot_data(histogram_axis, xbins, data_info, luminosity):
-  # TODO: understand errors for poisson statistics
-  # TODO: understand all of statistics
-  #stat_error = np.array([1000/np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) #wrong but scaled up...
-  #stat_error  = sum_of_data**2 * np.ones(np.shape(data_info)) #wrong
-  sum_of_data = np.sum(data_info)
-  stat_error  = np.array([np.sqrt(entry * (1 - entry/sum_of_data)) if entry > 0 else 0 for entry in data_info]) # 
-  #stat_error = np.array([np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) # unsure if correct?
-  midpoints   = get_midpoints(xbins) # len(midpoints) = len(xbins) - 1
-  label = f"Data [{np.sum(data_info):>.0f}]"
-  histogram_axis.errorbar(midpoints, data_info, yerr=stat_error, 
-                          color="black", marker="o", linestyle='none', markersize=2, label=label)
-  #histogram_axis.plot(midpoints, data_info, color="black", marker="o", linestyle='none', markersize=2, label="Data")
-  # above plots without error bars
-
-
 def add_CMS_preliminary(axis):
+  '''
+  Add text to plot following CMS plotting guidelines
+  https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines#Example_ROOT_macro_python
+  '''
   CMS_text = "CMS"
   axis.text(0.01, 1.02, CMS_text, transform=hist_ax.transAxes, fontsize=16, weight='bold')
   preliminary_text = "Preliminary"
@@ -73,6 +76,12 @@ def add_CMS_preliminary(axis):
 
 
 def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
+  '''
+  Add title, axes labels, and data and luminosity info.
+  Additionally:
+    - hide a zero that overlaps with the upper plot.
+    - add a horizontal line at y=1 to the ratio plot
+  '''
   add_CMS_preliminary(histogram_axis)
   # reverse dictionary search to get correct era title from luminosity
   title = [key for key in luminosities.items() if key[1] == luminosity][0][0]
@@ -91,29 +100,11 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   ratio_plot_axis.axhline(y=1, color='grey', linestyle='--')
   
 
-# TODO : delete after commiting
-#def update_legend_labels(histogram_axis, yields, display_yields=True):
-  # TODO set yields in plotters individually
-  #handles, old_labels = hist_ax.get_legend_handles_labels()
-  #new_labels = []
-  # reorganize artists and labels by hand
-  #handles.append(handles[0])
-  #handles.pop(0)
-  #old_labels.append(old_labels[0])
-  #old_labels.pop(0)
-  #
-  #for i, label in enumerate(old_labels):
-  #  label += f" [{yields[i]:>.0f}]"
-  #  new_labels.append(label)
-  #if display_yields:
-  #  hist_ax.legend(handles, new_labels)
-  #else:
-  #  hist_ax.legend(handles, old_labels)
-  #  print(f"labels and yields : {new_labels}") # put labels in terminal if not on plot
-#  pass
-
-
 def set_MC_process_info(process, luminosity, scaling=False, signal=False):
+  '''
+  Obtain process-specific styling and scaling information.
+  MC_dictionary is maintained in a separate file.
+  '''
   color = MC_dictionary[process]["color"]
   label = MC_dictionary[process]["label"]
   if scaling:
@@ -126,6 +117,11 @@ def set_MC_process_info(process, luminosity, scaling=False, signal=False):
 
 
 def calculate_underoverflow(events, xbins, weights):
+  '''
+  Count the number of events falling outside (below and above) the specified bins. 
+  For data, an array of ones is passed to the 'weights' variable.
+  For MC, event weights must be passed correctly when the function is called.
+  '''
   count_bin_values = [-999999., xbins[0], xbins[-1], 999999.]
   values, bins = np.histogram(events, count_bin_values, weights=weights)
   underflow_value, overflow_value = values[0], values[-1]
@@ -133,6 +129,12 @@ def calculate_underoverflow(events, xbins, weights):
 
 
 def get_binned_info(process_name, process_variable, xbins, process_weights, luminosity):
+  '''
+  Take in a list of events and produce a histogram (values binned in a numpy array).
+  'scaling' is either set to 1 for data (no scaling) or retrieved from the MC_dictionary.
+  Underflows and overflows are included in the first and final bins of the output histogram by default.
+  Note: 'process_variable' is a list of events
+  '''
   scaling = 1 if "Data" in process_name else set_MC_process_info(process_name, luminosity, scaling=True)[2]
   weights = scaling*process_weights
   underflow, overflow = calculate_underoverflow(process_variable, xbins, weights)
@@ -143,23 +145,76 @@ def get_binned_info(process_name, process_variable, xbins, process_weights, lumi
  
 
 def accumulate_MC_subprocesses(parent_process, process_dictionary):
+  '''
+  Add up separate MC histograms for processes belonging to the same family.
+  For example, with three given inputs of the same family, the output is the final line:
+    WWToLNu2Q = [0.0, 1.0, 5.5, 0.5]
+    WZTo2L2Nu = [0.0, 2.0, 7.5, 0.2]
+    ZZTo4L    = [0.0, 3.0, 4.5, 0.1]
+    --------------------------------
+    VV        = [0.0, 6.0, 17.5, 0.8]
+  Inputs not belonging to the specified 'parent_process' are ignored,
+  therefore, this function is called once for each parent process
+  '''
   accumulated_values = 0
   for MC_process in process_dictionary:
     if get_parent_process(MC_process) == parent_process:
       accumulated_values += process_dictionary[MC_process]["BinnedEvents"]
   return accumulated_values
 
-  
-def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
-  for signal in signal_dictionary:
-    color, label, _ = set_MC_process_info(signal, luminosity, scaling=True, signal=True)
-    current_hist = signal_dictionary[signal]["BinnedEvents"]
-    label += f" [{np.sum(current_hist):>.0f}]"
-    stairs = histogram_axis.stairs(current_hist, xbins, color=color, label=label, fill=False)
+
+def get_parent_process(MC_process):
+  '''
+  Given some process, return a corresponding parent_process, effectively grouping
+  related processes (i.e. DYInclusive, DY1, DY2, DY3, and DY4 all belong to DY).
+  TODO: simplify this code, it is currently written in a brain-dead way
+  '''
+  parent_process = ""
+  if   "DY"    in MC_process:  parent_process = "DY"
+  elif "WJets" in MC_process:  parent_process = "WJ"
+  elif "TT"    in MC_process:  parent_process = "TT"
+  elif "ST"    in MC_process:  parent_process = "ST"
+  elif ("WW"   in MC_process or 
+        "WZ"   in MC_process or 
+        "ZZ"   in MC_process): parent_process = "VV"
+  else:
+    print("No matching parent process for {MC_process}, continuing as individual process...")
+  return parent_process
+
+
+def plot_data(histogram_axis, xbins, data_info, luminosity):
+  '''
+  Add the data histogram to the existing histogram axis, computing errors in a simple way.
+  For data, since points and error bars are used, they are shifted to the center of the bins.
+  TODO: The error calculation should be followed up and separated to another function. 
+  '''
+  # TODO: understand errors for poisson statistics
+  # TODO: understand all of statistics
+  #stat_error = np.array([1000/np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) #wrong but scaled up...
+  #stat_error  = sum_of_data**2 * np.ones(np.shape(data_info)) #wrong
+  sum_of_data = np.sum(data_info)
+  stat_error  = np.array([np.sqrt(entry * (1 - entry/sum_of_data)) if entry > 0 else 0 for entry in data_info])
+  #stat_error = np.array([np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) # unsure if correct?
+  midpoints   = get_midpoints(xbins)
+  label = f"Data [{np.sum(data_info):>.0f}]"
+  histogram_axis.errorbar(midpoints, data_info, yerr=stat_error, 
+                          color="black", marker="o", linestyle='none', markersize=2, label=label)
+  #histogram_axis.plot(midpoints, data_info, color="black", marker="o", linestyle='none', markersize=2, label="Data")
+  # above plots without error bars
 
 
 def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity):
-  bottom = 0
+  '''
+  Add background MC histograms to the existing histogram axis. The input 'stack_dictionary'
+  contains a list of backgrounds (which should be pre-grouped, normally), the name of which
+  determines colors and labels of the stacked output. 
+
+  Since the 'bar' method of matplotlib doesn't necessarily expect histogram data, 
+  the final bin edge is omitted so that the size of the xaxis array and the plotted 
+  data array are equal. To stack the plots, the 'bottom'  keyword argument is 
+  adjusted each iteration of the loop such that it is the top of the previous histogram. 
+  '''
+  previous_histogram_tops = 0
   for MC_process in stack_dictionary:
     color, label, _ = set_MC_process_info(MC_process, luminosity)
     current_hist = stack_dictionary[MC_process]["BinnedEvents"]
@@ -167,11 +222,30 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity):
     label += f" [{np.sum(current_hist):>.0f}]"
     bars = histogram_axis.bar(xbins[0:-1], current_hist, width=xbins[1]-xbins[0],
                             color=color, label=label, 
-                            bottom=bottom, fill=True, align='edge')
-    bottom += current_hist # Stack, set top of current graph as bottom of next graph
+                            bottom=previous_histogram_tops, fill=True, align='edge')
+    previous_histogram_tops += current_hist # stack
+  
+
+def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
+  '''
+  Similar to plot_MC, except signals are not stacked, and the 'stair' method
+  of matplotlib DOES expect histogram data, so no adjustment to xbins is necessary.
+  '''
+  for signal in signal_dictionary:
+    color, label, _ = set_MC_process_info(signal, luminosity, scaling=True, signal=True)
+    current_hist = signal_dictionary[signal]["BinnedEvents"]
+    label += f" [{np.sum(current_hist):>.0f}]"
+    stairs = histogram_axis.stairs(current_hist, xbins, color=color, label=label, fill=False)
 
  
 def calculate_yields(data, backgrounds, signals):
+  '''
+  TODO: rename function.
+  Yields are calculated in plotting functions. 
+  This can be used as a check, but name should be changed for clarity.
+  Separately, various signal-to-background ratios are calculated here
+  purely for convenience.
+  '''
   yields = [np.sum(data)]
   total_background, total_signal = 0, 0
   for process in backgrounds: 
@@ -193,6 +267,10 @@ def calculate_yields(data, backgrounds, signals):
 
 
 def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
+  '''
+  Uses provided numerator and denominator info to make a ratio to add to given plotting axis.
+  Errors are also calculated using the same matplotlib function as used in plot_data.
+  '''
   # TODO fix error calculation, should be np.sqrt(entry / sum? )
   numerator_statistical_error   = [1/np.sqrt(entry) if entry > 0 else 0 for entry in numerator_data]
   denominator_statistical_error = [1/np.sqrt(entry) if entry > 0 else 0 for entry in denominator_data]
@@ -204,6 +282,11 @@ def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
 
 
 def append_lepton_indices(event_dictionary):
+  '''
+  Read the entries of "FSLeptons" and extract the values to place in separate branches.
+  It was easier to do this once when the data is first loaded than to do it every time
+  that it is needed. 
+  '''
   FSLeptons = event_dictionary["FSLeptons"]
   l1_indices, l2_indices = [], []
   for event in FSLeptons:
@@ -215,6 +298,21 @@ def append_lepton_indices(event_dictionary):
 
 
 def make_ditau_cut(event_dictionary, DeepTauVersion):
+  '''
+  Use a minimal set of branches to define selection criteria and identify events which pass.
+  A separate function uses the generated branch "pass_cuts" to remove the info from the
+  loaded samples.
+  Note: the zip method in python is a row-scanner, so the for loop below looks like this
+  Events | pt | eta | tau_idx
+  ###########################
+       1 | 27 | 0.5 | 1
+       2 | 35 | 1.5 | 0
+       3 | 40 | 2.1 | 0
+  i.e. we see variables of events sequentially.
+  With this info, we make a simple check and store relevant variables.
+  Note: stored variable branches are appended to other functions so that cutting
+  events works properly
+  '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_ditau = ["Lepton_pt", "Lepton_eta", "Lepton_tauIdx", "l1_indices", "l2_indices"]
   unpack_ditau = add_DeepTau_branches(unpack_ditau, DeepTauVersion)
@@ -244,6 +342,11 @@ def make_ditau_cut(event_dictionary, DeepTauVersion):
 
 
 def make_mutau_cut(event_dictionary, DeepTauVersion):
+  '''
+  Works similarly to 'make_ditau_cut'. 
+  Notably, the mutau cuts are more complicated, but it is simple to 
+  extend the existing methods as long as one can stomach the line breaks.
+  '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "PuppiMET_pt", "PuppiMET_phi",
                   "Lepton_tauIdx", "Lepton_muIdx", "l1_indices", "l2_indices"]
@@ -313,6 +416,11 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
 
 
 def manual_dimuon_lepton_veto(event_dictionary):
+  '''
+  Works similarly to 'make_ditau_cut' except the branch "pass_manual_lepton_veto"
+  is made specifically for the dimuon final state. Some special handling is required
+  due to the way events are selected in step2 of the NanoTauFramework
+  '''
   unpack_veto = ["Lepton_pdgId", "Lepton_iso"]
   unpack_veto = (event_dictionary.get(key) for key in unpack_veto)
   to_check    = [range(len(event_dictionary["Lepton_pt"])), *unpack_veto]
@@ -333,10 +441,14 @@ def manual_dimuon_lepton_veto(event_dictionary):
 
 
 def make_dimuon_cut(event_dictionary):
+  '''
+  Works similarly to 'make_ditau_cut'. 
+  '''
   unpack_dimuon = ["Lepton_pt", "Lepton_iso", "HTT_m_vis", "HTT_dR", "l1_indices", "l2_indices"]
   unpack_dimuon = (event_dictionary.get(key) for key in unpack_dimuon)
   to_check      = [range(len(event_dictionary["Lepton_pt"])), *unpack_dimuon]
   pass_cuts = []
+  #TODO : extend function to add dimuon variables for plotting
   for i, pt, iso, mvis, dR, l1_idx, l2_idx in zip(*to_check):
     passKinematics = (pt[l1_idx] > 26 and pt[l2_idx] > 20 and mvis > 20 and dR > 0.5)
     passIso        = (iso[l1_idx] < 0.15 and iso[l2_idx] < 0.15)
@@ -349,6 +461,14 @@ def make_dimuon_cut(event_dictionary):
 
 
 def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):
+  '''
+  Calculates the experimental paricle physicist variable of "transverse mass"
+  which is a measure a two-particle system's mass when known parts (neutrinos)
+  are missing. 
+  Notably, there is another variable called "transverse mass" which is what
+  ROOT.Mt() calculates. This is not the variable we are interested in and instead
+  calculate the correct transverse mass by hand. Either form below is equivalenetly valid.
+  '''
   # useful also for etau, emu
   delta_phi = phi_mpi_pi(lep_phi - MET_phi)
   mt = np.sqrt(2 * lep_pt * MET_pt * (1 - np.cos(delta_phi) ) ) 
@@ -360,6 +480,10 @@ def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):
   
 
 def make_run_cut(event_dictionary, good_runs):
+  '''
+  Given a set of runs, create a branch of events belonging to that set.
+  The branch is later used to reject all other events.
+  '''
   good_runs = np.sort(good_runs)
   first_run, last_run = good_runs[0], good_runs[-1]
   print(f"first run {first_run}, last run {last_run}")
@@ -375,6 +499,12 @@ def make_run_cut(event_dictionary, good_runs):
 
 
 def apply_cut(event_dictionary, cut_branch):
+  '''
+  Remove all entries in 'event_dictionary' not in 'cut_branch' using the numpy 'take' method.
+  Branches that are added during previous cut steps are added here because their entries
+  already pass cuts by construction.
+  The returned event_dictionary now only contains events passing all cuts.
+  '''
   branches_added_during_cut = ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta",
                                "FS_mu_pt", "FS_tau_pt", "FS_mu_eta", "FS_tau_eta",
                                "HTT_mt"]
@@ -388,6 +518,9 @@ def apply_cut(event_dictionary, cut_branch):
 
 
 def add_DeepTau_branches(branches_, DeepTauVersion):
+  '''
+  Helper function to add DeepTauID branches
+  '''
   if DeepTauVersion == "2p1":
     for DeepTau_v2p1_branch in ["Tau_idDeepTau2017v2p1VSjet", "Tau_idDeepTau2017v2p1VSmu", "Tau_idDeepTau2017v2p1VSe"]:
       branches_.append(DeepTau_v2p1_branch)
@@ -403,12 +536,19 @@ def add_DeepTau_branches(branches_, DeepTauVersion):
 
 
 def add_trigger_branches(branches_, final_state_mode):
+  '''
+  Helper function to add HLT branches used by a given final state
+  '''
   for trigger in triggers_dictionary[final_state_mode]:
     branches_.append(trigger)
   return branches_
 
 
 def Era_F_trigger_study(data_events, final_state_mode):
+  '''
+  Compact function for 2022 era F trigger study, where ChargedIsoTau
+  triggers were briefly enabled for Run2-Run3 Tau trigger studies. 
+  '''
   FS_triggers = triggers_dictionary[final_state_mode]
   for trigger in FS_triggers:
     print(f" {trigger} has {np.sum(data_events[trigger])} events")
@@ -428,8 +568,10 @@ def Era_F_trigger_study(data_events, final_state_mode):
 
 
 def study_triggers():
-  # template, adjust when used
-  # TODO general trigger study algorithm for ORs/ANDs of given trigger set
+  '''
+  Template function for returning ORs/ANDs of HLT triggers in an organized way.
+  Will be extended at an opportune moment.
+  '''
   Run2OR, Run2AND, Run3OR, Run3AND = 0, 0, 0, 0
 
   mutau_triggers = [data_events[trigger] for trigger in add_trigger_branches([], "mutau")]
@@ -448,6 +590,9 @@ def study_triggers():
 
 
 def center(input_string):
+  '''
+  Helper function to center text on a standard laptop screen
+  '''
   spacer = "-"
   screen = 76
   center = (screen - (len(input_string)))//2
@@ -455,6 +600,11 @@ def center(input_string):
   
 
 def attention(input_string):
+  '''
+  Helper function to print a string in a large font in a central
+  position so that it cannot be missed. Blinking text can be added
+  if the user enrolls themself by adding their login handle to the if statement. 
+  '''
   print(center("THE FINAL STATE MODE IS"))
   if getlogin() == "ballmond":
     center_val = (76 - 3*len(input_string))//2
@@ -467,22 +617,35 @@ def attention(input_string):
 
 
 def set_good_events(final_state_mode, trigger_study=False):
+  '''
+  Return a string defining a 'good_events' flag used by uproot to preskim input events
+  to only those passing these simple requirements. 'good_events' changes based on
+  final_state_mode, and the trigger condition is removed if a trigger study is 
+  being conducted (since requiring the trigger biases the study).
+  '''
   good_events = ""
   if trigger_study: print("*"*20 + " removed trigger cut for yield study " + "*"*20)
+
   if final_state_mode == "ditau":
     good_events = "(HTT_SRevent) & (abs(HTT_pdgId)==15*15) & (METfilters) & (LeptonVeto==0)"
     if not trigger_study: good_events += " & (Trigger_ditau)"
+
   elif final_state_mode == "mutau":
     good_events = "(HTT_SRevent) & (abs(HTT_pdgId)==15*13) & (METfilters) & (LeptonVeto==0)"
     if not trigger_study: good_events += " & (Trigger_mutau) & (Trigger_ditau==0)"
+
   elif final_state_mode == "dimuon":
-    good_events = "(HTT_pdgId==-13*13) & (METfilters) & (HLT_IsoMu24)" # lepton veto must be applied manually for this final state
+    # lepton veto must be applied manually for this final state
+    good_events = "(HTT_pdgId==-13*13) & (METfilters) & (HLT_IsoMu24)"
 
   print(f"good events pass : {good_events}")
   return good_events
 
 
 def add_final_state_branches(branches_, final_state_mode):
+  '''
+  Helper function to add only relevant branches to loaded branches based on final state.
+  '''
   branch_to_add = []
   if final_state_mode == "ditau":
     pass
@@ -507,6 +670,11 @@ def add_final_state_branches(branches_, final_state_mode):
 
 
 def make_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode):
+  '''
+  Organizational function that generalizes call to a (set of) cuts based on the
+  final cut. Importantly, the function that rejects events, 'apply_cut',
+  is called elsewhere
+  '''
   if final_state_mode == "ditau":
     event_dictionary = make_ditau_cut(event_dictionary, useDeepTauVersion)
   elif final_state_mode == "mutau":
@@ -523,9 +691,30 @@ def make_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode):
 
 
 def fill_process_list(process_list, file_directory, branches, good_events, final_state_mode, testing=False):
+  '''
+  Most important function! Contains the only call to uproot in this library! 
+  Loads into memory files relevant to the given 'final_state_mode' by reading
+  'file_map' which is a python dictionary maintained in a separate file. 
+  uproot.concatenate grabs all files matching the wildcard in 'file_map[process]'
+  and loads ONLY the data specified by 'branches' which pass the cut 'good_events'.
+  Both 'branches' and 'good_events' are specified in other places and depend on the
+  final state mode.
+  library='np' loads the data in a numpy array that looks like this
+   {{"branch_1" : [event1, event2, event3, ..., eventN]},
+    {"branch_2" : [event1, event2, event3, ..., eventN]},
+    {"branch_3" : [event1, event2, event3, ..., eventN]}, etc.
+    {"branch_N" : [event1, event2, event3, ..., eventN]}}
+  This coding library is built using numpy arrays as the default and will not work
+  with other types of arrays (although the methods could be copied and rewritten). 
+  Note: that a numpy array is generated for each loaded process, which corresponds
+  to a set of files. 
+  '''
   file_map = testing_file_map if testing else full_file_map
   if final_state_mode == "ditau": del(file_map["DataMuon"])
-  if final_state_mode == "mutau": del(file_map["DataTau"])
+  elif final_state_mode == "mutau": del(file_map["DataTau"])
+  else: 
+    print(f"{final_state_mode} isn't a final state that I have a mapping for! Quitting...")
+    sys.exit()
   for process in file_map:
     time_print(f"Loading {file_map[process]}")
     file_string = file_directory + "/" + file_map[process] + ".root:Events"
@@ -541,25 +730,11 @@ def fill_process_list(process_list, file_directory, branches, good_events, final
   return process_list
 
 
-def get_parent_process(MC_process):
-  parent_process = ""
-  if   "DY"    in MC_process:
-    parent_process = "DY"
-  elif "WJets" in MC_process:
-    parent_process = "WJ"
-  elif "TT"    in MC_process:
-    parent_process = "TT"
-  elif "ST"    in MC_process:
-    parent_process = "ST"
-  elif ("WW"   in MC_process or 
-        "WZ"   in MC_process or 
-        "ZZ"   in MC_process):
-    parent_process = "VV"
-  return parent_process
-
-
 def match_objects_to_trigger_bit():
-  '''Using the final state object kinematics, check if the filter bit of a used trigger is matched'''
+  '''
+  Current work in progress
+  Using the final state object kinematics, check if the filter bit of a used trigger is matched
+  '''
   #FS ditau - two taus, match to ditau
   #FS mutau - one tau, one muon
   # - if not cross-trig, match muon to filter
@@ -572,9 +747,11 @@ def match_objects_to_trigger_bit():
 
 
 def calculate_dR(eta1, phi1, eta2, phi2): 
+  '''return value of delta R cone defined by two objects'''
   delta_eta = eta1-eta2
   delta_phi = phi_mpi_pi(lep_phi - MET_phi)
   return np.sqrt(delta_eta*delta_eta + delta_phi*delta_phi)
+
 
 def phi_mpi_pi(delta_phi):
   '''return phi between a range of negative pi and pi'''
@@ -582,6 +759,12 @@ def phi_mpi_pi(delta_phi):
 
 
 def time_print(*args, **kwargs):
+  '''
+  Helper function to append a time to print statements, the idea being
+  to give the user an idea of progress, bottlenecks, and total time of a computation.
+  Randomly selected emojis can be added if the user enrolls themself by adding 
+  their login handle to the if statement. 
+  '''
   emoji = np.random.choice([";) ", ":^)", "<.<", ">.>", ":O ", "^.^", "UwU", "owO"])
   time  = datetime.now(timezone.utc).strftime('%H:%M:%S')
   if getlogin() == "ballmond":
@@ -590,6 +773,18 @@ def time_print(*args, **kwargs):
 
 
 if __name__ == "__main__":
+  '''
+  Just read the code, it speaks for itself.
+  Kidding.
+  This is the main block, which calls a bunch of other functions from other files
+  and uses local variables and short algorithms to, by final state
+  1) load data from files
+  2) apply bespoke cuts to reject events
+  3) create a lovely plot
+
+  Ideally, if one wants to use this library to make another type of plot, they
+  would look at this script and use its format as a template.
+  '''
 
   lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir      = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/"
@@ -629,7 +824,6 @@ if __name__ == "__main__":
   # TODO: make and store jet branches correctly
   #  i.e. branches above ending in "fromHighestMjj" should only be plotted for events with nJet>2
   #  "nCleanJetGT30" : (8, 0, 8), # GT = Greater Than 
-  #
   
   print(f"Plotting {vars_to_plot}!")
 
