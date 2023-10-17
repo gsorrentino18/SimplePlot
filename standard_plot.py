@@ -13,6 +13,9 @@ from binning_dictionary   import binning_dictionary
 from MC_dictionary        import MC_dictionary
 from triggers_dictionary  import triggers_dictionary
 
+from plotting_functions    import plot_data, plot_MC, plot_signal, setup_ratio_plot
+from get_and_set_functions import get_midpoints, set_MC_process_info
+
 from file_map      import testing_file_map, full_file_map
 from text_options  import text_options
 
@@ -22,29 +25,6 @@ luminosities = {
   "2022 G"   :  3.06,
   "2022 F&G" : 20.67, # calculate by hand when new quantities are relevant
 }
-
-def get_midpoints(input_bins):
-  '''
-  From an input array of increasing values, return the values halfway between each value.
-  The input array is size N, and the output array is size N-1
-  '''
-  midpoints = []
-  for i, ibin in enumerate(input_bins):
-    if (i+1 != len(input_bins)):
-      midpoints.append( ibin + (input_bins[i+1] - ibin)/2 )
-  midpoints = np.array(midpoints)
-  return midpoints
-
-
-def setup_ratio_plot():
-  '''
-  Define a standard plot format with a plotting area on top, and a ratio area below.
-  The plots share the x-axis, and other functions should handle cosmetic additions/subtractions.
-  '''
-  gs = gridspec_kw = {'height_ratios': [4, 1], 'hspace': 0}
-  fig, (upper_ax, lower_ax) = plt.subplots(nrows=2, sharex=True, gridspec_kw=gridspec_kw)
-  return (upper_ax, lower_ax)
-
 
 def make_bins(variable_name):
   '''
@@ -99,21 +79,6 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   ratio_plot_axis.set_ylabel("Obs. / Exp.")
   ratio_plot_axis.axhline(y=1, color='grey', linestyle='--')
   
-
-def set_MC_process_info(process, luminosity, scaling=False, signal=False):
-  '''
-  Obtain process-specific styling and scaling information.
-  MC_dictionary is maintained in a separate file.
-  '''
-  color = MC_dictionary[process]["color"]
-  label = MC_dictionary[process]["label"]
-  if scaling:
-  # factor of 1000 comes from lumi and XSec units of fb^-1 = 10E15 b^-1 and pb = 10E-12 b respectively
-    plot_scaling = MC_dictionary[process]["plot_scaling"] # 1 for all non-signal processes by default
-    scaling = 1000. * plot_scaling * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
-  if signal:
-    label += " x" + str(plot_scaling)
-  return (color, label, scaling)
 
 
 def calculate_underoverflow(events, xbins, weights):
@@ -181,61 +146,6 @@ def get_parent_process(MC_process):
     print("No matching parent process for {MC_process}, continuing as individual process...")
   return parent_process
 
-
-def plot_data(histogram_axis, xbins, data_info, luminosity):
-  '''
-  Add the data histogram to the existing histogram axis, computing errors in a simple way.
-  For data, since points and error bars are used, they are shifted to the center of the bins.
-  TODO: The error calculation should be followed up and separated to another function. 
-  '''
-  # TODO: understand errors for poisson statistics
-  # TODO: understand all of statistics
-  #stat_error = np.array([1000/np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) #wrong but scaled up...
-  #stat_error  = sum_of_data**2 * np.ones(np.shape(data_info)) #wrong
-  sum_of_data = np.sum(data_info)
-  stat_error  = np.array([np.sqrt(entry * (1 - entry/sum_of_data)) if entry > 0 else 0 for entry in data_info])
-  #stat_error = np.array([np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) # unsure if correct?
-  midpoints   = get_midpoints(xbins)
-  label = f"Data [{np.sum(data_info):>.0f}]"
-  histogram_axis.errorbar(midpoints, data_info, yerr=stat_error, 
-                          color="black", marker="o", linestyle='none', markersize=2, label=label)
-  #histogram_axis.plot(midpoints, data_info, color="black", marker="o", linestyle='none', markersize=2, label="Data")
-  # above plots without error bars
-
-
-def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity):
-  '''
-  Add background MC histograms to the existing histogram axis. The input 'stack_dictionary'
-  contains a list of backgrounds (which should be pre-grouped, normally), the name of which
-  determines colors and labels of the stacked output. 
-
-  Since the 'bar' method of matplotlib doesn't necessarily expect histogram data, 
-  the final bin edge is omitted so that the size of the xaxis array and the plotted 
-  data array are equal. To stack the plots, the 'bottom'  keyword argument is 
-  adjusted each iteration of the loop such that it is the top of the previous histogram. 
-  '''
-  previous_histogram_tops = 0
-  for MC_process in stack_dictionary:
-    color, label, _ = set_MC_process_info(MC_process, luminosity)
-    current_hist = stack_dictionary[MC_process]["BinnedEvents"]
-    # TODO handle variable binning with list of differences
-    label += f" [{np.sum(current_hist):>.0f}]"
-    bars = histogram_axis.bar(xbins[0:-1], current_hist, width=xbins[1]-xbins[0],
-                            color=color, label=label, 
-                            bottom=previous_histogram_tops, fill=True, align='edge')
-    previous_histogram_tops += current_hist # stack
-  
-
-def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
-  '''
-  Similar to plot_MC, except signals are not stacked, and the 'stair' method
-  of matplotlib DOES expect histogram data, so no adjustment to xbins is necessary.
-  '''
-  for signal in signal_dictionary:
-    color, label, _ = set_MC_process_info(signal, luminosity, scaling=True, signal=True)
-    current_hist = signal_dictionary[signal]["BinnedEvents"]
-    label += f" [{np.sum(current_hist):>.0f}]"
-    stairs = histogram_axis.stairs(current_hist, xbins, color=color, label=label, fill=False)
 
  
 def calculate_yields(data, backgrounds, signals):
@@ -794,8 +704,14 @@ if __name__ == "__main__":
   using_directory   = home_directory
   print(f"CURRENT FILE DIRECTORY : {using_directory}")
   
+  #import argparse
+  # testing (default is true)
+  # show_plots (default is true)
+  # final_state_mode (default is mutau)
+  # output_directory (default is 'plots_[final_state_mode]_[date]_[time_HH_MM]')
+  # show_yields_on_plots (default is true)
 
-  # final_state_mode sets dataset, "good_events" filter, and cuts
+  # final_state_mode affects dataset, 'good_events' filter, and cuts
   #final_state_mode = "ditau"  # 5/1 min full/skim dataset
   final_state_mode = "mutau"  # 10/5 min full/skim dataset
   #final_state_mode = "etau"   # not working yet

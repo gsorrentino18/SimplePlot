@@ -94,9 +94,10 @@ MC_dictionary = {
   "WWTo4Q"       : {"XSec": XSec["WWTo4Q"], "NWevents": 4983316073.657991,
                     "label": "VV", "color": color_dictionary["VV"],
                     "plot_scaling" : 1},
-  "WWToLNu2Q"    : {"XSec": XSec["WWToLNu2Q"], "NWevents": 0,
-                    "label": "VV", "color": color_dictionary["VV"],
-                    "plot_scaling" : 1},
+  # not in XSec yet
+  #"WWToLNu2Q"    : {"XSec": XSec["WWToLNu2Q"], "NWevents": 0,
+  #                  "label": "VV", "color": color_dictionary["VV"],
+  #                  "plot_scaling" : 1},
 
   "WZTo3L1Nu"    : {"XSec": XSec["WZTo3L1Nu"], "NWevents": 48195008.27371989,
                     "label": "VV", "color": color_dictionary["VV"],
