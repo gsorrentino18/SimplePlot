@@ -4,10 +4,32 @@ from os import getlogin, path
 
 ### README
 # this file contains functions to support various print commands
+#
+# text_options is a short dictionary for adding effects to text in terminal output
+# "reset" should always be used after another text option so that output after the
+# completion of the plotting program remains normal. For example:
+# my_string = "i am green and underlined"
+# print(text_options["green"] + text_options["uline"] + my_string + text_options["reset"])
+# is a valid usage.
+# INFO: \033[ is an ANSI escape sequence that usually works for Mac and Linux
+# the escape sequence is followed by some number denoting an option, and terminated
+# with an m. To string multiple options, see the entry for "bold_italic_blink".
+# more info here: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 
-from text_options  import text_options
+text_options = {
+  "reset" : "\033[m",
+  "bold"  : "\033[1m",
+  "uline" : "\033[4m",
+  "blink" : "\033[5m",
+  "bold_italic_blink" : "\033[1m\033[4m\033[5m",
+  "red"    : "\033[91m",
+  "green"  : "\033[92m",
+  "yellow" : "\033[93m",
+  "purple"   : "\033[94m",
+  "pink"   : "\033[95m",
+}
 
-# TODO fix timezone (or note in output that it's UTC)
+
 def time_print(*args, **kwargs):
   '''
   Helper function to append a time to print statements, the idea being
@@ -19,18 +41,7 @@ def time_print(*args, **kwargs):
   time  = datetime.now(timezone.utc).strftime('%H:%M:%S')
   if getlogin() == "ballmond":
     time = emoji + "  " + time
-  print(f"{time}", *args, **kwargs)
-
-
-# TODO look for python method, believe it's already written
-def center(input_string):
-  '''
-  Helper function to center text on a standard laptop screen
-  '''
-  spacer = "-"
-  screen = 76
-  center = (screen - (len(input_string)))//2
-  return spacer*center + input_string + spacer*center
+  print(f"{time} UTC", *args, **kwargs)
 
 
 def attention(input_string):
@@ -39,14 +50,16 @@ def attention(input_string):
   position so that it cannot be missed. Blinking text can be added
   if the user enrolls themself by adding their login handle to the if statement. 
   '''
-  print(center("THE FINAL STATE MODE IS"))
+  screen_width, spacer = 76, "-"
+  print("the final state mode is".upper().center(screen_width, spacer))
   if getlogin() == "ballmond":
-    center_val = (76 - 3*len(input_string))//2
-    s_1 = text_options["bold_italic_blink"] + text_options["green"] + input_string + text_options["reset"]
+    # can't use normal center function because escape characters contribute to length of string
+    center_val = (screen_width - 3*len(input_string))//2
+    s_1 = text_options["bold_italic_blink"] + text_options["green"]  + input_string + text_options["reset"]
     s_2 = text_options["bold_italic_blink"] + text_options["yellow"] + input_string + text_options["reset"]
     s_3 = text_options["bold_italic_blink"] + text_options["purple"] + input_string + text_options["reset"]
     s_full = center_val*" " + s_1+s_2+s_3 + center_val*" " 
     print(s_full)
-  print(center(input_string))
+  print(input_string.center(screen_width, spacer))
 
 

@@ -1,14 +1,12 @@
 # Authored by Braden Allmond, Sep 11, 2023
  
 # libraries
-import uproot
+import uproot # only used by fill_process_list
 import numpy as np
 import sys
-from os import getlogin, path
 import matplotlib.pyplot as plt
-from datetime import datetime, timezone
 
-# explicitly import used functions from user files, grouped roughly by call order and connectedness
+# explicitly import used functions from user files, grouped roughly by call order and relatedness
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot
 from plotting_functions    import plot_data, plot_MC, plot_signal
 
@@ -17,18 +15,13 @@ from get_and_set_functions import add_final_state_branches, add_DeepTau_branches
 from get_and_set_functions import accumulate_MC_subprocesses
 
 from calculate_functions   import calculate_signal_background_ratio
-
-from printing_functions    import time_print, attention, center
+from printing_functions    import time_print, attention, text_options
 
 from cut_and_study_functions import make_final_state_cut, apply_cut, append_lepton_indices
-from cut_and_study_functions import make_ditau_cut, make_mutau_cut, make_dimuon_cut, manual_dimuon_lepton_veto
-from cut_and_study_functions import study_triggers, Era_F_trigger_study, make_run_cut
 
 # fill process list is the only function which uses this line
 from file_map      import testing_file_map, full_file_map, luminosities
  
-from text_options  import text_options
-
 
 def fill_process_list(process_list, file_directory, branches, good_events, final_state_mode, testing=False):
   '''
@@ -108,6 +101,8 @@ if __name__ == "__main__":
   using_directory   = home_directory
   print(f"CURRENT FILE DIRECTORY : {using_directory}")
   
+  # TODO implement arg parse to handle testing, dataset, interactively showing plots, what to plot
+  
   #import argparse
   # testing (default is true)
   # show_plots (default is true)
@@ -122,8 +117,11 @@ if __name__ == "__main__":
   #final_state_mode = "dimuon" # 30 min full dataset ~ 3min testing
 
   attention(final_state_mode)
-  # TODO implement arg parse to handle testing, dataset, interactively showing plots, what to plot
+  
+  # if testing, only use Data from Era G (small, 3 fb^-1), DY, WJ, and VBF
+  # else use all Era FG 2022 Data for Tau or Muon dataset, and all available MC samples listed in file_map.py
   testing    = True
+ 
   show_plots = True
   lumi       = luminosities["2022 G"] if testing else luminosities["2022 F&G"]
   print(f"Testing: {testing}")
@@ -137,7 +135,7 @@ if __name__ == "__main__":
                       "HTT_H_pt_using_PUPPI_MET"]
   added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", "CleanJet_btagWP"]
   added_ditau_variables  = ["FS_t1_pt", "FS_t1_eta", "FS_t2_pt", "FS_t2_eta"]
-  added_variables = added_ditau_variables if final_state_mode=="ditau" else added_mutau_variables
+  added_variables  = added_ditau_variables if final_state_mode=="ditau" else added_mutau_variables
   full_variables   = native_variables + added_variables
   vars_to_plot     = ["FS_mu_pt", "FS_mu_eta"] if testing else full_variables
 
@@ -165,8 +163,6 @@ if __name__ == "__main__":
   # errors like " 'NoneType' object is not iterable " usually mean you forgot
   # to add some branch relevant to the final state
 
-  # if testing, only use Data from Era G (small, 3 fb^-1), DY, WJ, and VBF
-  # else use all Era FG 2022 Data for Tau or Muon dataset, and all available MC samples listed in file_map.py
   process_list = {}
   process_list = fill_process_list(process_list, using_directory, branches, good_events, final_state_mode,
                                    testing=testing)
@@ -226,8 +222,6 @@ if __name__ == "__main__":
   time_print("Processing finished!")
   ## end processing loop, begin plotting
   
-  # TODO: commit in a sensible place at a sensible configuration
-  
   for var in vars_to_plot:
     time_print(f"Plotting {var}")
     # plotting setup
@@ -262,7 +256,6 @@ if __name__ == "__main__":
       h_signals[signal] = {}
       h_signals[signal]["BinnedEvents"] = get_binned_info(signal, signal_variable, xbins, signal_weights, lumi)
 
-    # derive additional quanities (for labels, ratio plot, etc)
     yields = calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
     
     h_summed_backgrounds = 0
