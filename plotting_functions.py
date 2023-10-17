@@ -2,6 +2,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+### README
+# this file contains functions to setup plotting interfaces and draw the plots themselves
+
 # user files
 from MC_dictionary        import MC_dictionary
 

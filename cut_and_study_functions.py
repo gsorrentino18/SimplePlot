@@ -1,7 +1,11 @@
 import numpy as np
 
+### README
+# this file contains functions to perform cuts and self-contained studies
+
 from get_and_set_functions import add_DeepTau_branches, add_trigger_branches
 from calculate_functions   import calculate_mt
+
 
 def append_lepton_indices(event_dictionary):
   '''
@@ -61,6 +65,7 @@ def make_ditau_cut(event_dictionary, DeepTauVersion):
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after ditau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
+
 
 def make_mutau_cut(event_dictionary, DeepTauVersion):
   '''
@@ -134,6 +139,7 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after mutau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
+
 
 def manual_dimuon_lepton_veto(event_dictionary):
   '''
@@ -239,6 +245,7 @@ def Era_F_trigger_study(data_events, final_state_mode):
     print(f" {trigger} has {np.sum(data_events[trigger])} events")
   
   return data_events
+
 
 def study_triggers():
   '''

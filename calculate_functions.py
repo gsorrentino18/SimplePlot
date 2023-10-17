@@ -1,5 +1,9 @@
 import numpy as np
 
+### README
+# this file contains functions to perform simple calculations and return or print the result
+
+
 def calculate_underoverflow(events, xbins, weights):
   '''
   Count the number of events falling outside (below and above) the specified bins. 
@@ -11,13 +15,10 @@ def calculate_underoverflow(events, xbins, weights):
   underflow_value, overflow_value = values[0], values[-1]
   return underflow_value, overflow_value
 
-def calculate_yields(data, backgrounds, signals):
+
+def calculate_signal_background_ratio(data, backgrounds, signals):
   '''
-  TODO: rename function.
-  Yields are calculated in plotting functions. 
-  This can be used as a check, but name should be changed for clarity.
-  Separately, various signal-to-background ratios are calculated here
-  purely for convenience.
+  Calculate and display signal-to-background ratios.
   '''
   yields = [np.sum(data)]
   total_background, total_signal = 0, 0
@@ -35,8 +36,6 @@ def calculate_yields(data, backgrounds, signals):
   print(f"S/(S+B)  : {total_signal/(total_signal+total_background):.3f}")
   print(f"S/√(B)   : {total_signal/np.sqrt(total_background):.3f}")
   print(f"S/√(S+B) : {total_signal/np.sqrt(total_signal+total_background):.3f}")
-  
-  return yields
 
 
 def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):

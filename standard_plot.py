@@ -8,19 +8,15 @@ from os import getlogin, path
 import matplotlib.pyplot as plt
 from datetime import datetime, timezone
 
-# user files
-from binning_dictionary   import binning_dictionary
-from MC_dictionary        import MC_dictionary
-from triggers_dictionary  import triggers_dictionary
+# explicitly import used functions from user files, grouped roughly by call order and connectedness
+from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot
+from plotting_functions    import plot_data, plot_MC, plot_signal
 
-from plotting_functions    import plot_data, plot_MC, plot_signal, setup_ratio_plot
-from plotting_functions    import add_CMS_preliminary, spruce_up_plot, make_ratio_plot
-
-from get_and_set_functions import get_midpoints, set_MC_process_info, make_bins, get_binned_info
+from get_and_set_functions import set_good_events, make_bins, get_binned_info
 from get_and_set_functions import add_final_state_branches, add_DeepTau_branches, add_trigger_branches
-from get_and_set_functions import accumulate_MC_subprocesses, get_parent_process, set_good_events
+from get_and_set_functions import accumulate_MC_subprocesses
 
-from calculate_functions   import calculate_underoverflow, calculate_yields, calculate_mt, calculate_dR
+from calculate_functions   import calculate_signal_background_ratio
 
 from printing_functions    import time_print, attention, center
 
@@ -28,7 +24,9 @@ from cut_and_study_functions import make_final_state_cut, apply_cut, append_lept
 from cut_and_study_functions import make_ditau_cut, make_mutau_cut, make_dimuon_cut, manual_dimuon_lepton_veto
 from cut_and_study_functions import study_triggers, Era_F_trigger_study, make_run_cut
 
+# fill process list is the only function which uses this line
 from file_map      import testing_file_map, full_file_map, luminosities
+ 
 from text_options  import text_options
 
 
@@ -265,7 +263,7 @@ if __name__ == "__main__":
       h_signals[signal]["BinnedEvents"] = get_binned_info(signal, signal_variable, xbins, signal_weights, lumi)
 
     # derive additional quanities (for labels, ratio plot, etc)
-    yields = calculate_yields(h_data, h_backgrounds, h_signals)
+    yields = calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
     
     h_summed_backgrounds = 0
     for background in h_backgrounds:

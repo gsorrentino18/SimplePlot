@@ -1,12 +1,19 @@
 # libraries
 import numpy as np
 
+### README
+# this file contains simple functions to get or set and return simple objects
+# examples include specific logic for reading and updating a dictionary,
+# combining dictionary entries of the same type, 
+# returning a list based on values defined in a dictionary
+
 # user files
 from binning_dictionary   import binning_dictionary
 from MC_dictionary        import MC_dictionary
 from triggers_dictionary  import triggers_dictionary
 
 from calculate_functions  import calculate_underoverflow
+
 
 def make_bins(variable_name):
   '''
@@ -25,6 +32,7 @@ def make_bins(variable_name):
   xbins = np.linspace(xmin, xmax, nbins)
   return xbins
 
+
 def get_midpoints(input_bins):
   '''
   From an input array of increasing values, return the values halfway between each value.
@@ -36,6 +44,7 @@ def get_midpoints(input_bins):
       midpoints.append( ibin + (input_bins[i+1] - ibin)/2 )
   midpoints = np.array(midpoints)
   return midpoints
+
 
 def set_MC_process_info(process, luminosity, scaling=False, signal=False):
   '''

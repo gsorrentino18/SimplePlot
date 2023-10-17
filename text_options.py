@@ -8,6 +8,7 @@
 # INFO: \033[ is an ANSI escape sequence that usually works for Mac and Linux
 # the escape sequence is followed by some number denoting an option, and terminated
 # with an m. To string multiple options, see the entry for "bold_italic_blink".
+# more info here: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 
 text_options = {
   "reset" : "\033[m",

@@ -2,6 +2,9 @@ import numpy as np
 from datetime import datetime, timezone
 from os import getlogin, path
 
+### README
+# this file contains functions to support various print commands
+
 from text_options  import text_options
 
 # TODO fix timezone (or note in output that it's UTC)
@@ -18,6 +21,7 @@ def time_print(*args, **kwargs):
     time = emoji + "  " + time
   print(f"{time}", *args, **kwargs)
 
+
 # TODO look for python method, believe it's already written
 def center(input_string):
   '''
@@ -27,6 +31,7 @@ def center(input_string):
   screen = 76
   center = (screen - (len(input_string)))//2
   return spacer*center + input_string + spacer*center
+
 
 def attention(input_string):
   '''
