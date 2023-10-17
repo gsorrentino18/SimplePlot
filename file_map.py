@@ -3,6 +3,13 @@
 # The wildcarding works for the 'concatenate' of uproot, and might not in the future.
 # The testing_file_map is a reduced number of files for faster processing times.
 
+# fb ^ -1
+luminosities = {
+  "2022 F"   : 17.61,
+  "2022 G"   :  3.06,
+  "2022 F&G" : 20.67, # calculate by hand when new quantities are relevant
+}
+
 testing_file_map = {
   "DataTau"  : "Data/Tau*G*",
   "DataMuon" : "Data/Muon*G*",
