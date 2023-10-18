@@ -112,21 +112,21 @@ if __name__ == "__main__":
   parser.add_argument('--hide_yields', dest='hide_yields', default=False,   action='store_true')
   parser.add_argument('--final_state', dest='final_state', default="mutau", action='store')
   parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots", action='store')
-  # output_directory (default is 'plots_[final_state_mode]_[date]_[time_HH_MM]')
 
   args = parser.parse_args() 
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
+  lumi = luminosities["2022 G"] if testing else luminosities["2022 F&G"]
+  useDeepTauVersion = "2p5"
 
   # final_state_mode affects dataset, 'good_events' filter, and cuts
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
-  attention(final_state_mode)
   plot_dir = make_directory(args.plot_dir, args.final_state) # for output files of plots
 
-  lumi       = luminosities["2022 G"] if testing else luminosities["2022 F&G"]
+  # show info to user
+  attention(final_state_mode)
   print(f"Testing: {testing}")
-  useDeepTauVersion = "2p5"
   print(f"USING DEEP TAU VERSION {useDeepTauVersion}")
 
   good_events = set_good_events(final_state_mode)
@@ -169,7 +169,6 @@ if __name__ == "__main__":
   process_list = fill_process_list(process_list, using_directory, branches, good_events, final_state_mode,
                                    testing=testing)
 
-
   # TODO : consider combining the cutting step with processing step.
   # naively i think it would reduce the overall memory consumption,
   # because once a big set of files is loaded, it is immediately reduced,
@@ -184,6 +183,8 @@ if __name__ == "__main__":
   # idea to immediately cut any loaded data to reduce memory use, allowing quicker plotting
   # of the 25 minutes, 1 was spent plotting, 3 processing, and the rest loading the files (network time)
   # the User Time was 4.5 minutes
+  # UPDATE Oct 18th: did some memory consumption testing and found that 4GB of memory are used when running 
+  # this script in testing mode. Also, files not automatically closed. Would managing this better help?
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   protected_processes = ["DataTau", "DataMuon", "ggH", "VBF"]
@@ -276,7 +277,6 @@ if __name__ == "__main__":
     spruce_up_plot(hist_ax, hist_ratio, var, lumi)
     hist_ax.legend()
   
-   
     plt.savefig(plot_dir + "/" + str(var) + ".png")
 
   if hide_plots: pass
