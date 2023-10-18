@@ -186,7 +186,7 @@ def set_good_events(final_state_mode, trigger_study=False):
 
   elif final_state_mode == "mutau":
     good_events = "(HTT_SRevent) & (abs(HTT_pdgId)==15*13) & (METfilters) & (LeptonVeto==0)"
-    if not trigger_study: good_events += " & (Trigger_mutau) & (Trigger_ditau==0)"
+    if not trigger_study: good_events += " & (Trigger_mutau)"
 
   elif final_state_mode == "dimuon":
     # lepton veto must be applied manually for this final state
