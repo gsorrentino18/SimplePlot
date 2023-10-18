@@ -15,13 +15,13 @@ from get_and_set_functions import add_final_state_branches, add_DeepTau_branches
 from get_and_set_functions import accumulate_MC_subprocesses
 
 from calculate_functions   import calculate_signal_background_ratio
-from printing_functions    import time_print, attention, text_options
+from utility_functions     import time_print, attention, text_options, make_directory
 
 from cut_and_study_functions import make_final_state_cut, apply_cut, append_lepton_indices
 
 # fill process list is the only function which uses this line
 from file_map      import testing_file_map, full_file_map, luminosities
- 
+
 
 def fill_process_list(process_list, file_directory, branches, good_events, final_state_mode, testing=False):
   '''
@@ -118,11 +118,11 @@ if __name__ == "__main__":
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
-  plot_dir    = args.plot_dir    # "plots" by default, altered when saving plots if dir already exists
 
   # final_state_mode affects dataset, 'good_events' filter, and cuts
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
   attention(final_state_mode)
+  plot_dir = make_directory(args.plot_dir, args.final_state) # for output files of plots
 
   lumi       = luminosities["2022 G"] if testing else luminosities["2022 F&G"]
   print(f"Testing: {testing}")
@@ -276,15 +276,9 @@ if __name__ == "__main__":
     spruce_up_plot(hist_ax, hist_ratio, var, lumi)
     hist_ax.legend()
   
-    # TODO: more organized plotting output
-    # save and show results
-    #if not exist make dir for plots
-    #else make dir + "alt" in name
-    #  print("WARNING: directory already exists, putting images in alternate: {alternate_dir}")
-      
-    plot_dir
-    
-    plt.savefig(str(var) + "_my_happy_plot.png")
+   
+    plt.savefig(plot_dir + "/" + str(var) + ".png")
+
   if hide_plots: pass
   else: plt.show()
 

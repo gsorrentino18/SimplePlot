@@ -1,6 +1,6 @@
 import numpy as np
 from datetime import datetime, timezone
-from os import getlogin, path
+from os import getlogin, path, makedirs
 
 ### README
 # this file contains functions to support various print commands
@@ -63,3 +63,14 @@ def attention(input_string):
   print(input_string.center(screen_width, spacer))
 
 
+def make_directory(directory_name, final_state):
+  date_and_time  = datetime.now(timezone.utc).strftime('%d_%m_%H-%M')
+  directory_name = final_state + "_" + directory_name + "_" + date_and_time
+  if not path.isdir(directory_name):
+    makedirs(directory_name)
+  else:
+    directory_name = "alternate_" + directory_name
+    makedirs(directory_name)
+    print("WARNING: directory already exists, putting images in alternate: {directory_name}")
+  return directory_name
+ 
