@@ -1,5 +1,5 @@
 # Authored by Braden Allmond, Sep 11, 2023
- 
+
 # libraries
 import uproot # only used by fill_process_list
 import numpy as np
@@ -93,6 +93,7 @@ if __name__ == "__main__":
   would look at this script and use its format as a template.
   '''
 
+
   lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir      = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/"
   lxplus_directory  = lxplus_redirector + eos_user_dir
@@ -101,28 +102,28 @@ if __name__ == "__main__":
   using_directory   = home_directory
   print(f"CURRENT FILE DIRECTORY : {using_directory}")
   
-  # TODO implement arg parse to handle testing, dataset, interactively showing plots, what to plot
   
-  #import argparse
-  # testing (default is true)
-  # show_plots (default is true)
-  # final_state_mode (default is mutau)
+  import argparse 
+  parser = argparse.ArgumentParser(description='Make a standard Data-MC agreement plot.')
+  # store_true : when the argument is supplied, store it's value as true
+  # for 'testing' below, the default value is false if the argument is not specified
+  parser.add_argument('--testing',     dest='testing',     default=False,   action='store_true')
+  parser.add_argument('--hide_plots',  dest='hide_plots',  default=False,   action='store_true')
+  parser.add_argument('--hide_yields', dest='hide_yields', default=False,   action='store_true')
+  parser.add_argument('--final_state', dest='final_state', default="mutau", action='store')
+  parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots", action='store')
   # output_directory (default is 'plots_[final_state_mode]_[date]_[time_HH_MM]')
-  # show_yields_on_plots (default is true)
+
+  args = parser.parse_args() 
+  testing     = args.testing     # False by default, do full dataset unless otherwise specified
+  hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
+  hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
+  plot_dir    = args.plot_dir    # "plots" by default, altered when saving plots if dir already exists
 
   # final_state_mode affects dataset, 'good_events' filter, and cuts
-  #final_state_mode = "ditau"  # 5/1 min full/skim dataset
-  final_state_mode = "mutau"  # 10/5 min full/skim dataset
-  #final_state_mode = "etau"   # not working yet
-  #final_state_mode = "dimuon" # 30 min full dataset ~ 3min testing
-
+  final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
   attention(final_state_mode)
-  
-  # if testing, only use Data from Era G (small, 3 fb^-1), DY, WJ, and VBF
-  # else use all Era FG 2022 Data for Tau or Muon dataset, and all available MC samples listed in file_map.py
-  testing    = True
- 
-  show_plots = True
+
   lumi       = luminosities["2022 G"] if testing else luminosities["2022 F&G"]
   print(f"Testing: {testing}")
   useDeepTauVersion = "2p5"
@@ -133,7 +134,8 @@ if __name__ == "__main__":
   native_variables = ["MET_pt", "PuppiMET_pt", "nCleanJet", "HTT_dR", "HTT_m_vis",
                       #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj",
                       "HTT_H_pt_using_PUPPI_MET"]
-  added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", "CleanJet_btagWP"]
+  #added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", "CleanJet_btagWP"]
+  added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt"]
   added_ditau_variables  = ["FS_t1_pt", "FS_t1_eta", "FS_t2_pt", "FS_t2_eta"]
   added_variables  = added_ditau_variables if final_state_mode=="ditau" else added_mutau_variables
   full_variables   = native_variables + added_variables
@@ -166,6 +168,7 @@ if __name__ == "__main__":
   process_list = {}
   process_list = fill_process_list(process_list, using_directory, branches, good_events, final_state_mode,
                                    testing=testing)
+
 
   # TODO : consider combining the cutting step with processing step.
   # naively i think it would reduce the overall memory consumption,
@@ -220,6 +223,7 @@ if __name__ == "__main__":
       print("Process not recognized: {process}")
 
   time_print("Processing finished!")
+
   ## end processing loop, begin plotting
   
   for var in vars_to_plot:
@@ -277,7 +281,11 @@ if __name__ == "__main__":
     #if not exist make dir for plots
     #else make dir + "alt" in name
     #  print("WARNING: directory already exists, putting images in alternate: {alternate_dir}")
+      
+    plot_dir
     
     plt.savefig(str(var) + "_my_happy_plot.png")
-  if show_plots: plt.show()
+  if hide_plots: pass
+  else: plt.show()
+
 
