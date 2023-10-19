@@ -63,9 +63,10 @@ def attention(input_string):
   print(input_string.center(screen_width, spacer))
 
 
-def make_directory(directory_name, final_state):
-  date_and_time  = datetime.now(timezone.utc).strftime('%d_%m_%H-%M')
+def make_directory(directory_name, final_state, testing=False):
+  date_and_time  = datetime.now(timezone.utc).strftime('from_%d-%m_at_%H%M')
   directory_name = final_state + "_" + directory_name + "_" + date_and_time
+  if testing: directory_name += "_testing"
   if not path.isdir(directory_name):
     makedirs(directory_name)
   else:

@@ -22,7 +22,16 @@ from cut_and_study_functions import make_final_state_cut, apply_cut, append_lept
 # fill process list is the only function which uses this line
 from file_map      import testing_file_map, full_file_map, luminosities
 
-
+# TODO, change from receiving list to receiving one file
+# actually, this receives an empty list, so that's an erroneous argument
+#
+# would be best to separate out the file_map so you have more control over 
+# what is loaded when
+#
+# would like to load one process at a time, immediately apply cuts, and store that info
+# (destroying/freeing resources as early as possible), and move on until finished
+# come back to this after TT/binning fixes...
+# https://www.codingdeeply.com/delete-object-from-memory-python/
 def fill_process_list(process_list, file_directory, branches, good_events, final_state_mode, testing=False):
   '''
   Most important function! Contains the only call to uproot in this library! 
@@ -122,7 +131,7 @@ if __name__ == "__main__":
 
   # final_state_mode affects dataset, 'good_events' filter, and cuts
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
-  plot_dir = make_directory(args.plot_dir, args.final_state) # for output files of plots
+  plot_dir = make_directory(args.plot_dir, args.final_state, testing=testing) # for output files of plots
 
   # show info to user
   attention(final_state_mode)
@@ -261,8 +270,6 @@ if __name__ == "__main__":
       h_signals[signal] = {}
       h_signals[signal]["BinnedEvents"] = get_binned_info(signal, signal_variable, xbins, signal_weights, lumi)
 
-    yields = calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
-    
     h_summed_backgrounds = 0
     for background in h_backgrounds:
       h_summed_backgrounds += h_backgrounds[background]["BinnedEvents"]
@@ -278,6 +285,9 @@ if __name__ == "__main__":
     hist_ax.legend()
   
     plt.savefig(plot_dir + "/" + str(var) + ".png")
+
+    # calculate and print these quanities only once
+    if (var=="FS_mu_pt" or var=="FS_t1_pt"): calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
 
   if hide_plots: pass
   else: plt.show()

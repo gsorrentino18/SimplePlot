@@ -26,12 +26,10 @@ def make_bins(variable_name):
   '''
   nbins, xmin, xmax = binning_dictionary[variable_name]
   check_uniformity = (xmax-xmin)/nbins
-  print(check_uniformity)
   if (check_uniformity % 1 != 0 and check_uniformity % 0.1 != 0):
     print(f"nbins, xmin, xmax : {nbins}, {xmin}, {xmax}")
     print(f"(xmax-xmin)/nbins = {check_uniformity}, results in bad bin edges and centers")
   xbins = np.linspace(xmin, xmax, nbins+1)
-  print(xbins)
   return xbins
 
 
