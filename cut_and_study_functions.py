@@ -77,19 +77,19 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "PuppiMET_pt", "PuppiMET_phi",
                   "Lepton_tauIdx", "Lepton_muIdx", "l1_indices", "l2_indices"]
   #TODO add this "CleanJet_btagWP" (no effect in August skims since it was always 1)
-  unpack_mutau.append("HTT_Lep_pt") # TODO delete after testing
-  unpack_mutau.append("HTT_Tau_pt") # TODO delete after testing
+  unpack_mutau.append("HTT_Lep_pt") # TODO delete after TT bug found
+  unpack_mutau.append("HTT_Tau_pt") # TODO delete after TT bug found
   unpack_mutau = add_DeepTau_branches(unpack_mutau, DeepTauVersion)
   unpack_mutau = add_trigger_branches(unpack_mutau, final_state_mode="mutau")
   unpack_mutau = (event_dictionary.get(key) for key in unpack_mutau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_mutau] # "*" unpacks a tuple
   pass_cuts, FS_mu_pt, FS_tau_pt, FS_mu_eta, FS_tau_eta, HTT_mt = [], [], [], [], [], []
-  dummy_HTT_Lep_pt = [] #TODO delete
-  dummy_HTT_Tau_pt = [] #TODO delete
+  dummy_HTT_Lep_pt = [] #TODO delete after TT bug found
+  dummy_HTT_Tau_pt = [] #TODO delete after TT bug found
   # note these are in the same order as the variables in the first line of this function :)
   for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, MET_pt, MET_phi, tau_idx, mu_idx,\
       l1_idx, l2_idx, HTT_Lep_pt, HTT_Tau_pt, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
-      #l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
+      #l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check): # use after TT bug found
 
     tauLoc     = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
     muLoc      = mu_idx[l1_idx]  + mu_idx[l2_idx]  + 1
@@ -104,38 +104,32 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
     #                      (!HLT_IsoMu24 && HLT_IsoMu20_eta2p1_LooseDeepTauPFTauHPS27_eta2p1_CrossL1 && \
     #                       HTT_Lep_pt > 21. && Tau_eta[Lepton_tauIdx[FSLeptons[0]] + Lepton_tauIdx[FSLeptons[1]] + 1]) )"
 
-    dumbTestTau = (HTT_Tau_pt > 30.)
-    dumbTestMuTrig = (trg24mu and HTT_Lep_pt > 25.)
-    dumbTestCrossTrig = (not (trg24mu or trg27mu) and crosstrg and HTT_Lep_pt > 21 and tauEtaVal)
+    #dumbTestTau = (HTT_Tau_pt > 30.)
+    #dumbTestMuTrig = (trg24mu and HTT_Lep_pt > 25.)
+    #dumbTestCrossTrig = (not (trg24mu or trg27mu) and crosstrg and HTT_Lep_pt > 21 and tauEtaVal)
 
     passMT     = (mtVal < 50.)
     passTauPt  = (tauPtVal > 30.)
     pass25MuPt   = (trg24mu and muPtVal > 25.)
     pass28MuPt   = (trg27mu and muPtVal > 28.)
-    passMuPtCrossTrigger = (crosstrg and (21. < muPtVal < 25.) and abs(tauEtaVal) < 2.1)
+    passMuPtCrossTrigger = (crosstrg and (21. < muPtVal < 25.) and abs(tauEtaVal) < 2.1 and (tauPtVal > 32) )
     passTauDT  = (vJet[tauLoc] >= 5 and vMu[tauLoc] >= 4 and vEle[tauLoc] >= 1)
 
-    #if ( passMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
 
     noCut = True
     #if noCut: # 1
     #if (passTauPt and pass25MuPt and passTauDT): # 2
     #if (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger) and passTauDT): # 3
-    #if (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger) and passTauDT and passMT): # 4
-
-    # nocut is same for both, and need the trig/crosstrig check so this has only 2 that are similar
-    #if (dumbTestTau and (dumbTestMuTrig or dumbTestCrossTrig) and passTauDT): # 1
-    if (dumbTestTau and (dumbTestMuTrig or dumbTestCrossTrig) and passTauDT and passMT): # 2
-
-    #if (passTauPt and (dumbTestMuTrig or dumbTestCrossTrig) and passTauDT and passMT):
+    #if (passMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT): # 4
+    if (passMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
       pass_cuts.append(i)
       FS_mu_pt.append(muPtVal)
       FS_tau_pt.append(tauPtVal)
       FS_mu_eta.append(muEtaVal)
       FS_tau_eta.append(tauEtaVal)
       HTT_mt.append(mtVal)
-      dummy_HTT_Lep_pt.append(HTT_Lep_pt)
-      dummy_HTT_Tau_pt.append(HTT_Tau_pt)
+      dummy_HTT_Lep_pt.append(HTT_Lep_pt) # TODO delete after TT bug found
+      dummy_HTT_Tau_pt.append(HTT_Tau_pt) # TODO delete after TT bug found
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
   event_dictionary["FS_mu_pt"]  = np.array(FS_mu_pt)
@@ -143,8 +137,8 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   event_dictionary["FS_mu_eta"] = np.array(FS_mu_eta)
   event_dictionary["FS_tau_eta"] = np.array(FS_tau_eta)
   event_dictionary["HTT_mt"]    = np.array(HTT_mt)
-  event_dictionary["dummy_HTT_Lep_pt"] = np.array(dummy_HTT_Lep_pt) # TODO delete
-  event_dictionary["dummy_HTT_Tau_pt"] = np.array(dummy_HTT_Tau_pt) # TODO delete
+  event_dictionary["dummy_HTT_Lep_pt"] = np.array(dummy_HTT_Lep_pt) # TODO delete after TT bug found
+  event_dictionary["dummy_HTT_Tau_pt"] = np.array(dummy_HTT_Tau_pt) # TODO delete after TT bug found
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after mutau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary

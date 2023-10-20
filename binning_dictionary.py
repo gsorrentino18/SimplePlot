@@ -5,16 +5,16 @@
 binning_dictionary = {
 #  var  : (nBins, xmin, xmax),
 #  ditau
-  "FS_t1_pt"   : (30, 0, 180),
+  "FS_t1_pt"   : (36, 0, 180),
   "FS_t1_eta"  : (30, -3, 3),
-  "FS_t2_pt"   : (40, 0, 120),
+  "FS_t2_pt"   : (24, 0, 120),
   "FS_t2_eta"  : (30, -3, 3),
 #  mutau
   "FS_mu_pt"   : (40, 0, 120),
   "dummy_HTT_Lep_pt" : (40, 0, 120),
   "dummy_HTT_Tau_pt" : (30, 0, 180),
   "FS_mu_eta"  : (30, -3, 3),
-  "FS_tau_pt"  : (30, 0, 180),
+  "FS_tau_pt"  : (36, 0, 180),
   "FS_tau_eta" : (30, -3, 3),
 # common, calculated on the fly
   "HTT_mt"        : (20, 0, 200),
