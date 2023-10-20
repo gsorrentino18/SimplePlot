@@ -48,12 +48,17 @@ def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):
   calculate the correct transverse mass by hand. Either form below is equivalenetly valid.
   '''
   # useful also for etau, emu
-  delta_phi = phi_mpi_pi(lep_phi - MET_phi)
-  mt = np.sqrt(2 * lep_pt * MET_pt * (1 - np.cos(delta_phi) ) ) 
-  #sum_pt_2  = (lep_pt + MET_pt)**2
-  #sum_ptx_2 = (lep_pt*np.cos(lep_phi) + MET_pt*np.cos(MET_phi))**2
-  #sum_pty_2 = (lep_pt*np.sin(lep_phi) + MET_pt*np.sin(MET_phi))**2
-  #mt = sum_pt_2 - sum_ptx_2 - sum_pty_2 # alternate calculation, same quantity
+  #delta_phi = phi_mpi_pi(lep_phi - MET_phi)
+  #mt = np.sqrt(2 * lep_pt * MET_pt * (1 - np.cos(delta_phi) ) ) 
+  #alternate calculation, same quantity up to 4 decimal places
+  lep_x = lep_pt*np.cos(lep_phi)
+  lep_y = lep_pt*np.sin(lep_phi)
+  MET_x = MET_pt*np.cos(MET_phi)
+  MET_y = MET_pt*np.sin(MET_phi)
+  sum_pt_2  = (lep_pt + MET_pt) * (lep_pt + MET_pt)
+  sum_ptx_2 = (lep_x + MET_x) * (lep_x + MET_x)
+  sum_pty_2 = (lep_y + MET_y) * (lep_y + MET_y)
+  mt = np.sqrt(sum_pt_2 - sum_ptx_2 - sum_pty_2) 
   return mt
   
 

@@ -180,12 +180,26 @@ def set_good_events(final_state_mode, trigger_study=False):
   good_events = ""
   if trigger_study: print("*"*20 + " removed trigger cut for yield study " + "*"*20)
 
+  # relevant definitions from NanoTauAnalysis /// modules/TauPairSelector.py
+  # HTT_SRevent and HTT_ARevent require opposite sign objects
+  # HTT_SRevent = ((pdgIdPair < 0) 
+  #            and ( ((LeptonIso < 0.2) and (abs(pdgIdPair)==11*13)) or (LeptonIso < 0.15)) 
+  #            and TauPassVsJet and (self.leptons[finalpair[1]].pt > 15))
+  # HTT_ARevent = ((pdgIdPair < 0) 
+  #            and ( ((LeptonIso < 0.2) and (abs(pdgIdPair)==11*13)) or (LeptonIso < 0.15)) 
+  #            and (not TauPassVsJet) and (self.leptons[finalpair[1]].pt > 15))
+  #     # All SR requirements besides TauPassVsJet
+  # HTT_SSevent = ((pdgIdPair > 0) 
+  #            and ( ((LeptonIso < 0.2) and (abs(pdgIdPair)==11*13)) or (LeptonIso < 0.15)) 
+  #            and TauPassVsJet and (self.leptons[finalpair[1]].pt > 15)) 
+  #     # All SR requirements besides opposite sign
+  
   if final_state_mode == "ditau":
     good_events = "(HTT_SRevent) & (abs(HTT_pdgId)==15*15) & (METfilters) & (LeptonVeto==0)"
     if not trigger_study: good_events += " & (Trigger_ditau)"
 
   elif final_state_mode == "mutau":
-    good_events = "(HTT_SRevent) & (abs(HTT_pdgId)==15*13) & (METfilters) & (LeptonVeto==0)"
+    good_events = "(HTT_SRevent) & (abs(HTT_pdgId)==13*15) & (METfilters) & (LeptonVeto==0)"
     if not trigger_study: good_events += " & (Trigger_mutau)"
 
   elif final_state_mode == "dimuon":
