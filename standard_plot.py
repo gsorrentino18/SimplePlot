@@ -5,6 +5,7 @@ import uproot # only used by fill_process_list
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
+import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot
@@ -32,7 +33,8 @@ from file_map      import testing_file_map, full_file_map, luminosities
 # (destroying/freeing resources as early as possible), and move on until finished
 # come back to this after TT/binning fixes...
 # https://www.codingdeeply.com/delete-object-from-memory-python/
-def fill_process_list(process_list, file_directory, branches, good_events, final_state_mode, testing=False):
+#def fill_process_list(process_list, file_directory, branches, good_events, final_state_mode, testing=False):
+def fill_process_list(process, file_directory, branches, good_events, final_state_mode, testing=False):
   '''
   Most important function! Contains the only call to uproot in this library! 
   Loads into memory files relevant to the given 'final_state_mode' by reading
@@ -52,23 +54,37 @@ def fill_process_list(process_list, file_directory, branches, good_events, final
   to a set of files. 
   '''
   file_map = testing_file_map if testing else full_file_map
-  if final_state_mode == "ditau": del(file_map["DataMuon"])
-  elif final_state_mode == "mutau": del(file_map["DataTau"])
-  else: 
-    print(f"{final_state_mode} isn't a final state that I have a mapping for! Quitting...")
-    sys.exit()
-  for process in file_map:
-    time_print(f"Loading {file_map[process]}")
-    file_string = file_directory + "/" + file_map[process] + ".root:Events"
-    try:
-      processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
-    except FileNotFoundError:
-      print(text_options["yellow"] + "FILE NOT FOUND! " + text_options["reset"], end="")
-      print(f"continuing without loading {file_map[process]}...")
-      continue
-    process_list[process] = {}
-    process_list[process]["info"] = processed_events
-    if "Generator_weight" not in branches: branches.append("Generator_weight") # only works if Data is first
+  #if final_state_mode == "ditau": del(file_map["DataMuon"])
+  #elif final_state_mode == "mutau": del(file_map["DataTau"])
+  #else: 
+  #  print(f"{final_state_mode} isn't a final state that I have a mapping for! Quitting...")
+  #  sys.exit()
+  #for process in file_map:
+  #  time_print(f"Loading {file_map[process]}")
+  #  file_string = file_directory + "/" + file_map[process] + ".root:Events"
+  #  try:
+  #    processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
+  #  except FileNotFoundError:
+  #    print(text_options["yellow"] + "FILE NOT FOUND! " + text_options["reset"], end="")
+  #    print(f"continuing without loading {file_map[process]}...")
+  #    continue
+  #  process_list[process] = {}
+  #  process_list[process]["info"] = processed_events
+  #  if "Generator_weight" not in branches: branches.append("Generator_weight") # only works if Data is first
+
+  time_print(f"Loading {file_map[process]}")
+  file_string = file_directory + "/" + file_map[process] + ".root:Events"
+  try:
+    processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
+  except FileNotFoundError:
+    print(text_options["yellow"] + "FILE NOT FOUND! " + text_options["reset"], end="")
+    print(f"continuing without loading {file_map[process]}...")
+    return None
+  process_list = {}
+  process_list[process] = {}
+  process_list[process]["info"] = processed_events
+  if "Generator_weight" not in branches: branches.append("Generator_weight") # only works if Data is first
+ 
   return process_list
 
 
@@ -92,6 +108,7 @@ if __name__ == "__main__":
   '''
   Just read the code, it speaks for itself.
   Kidding.
+
   This is the main block, which calls a bunch of other functions from other files
   and uses local variables and short algorithms to, by final state
   1) load data from files
@@ -144,11 +161,13 @@ if __name__ == "__main__":
                       #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj",
                       "HTT_H_pt_using_PUPPI_MET"]
   #added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", "CleanJet_btagWP"]
-  added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt"]
+  #added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt"]
+  added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", 
+                            "dummy_HTT_Lep_pt", "dummy_HTT_Tau_pt"]
   added_ditau_variables  = ["FS_t1_pt", "FS_t1_eta", "FS_t2_pt", "FS_t2_eta"]
   added_variables  = added_ditau_variables if final_state_mode=="ditau" else added_mutau_variables
   full_variables   = native_variables + added_variables
-  vars_to_plot     = ["FS_mu_pt", "FS_mu_eta"] if testing else full_variables
+  vars_to_plot     = ["MET_pt", "HTT_m_vis"] if testing else full_variables
 
   # TODO: make and store jet branches correctly
   #  i.e. branches above ending in "fromHighestMjj" should only be plotted for events with nJet>2
@@ -174,10 +193,11 @@ if __name__ == "__main__":
   # errors like " 'NoneType' object is not iterable " usually mean you forgot
   # to add some branch relevant to the final state
 
-  process_list = {}
-  process_list = fill_process_list(process_list, using_directory, branches, good_events, final_state_mode,
-                                   testing=testing)
-
+  # simply change this to do one process at a time instead of all of them
+  #process_list = {}
+  #process_list = fill_process_list(process_list, using_directory, branches, good_events, final_state_mode,
+  #                                 testing=testing)
+    
   # TODO : consider combining the cutting step with processing step.
   # naively i think it would reduce the overall memory consumption,
   # because once a big set of files is loaded, it is immediately reduced,
@@ -198,29 +218,50 @@ if __name__ == "__main__":
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   protected_processes = ["DataTau", "DataMuon", "ggH", "VBF"]
   data_dictionary, stack_dictionary, signal_dictionary = {}, {}, {}
-  for process in process_list: 
+
+  file_map = testing_file_map if testing else full_file_map
+  if final_state_mode == "ditau": del(file_map["DataMuon"])
+  if final_state_mode == "mutau": del(file_map["DataTau"])
+
+  #TODO: clean up after commit
+  #for process in process_list: 
+  for process in file_map: 
+
+    new_process_list = fill_process_list(process, using_directory, branches, good_events, final_state_mode,
+                                     testing=testing)
+    if new_process_list == None: continue
+
     time_print(f"Processing {process}")
-    process_events = process_list[process]["info"]
+    process_events = new_process_list[process]["info"]
+    del(new_process_list)
+
     process_events = append_lepton_indices(process_events)
     process_events = make_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
-    process_events = apply_cut(process_events, "pass_cuts")
+    #process_events = apply_cut(process_events, "pass_cuts")
+    cut_events = apply_cut(process_events, "pass_cuts")
+    del(process_events)
+    gc.collect()
 
     if process not in protected_processes:
       stack_dictionary[process] = {
         "PlotEvents": {}, 
-        "Generator_weight": process_events["Generator_weight"],
+        #"Generator_weight": process_events["Generator_weight"],
+        "Generator_weight": cut_events["Generator_weight"],
       }
       for var in vars_to_plot:
-        stack_dictionary[process]["PlotEvents"][var] = process_events[var]
+        #stack_dictionary[process]["PlotEvents"][var] = process_events[var]
+        stack_dictionary[process]["PlotEvents"][var] = cut_events[var]
 
     elif process == "ggH" or process == "VBF":
       signal_dictionary[process] = {
         "PlotEvents": {},
-        "Generator_weight": process_events["Generator_weight"],
+        #"Generator_weight": process_events["Generator_weight"],
+        "Generator_weight": cut_events["Generator_weight"],
         "plot_scaling" : 100 if process == "ggH" else 500 if process == "VBF" else 50,
       }
       for var in vars_to_plot:
-        signal_dictionary[process]["PlotEvents"][var] = process_events[var]
+        #signal_dictionary[process]["PlotEvents"][var] = process_events[var]
+        signal_dictionary[process]["PlotEvents"][var] = cut_events[var]
   
     elif "Data" in process:
       # overwrites process name of data for homogeneity in later plotting
@@ -228,9 +269,12 @@ if __name__ == "__main__":
         "PlotEvents":{}
       }
       for var in vars_to_plot:
-        data_dictionary["Data"]["PlotEvents"][var] = process_events[var]
+        #data_dictionary["Data"]["PlotEvents"][var] = process_events[var]
+        data_dictionary["Data"]["PlotEvents"][var] = cut_events[var]
     else:
       print("Process not recognized: {process}")
+    
+    del(cut_events)
 
   time_print("Processing finished!")
 
