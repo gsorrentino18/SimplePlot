@@ -125,7 +125,7 @@ if __name__ == "__main__":
                          "FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta",
                          "HTT_mt"]
   branches = [
-              "run", "luminosityBlock", "event",
+              "run", "luminosityBlock", "event", "Generator_weight",
               "FSLeptons", "Lepton_pt", "Lepton_eta",
               "Lepton_tauIdx", "Lepton_muIdx", 
               "HTT_Lep_pt", "HTT_Tau_pt",
@@ -151,10 +151,10 @@ if __name__ == "__main__":
   # UPDATE Oct 23rd: managing this better helps a lot, reduces hang time by 2x on machines with fewer resources
   # additionally, skimming samples by FS helps tremendously
 
-  # TODO: update file_map handling -- somehow bundle
   file_map = testing_file_map if testing else full_file_map
-  if final_state_mode == "ditau": del(file_map["DataMuon"]) # remove this after FS skimming and combine datasets
-  if final_state_mode == "mutau": del(file_map["DataTau"])
+  # TODO fix double-counting between datasets 
+  #if final_state_mode == "ditau": del(file_map["DataMuon"]) # remove this after FS skimming and combine datasets
+  #if final_state_mode == "mutau": del(file_map["DataTau"])
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     gc.collect()
     new_process_list = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,
-                                              testing=testing)
+                                              data=("Data" in process), testing=testing)
     if new_process_list == None: continue
 
     time_print(f"Processing {process}")

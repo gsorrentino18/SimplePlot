@@ -110,9 +110,10 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
 
     passMT     = (mtVal < 50.)
     passTauPt  = (tauPtVal > 30.)
-    pass25MuPt   = (trg24mu and muPtVal > 25.)
-    pass28MuPt   = (trg27mu and muPtVal > 28.)
-    passMuPtCrossTrigger = (crosstrg and (21. < muPtVal < 25.) and abs(tauEtaVal) < 2.1 and (tauPtVal > 32) )
+    pass25MuPt   = (trg24mu and (muPtVal > 25.) and (abs(muEtaVal) < 2.3))
+    pass28MuPt   = (trg27mu and (muPtVal > 28.) and (abs(muEtaVal) < 2.3))
+    passMuPtCrossTrigger = (crosstrg and ( (21. < muPtVal < 25.) and (abs(muEtaVal) < 2.1))
+                                     and ( (tauPtVal > 32)       and (abs(tauEtaVal) < 2.1)) ) 
     passTauDT  = (vJet[tauLoc] >= 5 and vMu[tauLoc] >= 4 and vEle[tauLoc] >= 1)
 
 

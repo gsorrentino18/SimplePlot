@@ -205,13 +205,18 @@ def set_good_events(final_state_mode, trigger_study=False):
   #            and TauPassVsJet and (self.leptons[finalpair[1]].pt > 15)) 
   #     # All SR requirements besides opposite sign
   
+  # apply FS cut separately so it can be used with reject_duplicate_events
   if final_state_mode == "ditau":
-    good_events = "(HTT_SRevent) & (abs(HTT_pdgId)==15*15) & (METfilters) & (LeptonVeto==0)"
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==15*15"
     if not trigger_study: good_events += " & (Trigger_ditau)"
 
   elif final_state_mode == "mutau":
-    good_events = "(HTT_SRevent) & (abs(HTT_pdgId)==13*15) & (METfilters) & (LeptonVeto==0)"
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==13*15"
     if not trigger_study: good_events += " & (Trigger_mutau)"
+
+  elif final_state_mode == "etau":
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==11*15"
+    if not trigger_study: good_events += " & (Trigger_etau)"
 
   elif final_state_mode == "dimuon":
     # lepton veto must be applied manually for this final state
@@ -219,5 +224,13 @@ def set_good_events(final_state_mode, trigger_study=False):
 
   print(f"good events pass : {good_events}")
   return good_events
+
+def reject_duplicate_events(final_state_mode, dataset, good_events):
+  # see TauFW's plotter implementation
+  #if final_state_mode == "mutau":
+  #  if dataset == "DataTau":
+  #  elif dataset == "DataMuon":
+  #  elif dataset == "DataElectron":
+  pass
 
 

@@ -78,7 +78,7 @@ full_file_map = {
   "ggH"   : "Signal/ggH*",
 }
 
-def load_process_from_file(process, file_directory, branches, good_events, final_state_mode, testing=False):
+def load_process_from_file(process, file_directory, branches, good_events, final_state_mode, data=False, testing=False):
   '''
   Most important function! Contains the only call to uproot in this library! 
   Loads into memory files relevant to the given 'final_state_mode' by reading
@@ -101,6 +101,9 @@ def load_process_from_file(process, file_directory, branches, good_events, final
 
   time_print(f"Loading {file_map[process]}")
   file_string = file_directory + "/" + file_map[process] + ".root:Events"
+  if data: 
+    branches = [branch for branch in branches if branch != "Generator_weight"]
+    #good_events = reject_events_in_more_than_one_dataset(final_state_mode, good_events) # TODO finish implementing
   try:
     processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
   except FileNotFoundError:
@@ -110,7 +113,6 @@ def load_process_from_file(process, file_directory, branches, good_events, final
   process_list = {}
   process_list[process] = {}
   process_list[process]["info"] = processed_events
-  if "Generator_weight" not in branches: branches.append("Generator_weight") # only works if Data is first
  
   return process_list
 
