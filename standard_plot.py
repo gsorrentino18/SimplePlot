@@ -8,7 +8,7 @@ import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
 from file_functions        import testing_file_map, full_file_map, luminosities
-from file_functions        import fill_process_list, append_to_combined_processes, sort_combined_processes
+from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
 from cut_and_study_functions import make_final_state_cut, apply_cut, append_lepton_indices
 
@@ -20,7 +20,7 @@ from get_and_set_functions import add_final_state_branches, add_DeepTau_branches
 from get_and_set_functions import accumulate_MC_subprocesses, accumulate_datasets
 
 from calculate_functions   import calculate_signal_background_ratio
-from utility_functions     import time_print, attention, text_options, make_directory
+from utility_functions     import time_print, attention, make_directory
 
 
 def match_objects_to_trigger_bit():
@@ -161,8 +161,9 @@ if __name__ == "__main__":
   for process in file_map: 
 
     gc.collect()
-    new_process_list = fill_process_list(process, using_directory, branches, good_events, final_state_mode,
-                                     testing=testing)
+    new_process_list = load_process_from_file(process, using_directory, 
+                                              branches, good_events, final_state_mode,
+                                              testing=testing)
     if new_process_list == None: continue
 
     time_print(f"Processing {process}")
@@ -219,7 +220,7 @@ if __name__ == "__main__":
     for background in h_backgrounds:
       h_summed_backgrounds += h_backgrounds[background]["BinnedEvents"]
 
-    # signal is put in a separate dictionary from MC, but they processed very similarly
+    # signal is put in a separate dictionary from MC, but they are processed very similarly
     h_signals = {}
     for signal in signal_dictionary:
       signal_variable = signal_dictionary[signal]["PlotEvents"][var]

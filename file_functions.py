@@ -78,7 +78,7 @@ full_file_map = {
   "ggH"   : "Signal/ggH*",
 }
 
-def fill_process_list(process, file_directory, branches, good_events, final_state_mode, testing=False):
+def load_process_from_file(process, file_directory, branches, good_events, final_state_mode, testing=False):
   '''
   Most important function! Contains the only call to uproot in this library! 
   Loads into memory files relevant to the given 'final_state_mode' by reading
