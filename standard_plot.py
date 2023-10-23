@@ -1,91 +1,26 @@
 # Authored by Braden Allmond, Sep 11, 2023
 
 # libraries
-import uproot # only used by fill_process_list
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
+from file_functions        import testing_file_map, full_file_map, luminosities
+from file_functions        import fill_process_list, append_to_combined_processes, sort_combined_processes
+
+from cut_and_study_functions import make_final_state_cut, apply_cut, append_lepton_indices
+
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot
 from plotting_functions    import plot_data, plot_MC, plot_signal
 
 from get_and_set_functions import set_good_events, make_bins, get_binned_info
 from get_and_set_functions import add_final_state_branches, add_DeepTau_branches, add_trigger_branches
-from get_and_set_functions import accumulate_MC_subprocesses
+from get_and_set_functions import accumulate_MC_subprocesses, accumulate_datasets
 
 from calculate_functions   import calculate_signal_background_ratio
 from utility_functions     import time_print, attention, text_options, make_directory
-
-from cut_and_study_functions import make_final_state_cut, apply_cut, append_lepton_indices
-
-# fill process list is the only function which uses this line
-from file_map      import testing_file_map, full_file_map, luminosities
-
-# TODO, change from receiving list to receiving one file
-# actually, this receives an empty list, so that's an erroneous argument
-#
-# would be best to separate out the file_map so you have more control over 
-# what is loaded when
-#
-# would like to load one process at a time, immediately apply cuts, and store that info
-# (destroying/freeing resources as early as possible), and move on until finished
-# come back to this after TT/binning fixes...
-# https://www.codingdeeply.com/delete-object-from-memory-python/
-#def fill_process_list(process_list, file_directory, branches, good_events, final_state_mode, testing=False):
-def fill_process_list(process, file_directory, branches, good_events, final_state_mode, testing=False):
-  '''
-  Most important function! Contains the only call to uproot in this library! 
-  Loads into memory files relevant to the given 'final_state_mode' by reading
-  'file_map' which is a python dictionary maintained in a separate file. 
-  uproot.concatenate grabs all files matching the wildcard in 'file_map[process]'
-  and loads ONLY the data specified by 'branches' which pass the cut 'good_events'.
-  Both 'branches' and 'good_events' are specified in other places and depend on the
-  final state mode.
-  library='np' loads the data in a numpy array that looks like this
-   {{"branch_1" : [event1, event2, event3, ..., eventN]},
-    {"branch_2" : [event1, event2, event3, ..., eventN]},
-    {"branch_3" : [event1, event2, event3, ..., eventN]}, etc.
-    {"branch_N" : [event1, event2, event3, ..., eventN]}}
-  This coding library is built using numpy arrays as the default and will not work
-  with other types of arrays (although the methods could be copied and rewritten). 
-  Note: that a numpy array is generated for each loaded process, which corresponds
-  to a set of files. 
-  '''
-  file_map = testing_file_map if testing else full_file_map
-  #if final_state_mode == "ditau": del(file_map["DataMuon"])
-  #elif final_state_mode == "mutau": del(file_map["DataTau"])
-  #else: 
-  #  print(f"{final_state_mode} isn't a final state that I have a mapping for! Quitting...")
-  #  sys.exit()
-  #for process in file_map:
-  #  time_print(f"Loading {file_map[process]}")
-  #  file_string = file_directory + "/" + file_map[process] + ".root:Events"
-  #  try:
-  #    processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
-  #  except FileNotFoundError:
-  #    print(text_options["yellow"] + "FILE NOT FOUND! " + text_options["reset"], end="")
-  #    print(f"continuing without loading {file_map[process]}...")
-  #    continue
-  #  process_list[process] = {}
-  #  process_list[process]["info"] = processed_events
-  #  if "Generator_weight" not in branches: branches.append("Generator_weight") # only works if Data is first
-
-  time_print(f"Loading {file_map[process]}")
-  file_string = file_directory + "/" + file_map[process] + ".root:Events"
-  try:
-    processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
-  except FileNotFoundError:
-    print(text_options["yellow"] + "FILE NOT FOUND! " + text_options["reset"], end="")
-    print(f"continuing without loading {file_map[process]}...")
-    return None
-  process_list = {}
-  process_list[process] = {}
-  process_list[process]["info"] = processed_events
-  if "Generator_weight" not in branches: branches.append("Generator_weight") # only works if Data is first
- 
-  return process_list
 
 
 def match_objects_to_trigger_bit():
@@ -113,10 +48,20 @@ if __name__ == "__main__":
   and uses local variables and short algorithms to, by final state
   1) load data from files
   2) apply bespoke cuts to reject events
-  3) create a lovely plot
+  3) explicitly remove large objects after use
+  4) create a lovely plot
 
   Ideally, if one wants to use this library to make another type of plot, they
   would look at this script and use its format as a template.
+
+  This code sometimes loads very large files, and then makes very large arrays from the data.
+  Because of this, I do a bit of memory management, which is atypical of python programs.
+  This handling reduces the program burden on lxplus nodes, and subsequently leads to faster results.
+  Usually, calling the garbage collector manually like this reduces code efficiency, and if the program
+  runs very slowly in the future the memory consumption would be the first thing to check.
+  In the main loop below, gc.collect() tells python to remove unused objects and free up resources,
+  and del(large_object) lets python know we no longer need an object, and its resources can be
+  reacquired at the next gc.collect() call
   '''
 
 
@@ -125,6 +70,7 @@ if __name__ == "__main__":
   lxplus_directory  = lxplus_redirector + eos_user_dir
   # there's no place like home :)
   home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3SkimmedSamples"
+  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/mutau"
   using_directory   = home_directory
   print(f"CURRENT FILE DIRECTORY : {using_directory}")
   
@@ -193,18 +139,6 @@ if __name__ == "__main__":
   # errors like " 'NoneType' object is not iterable " usually mean you forgot
   # to add some branch relevant to the final state
 
-  # simply change this to do one process at a time instead of all of them
-  #process_list = {}
-  #process_list = fill_process_list(process_list, using_directory, branches, good_events, final_state_mode,
-  #                                 testing=testing)
-    
-  # TODO : consider combining the cutting step with processing step.
-  # naively i think it would reduce the overall memory consumption,
-  # because once a big set of files is loaded, it is immediately reduced,
-  # then another big set would be loaded and reduced, as opposed to loading several
-  # large data sets and then reducing them all in turn.
-  # simply bundle below code into "fill_process_list", with an initialization sequence for containers
-
   # TODO: move to lxplus, make the jump!
   # UPDATE: 40+ minutes on lxplus, and no output.. difficult situation to debug
   # for now will keep things local and work to scale up and over by the end of October!
@@ -214,19 +148,19 @@ if __name__ == "__main__":
   # the User Time was 4.5 minutes
   # UPDATE Oct 18th: did some memory consumption testing and found that 4GB of memory are used when running 
   # this script in testing mode. Also, files not automatically closed. Would managing this better help?
+  # UPDATE Oct 23rd: managing this better helps a lot, reduces hang time by 2x on machines with fewer resources
+  # additionally, skimming samples by FS helps tremendously
 
-  # make and apply cuts to any loaded events, store in new dictionaries for plotting
-  protected_processes = ["DataTau", "DataMuon", "ggH", "VBF"]
-  data_dictionary, stack_dictionary, signal_dictionary = {}, {}, {}
-
+  # TODO: update file_map handling -- somehow bundle
   file_map = testing_file_map if testing else full_file_map
-  if final_state_mode == "ditau": del(file_map["DataMuon"])
+  if final_state_mode == "ditau": del(file_map["DataMuon"]) # remove this after FS skimming and combine datasets
   if final_state_mode == "mutau": del(file_map["DataTau"])
 
-  #TODO: clean up after commit
-  #for process in process_list: 
+  # make and apply cuts to any loaded events, store in new dictionaries for plotting
+  combined_process_dictionary = {}
   for process in file_map: 
 
+    gc.collect()
     new_process_list = fill_process_list(process, using_directory, branches, good_events, final_state_mode,
                                      testing=testing)
     if new_process_list == None: continue
@@ -237,68 +171,42 @@ if __name__ == "__main__":
 
     process_events = append_lepton_indices(process_events)
     process_events = make_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
-    #process_events = apply_cut(process_events, "pass_cuts")
     cut_events = apply_cut(process_events, "pass_cuts")
     del(process_events)
-    gc.collect()
 
-    if process not in protected_processes:
-      stack_dictionary[process] = {
-        "PlotEvents": {}, 
-        #"Generator_weight": process_events["Generator_weight"],
-        "Generator_weight": cut_events["Generator_weight"],
-      }
-      for var in vars_to_plot:
-        #stack_dictionary[process]["PlotEvents"][var] = process_events[var]
-        stack_dictionary[process]["PlotEvents"][var] = cut_events[var]
-
-    elif process == "ggH" or process == "VBF":
-      signal_dictionary[process] = {
-        "PlotEvents": {},
-        #"Generator_weight": process_events["Generator_weight"],
-        "Generator_weight": cut_events["Generator_weight"],
-        "plot_scaling" : 100 if process == "ggH" else 500 if process == "VBF" else 50,
-      }
-      for var in vars_to_plot:
-        #signal_dictionary[process]["PlotEvents"][var] = process_events[var]
-        signal_dictionary[process]["PlotEvents"][var] = cut_events[var]
-  
-    elif "Data" in process:
-      # overwrites process name of data for homogeneity in later plotting
-      data_dictionary["Data"] = {
-        "PlotEvents":{}
-      }
-      for var in vars_to_plot:
-        #data_dictionary["Data"]["PlotEvents"][var] = process_events[var]
-        data_dictionary["Data"]["PlotEvents"][var] = cut_events[var]
-    else:
-      print("Process not recognized: {process}")
-    
+    combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
+                                                               combined_process_dictionary)
     del(cut_events)
 
-  time_print("Processing finished!")
+  # after loop, sort big dictionary into three smaller ones
+  data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
+  time_print("Processing finished!")
   ## end processing loop, begin plotting
   
   for var in vars_to_plot:
     time_print(f"Plotting {var}")
-    # plotting setup
+
     xbins = make_bins(var)
     hist_ax, hist_ratio = setup_ratio_plot()
-    h_data, h_backgrounds, h_signals = [], [], []
-  
-    # bin Data, MC, signal
-    data_variable = data_dictionary["Data"]["PlotEvents"][var]
-    data_weights  = np.ones(np.shape(data_variable)) # weights of one for data
-    h_data = get_binned_info("Data", data_variable, xbins, data_weights, lumi)
 
+    # accumulate datasets into one flat dictionary called h_data  
+    h_data_by_dataset = {}
+    for dataset in data_dictionary:
+      data_variable = data_dictionary[dataset]["PlotEvents"][var]
+      data_weights  = np.ones(np.shape(data_variable)) # weights of one for data
+      h_data_by_dataset[dataset] = {}
+      h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, xbins, data_weights, lumi)
+    h_data = accumulate_datasets(h_data_by_dataset)
+
+    # treat each MC process, then group the output by family into flat dictionaries
+    # also sum all backgrounds into h_summed_backgrounds to use in ratio plot
     h_MC_by_process = {}
-    for process in stack_dictionary:
-      process_variable = stack_dictionary[process]["PlotEvents"][var]
-      process_weights  = stack_dictionary[process]["Generator_weight"]
+    for process in background_dictionary:
+      process_variable = background_dictionary[process]["PlotEvents"][var]
+      process_weights  = background_dictionary[process]["Generator_weight"]
       h_MC_by_process[process] = {}
       h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, xbins, process_weights, lumi)
-
     # add together subprocesses of each MC family
     h_MC_by_family = {}
     MC_families = ["DY", "WJ", "VV"] if testing else ["DY", "TT", "ST", "WJ", "VV"]
@@ -306,7 +214,12 @@ if __name__ == "__main__":
       h_MC_by_family[family] = {}
       h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
     h_backgrounds = h_MC_by_family
+    # used for ratio plot
+    h_summed_backgrounds = 0
+    for background in h_backgrounds:
+      h_summed_backgrounds += h_backgrounds[background]["BinnedEvents"]
 
+    # signal is put in a separate dictionary from MC, but they processed very similarly
     h_signals = {}
     for signal in signal_dictionary:
       signal_variable = signal_dictionary[signal]["PlotEvents"][var]
@@ -314,13 +227,9 @@ if __name__ == "__main__":
       h_signals[signal] = {}
       h_signals[signal]["BinnedEvents"] = get_binned_info(signal, signal_variable, xbins, signal_weights, lumi)
 
-    h_summed_backgrounds = 0
-    for background in h_backgrounds:
-      h_summed_backgrounds += h_backgrounds[background]["BinnedEvents"]
-    
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)
-    plot_MC(hist_ax, xbins, h_MC_by_family, lumi)
+    plot_MC(hist_ax, xbins, h_backgrounds, lumi)
     plot_signal(hist_ax, xbins, h_signals, lumi)
 
     make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
@@ -330,7 +239,7 @@ if __name__ == "__main__":
   
     plt.savefig(plot_dir + "/" + str(var) + ".png")
 
-    # calculate and print these quanities only once
+    # calculate and print these quantities only once
     if (var=="FS_mu_pt" or var=="FS_t1_pt"): calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
 
   if hide_plots: pass

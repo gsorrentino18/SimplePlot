@@ -123,6 +123,17 @@ def accumulate_MC_subprocesses(parent_process, process_dictionary):
       accumulated_values += process_dictionary[MC_process]["BinnedEvents"]
   return accumulated_values
 
+def accumulate_datasets(dataset_dictionary):
+  '''
+  Very similar to accumulate_MC_subproceses
+  Written to add datasets (Muon, Tau, EGamma, MuonEG) together
+  '''
+  accumulated_values = 0
+  for dataset in dataset_dictionary:
+    accumulated_values += dataset_dictionary[dataset]["BinnedEvents"]
+
+  return accumulated_values
+
 
 def get_parent_process(MC_process):
   '''

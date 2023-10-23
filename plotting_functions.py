@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 from MC_dictionary        import MC_dictionary
 
 from get_and_set_functions import get_midpoints, set_MC_process_info
-from file_map              import luminosities
+from file_functions              import luminosities
 
+#def plot_data(histogram_axis, xbins, data_dictionary, luminosity):
 def plot_data(histogram_axis, xbins, data_info, luminosity):
   '''
   Add the data histogram to the existing histogram axis, computing errors in a simple way.
@@ -21,6 +22,7 @@ def plot_data(histogram_axis, xbins, data_info, luminosity):
   # TODO: understand all of statistics
   #stat_error = np.array([1000/np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) #wrong but scaled up...
   #stat_error  = sum_of_data**2 * np.ones(np.shape(data_info)) #wrong
+  #data_info = data_dictionary["Data"]["BinnedEvents"]
   sum_of_data = np.sum(data_info)
   stat_error  = np.array([np.sqrt(entry * (1 - entry/sum_of_data)) if entry > 0 else 0 for entry in data_info])
   #stat_error = np.array([np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) # unsure if correct?
