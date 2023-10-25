@@ -104,10 +104,6 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
     #                      (!HLT_IsoMu24 && HLT_IsoMu20_eta2p1_LooseDeepTauPFTauHPS27_eta2p1_CrossL1 && \
     #                       HTT_Lep_pt > 21. && Tau_eta[Lepton_tauIdx[FSLeptons[0]] + Lepton_tauIdx[FSLeptons[1]] + 1]) )"
 
-    #dumbTestTau = (HTT_Tau_pt > 30.)
-    #dumbTestMuTrig = (trg24mu and HTT_Lep_pt > 25.)
-    #dumbTestCrossTrig = (not (trg24mu or trg27mu) and crosstrg and HTT_Lep_pt > 21 and tauEtaVal)
-
     passMT     = (mtVal < 50.)
     passTauPt  = (tauPtVal > 30.)
     pass25MuPt   = (trg24mu and (muPtVal > 25.) and (abs(muEtaVal) < 2.3))

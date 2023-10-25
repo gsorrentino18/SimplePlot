@@ -102,6 +102,7 @@ if __name__ == "__main__":
   print(f"USING DEEP TAU VERSION {useDeepTauVersion}")
 
   good_events = set_good_events(final_state_mode)
+  print(f"good events pass : {good_events}")
 
   native_variables = ["MET_pt", "PuppiMET_pt", "nCleanJet", "HTT_dR", "HTT_m_vis",
                       #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj",
@@ -152,9 +153,6 @@ if __name__ == "__main__":
   # additionally, skimming samples by FS helps tremendously
 
   file_map = testing_file_map if testing else full_file_map
-  # TODO fix double-counting between datasets 
-  #if final_state_mode == "ditau": del(file_map["DataMuon"]) # remove this after FS skimming and combine datasets
-  #if final_state_mode == "mutau": del(file_map["DataTau"])
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -168,10 +166,12 @@ if __name__ == "__main__":
 
     time_print(f"Processing {process}")
     process_events = new_process_list[process]["info"]
+    if len(process_events["run"])==0: continue # skip datasets if nothing is in them
     del(new_process_list)
 
     process_events = append_lepton_indices(process_events)
     process_events = make_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
+    if len(process_events["pass_cuts"])==0: continue # skip datasets if nothing is in them
     cut_events = apply_cut(process_events, "pass_cuts")
     del(process_events)
 

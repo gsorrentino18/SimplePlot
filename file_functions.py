@@ -1,6 +1,8 @@
 import uproot
 
 from utility_functions import time_print, text_options
+#from get_and_set_functions import reject_duplicate_events
+from get_and_set_functions import set_good_events
 
 ### README ###
 # This file contains mappings of process names (shared with XSec.py) to wildcards for related samples.
@@ -103,7 +105,7 @@ def load_process_from_file(process, file_directory, branches, good_events, final
   file_string = file_directory + "/" + file_map[process] + ".root:Events"
   if data: 
     branches = [branch for branch in branches if branch != "Generator_weight"]
-    #good_events = reject_events_in_more_than_one_dataset(final_state_mode, good_events) # TODO finish implementing
+    good_events = reject_duplicate_events(final_state_mode, process) # process = dataset, like Tau/Muon/EGamma
   try:
     processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
   except FileNotFoundError:
@@ -147,5 +149,45 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
     combined_processes[process]["PlotEvents"][var] = cut_events[var]
 
   return combined_processes
+
+def reject_duplicate_events(final_state_mode, dataset):
+  '''
+   disable any triggers in set_good_events
+   then manually adding them based on dataset here
+
+   below is confusing to read
+   BUT, i put the dataset at the top of each that the final_state_mode
+   gets the most data from. Then subleading datasets, vetoing each used trigger
+   along the way to remove the overlap in datasets.
+  '''
+  good_events = set_good_events(final_state_mode, disable_triggers=True)
+  
+  if final_state_mode == "ditau":
+    if dataset == "DataTau":
+      good_events += " & (Trigger_ditau)" # implied OR with mutau/etau by convention
+    elif dataset == "DataMuon":
+      good_events += " & (Trigger_mutau) & (Trigger_ditau==0)" # implied OR with etau
+    elif dataset == "DataElectron":
+      good_events += " & (Trigger_etau)  & (Trigger_ditau==0) & (Trigger_mutau==0)"
+
+  elif final_state_mode == "mutau":
+    if dataset == "DataMuon":
+      good_events += " & (Trigger_mutau)" # implied OR with ditau/etau by convention
+    elif dataset == "DataTau":
+      good_events += " & (Trigger_ditau) & (Trigger_mutau==0)" # implied OR with etau
+    elif dataset == "DataElectron":
+      good_events += " & (Trigger_etau)  & (Trigger_mutau==0) & (Trigger_ditau==0)"
+
+  elif final_state_mode == "etau":
+    if dataset == "DataElectron":
+      good_events += " & (Trigger_etau)" # implied OR with ditau/mutau by convention
+    elif dataset == "DataTau":
+      good_events += " & (Trigger_ditau) & (Trigger_etau==0)" # implied OR with mutau
+    elif dataset == "DataMuon":
+      good_events += " & (Trigger_mutau) & (Trigger_etau==0) & (Trigger_ditau==0)"
+
+  print(f"Rejecting duplicate events in Data sample with temporary selection \n {good_events}")
+
+  return good_events
 
 

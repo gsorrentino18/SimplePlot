@@ -181,7 +181,7 @@ def add_trigger_branches(branches_, final_state_mode):
   return branches_
 
 
-def set_good_events(final_state_mode, trigger_study=False):
+def set_good_events(final_state_mode, disable_triggers=False):
   '''
   Return a string defining a 'good_events' flag used by uproot to preskim input events
   to only those passing these simple requirements. 'good_events' changes based on
@@ -189,7 +189,7 @@ def set_good_events(final_state_mode, trigger_study=False):
   being conducted (since requiring the trigger biases the study).
   '''
   good_events = ""
-  if trigger_study: print("*"*20 + " removed trigger cut for yield study " + "*"*20)
+  if disable_triggers: print("*"*20 + " removed trigger requirement " + "*"*20)
 
   # relevant definitions from NanoTauAnalysis /// modules/TauPairSelector.py
   # HTT_SRevent and HTT_ARevent require opposite sign objects
@@ -207,30 +207,22 @@ def set_good_events(final_state_mode, trigger_study=False):
   
   # apply FS cut separately so it can be used with reject_duplicate_events
   if final_state_mode == "ditau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==15*15"
-    if not trigger_study: good_events += " & (Trigger_ditau)"
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==15*15 & (Trigger_ditau)"
+    if disable_triggers: good_events = good_events.replace(" & (Trigger_ditau)", "")
 
   elif final_state_mode == "mutau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==13*15"
-    if not trigger_study: good_events += " & (Trigger_mutau)"
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==13*15 & (Trigger_mutau)"
+    if disable_triggers: good_events = good_events.replace(" & (Trigger_mutau)", "")
 
   elif final_state_mode == "etau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==11*15"
-    if not trigger_study: good_events += " & (Trigger_etau)"
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==11*15 & (Trigger_etau)"
+    if disable_triggers: good_events = good_events.replace(" & (Trigger_etau)", "")
 
   elif final_state_mode == "dimuon":
     # lepton veto must be applied manually for this final state
     good_events = "(HTT_pdgId==-13*13) & (METfilters) & (HLT_IsoMu24)"
+    if disable_triggers: good_events = good_events.replace(" & (HLT_IsoMu24)", "")
 
-  print(f"good events pass : {good_events}")
   return good_events
-
-def reject_duplicate_events(final_state_mode, dataset, good_events):
-  # see TauFW's plotter implementation
-  #if final_state_mode == "mutau":
-  #  if dataset == "DataTau":
-  #  elif dataset == "DataMuon":
-  #  elif dataset == "DataElectron":
-  pass
 
 
