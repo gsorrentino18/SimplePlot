@@ -60,10 +60,10 @@ full_file_map = {
   "ST_TbarWplus_LNu2Q" : "ST/ST_TbarWplus_LNu2Q",
 
   "WJetsInc" : "WJ/WJ*",
-  "WJetsToLNu_1J" : "WJ/WJetsToLNu_1J*",
-  "WJetsToLNu_2J" : "WJ/WJetsToLNu_2J*",
-  "WJetsToLNu_3J" : "WJ/WJetsToLNu_3J*",
-  "WJetsToLNu_4J" : "WJ/WJetsToLNu_4J*",
+  #"WJetsToLNu_1J" : "WJ/W1JetsToLNu*",
+  #"WJetsToLNu_2J" : "WJ/W2JetsToLNu*",
+  #"WJetsToLNu_3J" : "WJ/W3JetsToLNu*",
+  #"WJetsToLNu_4J" : "WJ/W4JetsToLNu*",
 
   "WWTo2L2Nu" : "VV/WWTo2L2Nu*",
   "WWTo4Q"    : "VV/WWTo4Q*",

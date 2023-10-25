@@ -101,7 +101,9 @@ if __name__ == "__main__":
   print(f"Testing: {testing}")
   print(f"USING DEEP TAU VERSION {useDeepTauVersion}")
 
+  # TODO re-enable after mutatu tt bar study
   good_events = set_good_events(final_state_mode)
+  #good_events = "(HTT_SRevent | HTT_SSevent | HTT_ARevent)"
   print(f"good events pass : {good_events}")
 
   native_variables = ["MET_pt", "PuppiMET_pt", "nCleanJet", "HTT_dR", "HTT_m_vis",
@@ -241,6 +243,24 @@ if __name__ == "__main__":
     hist_ax.legend()
   
     plt.savefig(plot_dir + "/" + str(var) + ".png")
+
+    handles, labels = hist_ax.get_legend_handles_labels()
+    # ['VBF x500 [17432]', 'Data [532202]', 'DY [3753]', 'WJ [88318]', 'VV [1967]']
+    # def parse_legend()
+    desired_order    = ["Data", "TT", "WJ", "DY", "VV", "ST", "ggH", "VBF"] 
+    reordered_labels = []
+    corresponding_yields = []
+    for compare_label in desired_order:
+      for original_label in labels:
+        if compare_label in original_label:
+          print(f"matched {compare_label} to {original_label}")
+          reordered_labels.append(original_label)
+          label_yield_start = original_label.find("[")
+          label_yield_end   = original_label.find("]")
+          label_yield       = original_label[label_yield_start+1:label_yield_end]
+          corresponding_yields.append(int(label_yield))
+    print(reordered_labels)
+    print(corresponding_yields)
 
     # calculate and print these quantities only once
     if (var=="FS_mu_pt" or var=="FS_t1_pt"): calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
