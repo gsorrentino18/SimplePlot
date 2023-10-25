@@ -66,6 +66,13 @@ def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):
   else: 
     mt = np.sqrt(mt_2) 
   return mt
+
+#def ROOT_mt(lep_pt, lep_eta, lep_phi, lep_mass, MET_pt, MET_phi): #import ROOT to use this function
+#  Lep_vec = ROOT.TLorentzVector()
+#  Lep_vec.SetPtEtaPhiE(lep_pt, lep_eta, lep_phi, lep_mass)
+#  MET_vec = ROOT.TLorentzVector(MET_pt, MET_phi)
+#  ROOT_mt = (Lep_vec + MET_vec).Mt()
+#  return ROOT_mt
   
 
 def calculate_dR(eta1, phi1, eta2, phi2): 

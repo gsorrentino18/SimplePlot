@@ -89,7 +89,7 @@ def add_final_state_branches(branches_, final_state_mode):
   elif final_state_mode == "mutau" or final_state_mode == "etau":
     branch_to_add = ["Tau_pt", "Tau_eta", "MET_pt", "MET_phi", "PuppiMET_pt", "PuppiMET_phi"]
     if final_state_mode == "mutau":
-      branch_to_add += ["Muon_pt", "Muon_eta", "Muon_phi"]
+      branch_to_add += ["Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass"]
     elif final_state_mode == "etau":
       branch_to_add += ["Electron_pt", "Electron_eta", "Electron_phi"]
 

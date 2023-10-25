@@ -87,22 +87,27 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   dummy_HTT_Lep_pt = [] #TODO delete after TT bug found
   dummy_HTT_Tau_pt = [] #TODO delete after TT bug found
   # note these are in the same order as the variables in the first line of this function :)
+  #for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, MET_pt, MET_phi, tau_idx, mu_idx,\
   for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, MET_pt, MET_phi, tau_idx, mu_idx,\
       l1_idx, l2_idx, HTT_Lep_pt, HTT_Tau_pt, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
       #l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check): # use after TT bug found
 
     tauLoc     = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
     muLoc      = mu_idx[l1_idx]  + mu_idx[l2_idx]  + 1
+    if (muLoc < 0 or tauLoc < 0): continue
     tauEtaVal  = tau_eta[tauLoc]
     tauPtVal   = tau_pt[tauLoc] 
     muPtVal    = mu_pt[muLoc] 
     muEtaVal   = mu_eta[muLoc]
     muPhiVal   = mu_phi[muLoc]
     mtVal      = calculate_mt(muPtVal, muPhiVal, MET_pt, MET_phi)
+    #ROOTmtVal  = ROOT_mt(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
+    #passROOTMT = (ROOTmtVal < 50.)
 
     #goodMuonsAndTausCut  = "HTT_Tau_pt > 30 && ( (HLT_IsoMu24 && HTT_Lep_pt > 25.) || \
     #                      (!HLT_IsoMu24 && HLT_IsoMu20_eta2p1_LooseDeepTauPFTauHPS27_eta2p1_CrossL1 && \
     #                       HTT_Lep_pt > 21. && Tau_eta[Lepton_tauIdx[FSLeptons[0]] + Lepton_tauIdx[FSLeptons[1]] + 1]) )"
+
 
     passMT     = (mtVal < 50.)
     passTauPt  = (tauPtVal > 30.)
@@ -115,10 +120,15 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
 
     noCut = True
     #if noCut: # 1
+    #if (trg24mu or trg27mu or crosstrg):
     #if (passTauPt and pass25MuPt and passTauDT): # 2
+    #if (passTauPt and (pass25MuPt or pass28MuPt or crosstrg)):
+    #if (passTauPt and (pass25MuPt or pass28MuPt or crosstrg) and passTauDT): # 2
     #if (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger) and passTauDT): # 3
-    #if (passMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT): # 4
+    #if (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)):
+
     if (passMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
+    #if (passROOTMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
       pass_cuts.append(i)
       FS_mu_pt.append(muPtVal)
       FS_tau_pt.append(tauPtVal)

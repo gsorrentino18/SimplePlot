@@ -11,7 +11,6 @@ from MC_dictionary        import MC_dictionary
 from get_and_set_functions import get_midpoints, set_MC_process_info
 from file_functions              import luminosities
 
-#def plot_data(histogram_axis, xbins, data_dictionary, luminosity):
 def plot_data(histogram_axis, xbins, data_info, luminosity):
   '''
   Add the data histogram to the existing histogram axis, computing errors in a simple way.
@@ -130,5 +129,4 @@ def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
   midpoints = get_midpoints(xbins)
   ratio_axis.errorbar(midpoints, numerator_data/denominator_data, yerr=combined_statistical_error,
                     color="black", marker="o", linestyle='none', markersize=2)
-
 
