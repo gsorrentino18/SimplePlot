@@ -47,7 +47,7 @@ def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):
   ROOT.Mt() calculates. This is not the variable we are interested in and instead
   calculate the correct transverse mass by hand. Either form below is equivalenetly valid.
   '''
-  # useful also for etau, emu
+  # used in mutau, etau, emu
   #delta_phi = phi_mpi_pi(lep_phi - MET_phi)
   #mt = np.sqrt(2 * lep_pt * MET_pt * (1 - np.cos(delta_phi) ) ) 
   #alternate calculation, same quantity up to 4 decimal places
@@ -58,7 +58,13 @@ def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):
   sum_pt_2  = (lep_pt + MET_pt) * (lep_pt + MET_pt)
   sum_ptx_2 = (lep_x + MET_x) * (lep_x + MET_x)
   sum_pty_2 = (lep_y + MET_y) * (lep_y + MET_y)
-  mt = np.sqrt(sum_pt_2 - sum_ptx_2 - sum_pty_2) 
+  mt_2      = (sum_pt_2 - sum_ptx_2 - sum_pty_2)
+  if mt_2 < 0:
+    # this is floating-point calculation error, all values with 0.01 of 0
+    #print(mt_2, sum_pt_2, sum_ptx_2, sum_pty_2)
+    mt = 0
+  else: 
+    mt = np.sqrt(mt_2) 
   return mt
   
 
