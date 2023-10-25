@@ -150,7 +150,9 @@ if __name__ == "__main__":
   # UPDATE Oct 18th: did some memory consumption testing and found that 4GB of memory are used when running 
   # this script in testing mode. Also, files not automatically closed. Would managing this better help?
   # UPDATE Oct 23rd: managing this better helps a lot, reduces hang time by 2x on machines with fewer resources
-  # additionally, skimming samples by FS helps tremendously
+  # additionally, skimming samples by FS helps tremendously. now testing on lxplus < 5 minutes
+  # full datasets (F&G) ~ 40 minutes independent of final state, but this was impossible to do at all before
+  # definitely progressing. biggest issue is loading large samples (TTbar, DYInc) into memory, skim them harder
 
   file_map = testing_file_map if testing else full_file_map
 
