@@ -110,12 +110,12 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
 
 
     passMT     = (mtVal < 50.)
-    passTauPt  = (tauPtVal > 30.)
-    pass25MuPt   = (trg24mu and (muPtVal > 25.) and (abs(muEtaVal) < 2.3))
-    pass28MuPt   = (trg27mu and (muPtVal > 28.) and (abs(muEtaVal) < 2.3))
-    passMuPtCrossTrigger = (crosstrg and ( (21. < muPtVal < 25.) and (abs(muEtaVal) < 2.1))
+    passTauPtAndEta  = ((tauPtVal > 30.) and (abs(tauEtaVal) < 2.3))
+    pass25MuPt   = ((trg24mu) and (muPtVal > 25.) and (abs(muEtaVal) < 2.3))
+    pass28MuPt   = ((trg27mu) and (muPtVal > 28.) and (abs(muEtaVal) < 2.3))
+    passMuPtCrossTrigger = ((crosstrg) and ( (21. < muPtVal < 25.) and (abs(muEtaVal) < 2.1))
                                      and ( (tauPtVal > 32)       and (abs(tauEtaVal) < 2.1)) ) 
-    passTauDT  = (vJet[tauLoc] >= 5 and vMu[tauLoc] >= 4 and vEle[tauLoc] >= 1)
+    passTauDT  = ((vJet[tauLoc] >= 5) and (vMu[tauLoc] >= 4) and (vEle[tauLoc] >= 1))
 
 
     noCut = True
@@ -127,7 +127,7 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
     #if (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger) and passTauDT): # 3
     #if (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)):
 
-    if (passMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
+    if (passMT and (passTauPtAndEta and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
     #if (passROOTMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
       pass_cuts.append(i)
       FS_mu_pt.append(muPtVal)
