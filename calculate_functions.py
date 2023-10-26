@@ -87,3 +87,20 @@ def phi_mpi_pi(delta_phi):
   return 2 * np.pi - delta_phi if delta_phi > np.pi else 2 * np.pi + delta_phi if delta_phi < -1*np.pi else delta_phi
 
 
+def yields_for_CSV(histogram_axis, desired_order=[]):
+    handles, labels = histogram_axis.get_legend_handles_labels()
+    desired_order    = labels if desired_order == [] else desired_order
+    reordered_labels = []
+    corresponding_yields = []
+    for compare_label in desired_order:
+      for original_label in labels:
+        if compare_label in original_label:
+          reordered_labels.append(original_label)
+          label_yield_start = original_label.find("[")
+          label_yield_end   = original_label.find("]")
+          label_yield       = original_label[label_yield_start+1:label_yield_end]
+          corresponding_yields.append(int(label_yield))
+    print(f"Legend Labels: {reordered_labels}")
+    print(f"Yields: {corresponding_yields}")
+
+

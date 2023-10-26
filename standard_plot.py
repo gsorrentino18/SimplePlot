@@ -19,9 +19,10 @@ from get_and_set_functions import set_good_events, make_bins, get_binned_info
 from get_and_set_functions import add_final_state_branches, add_DeepTau_branches, add_trigger_branches
 from get_and_set_functions import accumulate_MC_subprocesses, accumulate_datasets
 
-from calculate_functions   import calculate_signal_background_ratio
+from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
 from utility_functions     import time_print, attention, make_directory
 
+ 
 
 def match_objects_to_trigger_bit():
   '''
@@ -104,7 +105,7 @@ if __name__ == "__main__":
   # TODO re-enable after mutatu tt bar study
   good_events = set_good_events(final_state_mode)
   #good_events = "(HTT_SRevent | HTT_SSevent | HTT_ARevent)"
-  print(f"good events pass : {good_events}")
+  print(f"good events \n {good_events}")
 
   native_variables = ["MET_pt", "PuppiMET_pt", "nCleanJet", "HTT_dR", "HTT_m_vis",
                       #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj",
@@ -244,26 +245,11 @@ if __name__ == "__main__":
   
     plt.savefig(plot_dir + "/" + str(var) + ".png")
 
-    handles, labels = hist_ax.get_legend_handles_labels()
-    # ['VBF x500 [17432]', 'Data [532202]', 'DY [3753]', 'WJ [88318]', 'VV [1967]']
-    # def parse_legend()
-    desired_order    = ["Data", "TT", "WJ", "DY", "VV", "ST", "ggH", "VBF"] 
-    reordered_labels = []
-    corresponding_yields = []
-    for compare_label in desired_order:
-      for original_label in labels:
-        if compare_label in original_label:
-          print(f"matched {compare_label} to {original_label}")
-          reordered_labels.append(original_label)
-          label_yield_start = original_label.find("[")
-          label_yield_end   = original_label.find("]")
-          label_yield       = original_label[label_yield_start+1:label_yield_end]
-          corresponding_yields.append(int(label_yield))
-    print(reordered_labels)
-    print(corresponding_yields)
 
     # calculate and print these quantities only once
-    if (var=="FS_mu_pt" or var=="FS_t1_pt"): calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
+    if (var == "HTT_m_vis"): 
+      calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
+      yields_for_CSV(hist_ax, desired_order=["Data", "TT", "WJ", "DY", "VV", "ST", "ggH", "VBF"])
 
   if hide_plots: pass
   else: plt.show()
