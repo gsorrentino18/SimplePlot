@@ -57,6 +57,7 @@ def set_MC_process_info(process, luminosity, scaling=False, signal=False):
   # factor of 1000 comes from lumi and XSec units of fb^-1 = 10E15 b^-1 and pb = 10E-12 b respectively
     plot_scaling = MC_dictionary[process]["plot_scaling"] # 1 for all non-signal processes by default
     scaling = 1000. * plot_scaling * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
+    if process=="QCD": scaling = 1
   if signal:
     label += " x" + str(plot_scaling)
   return (color, label, scaling)
@@ -207,15 +208,15 @@ def set_good_events(final_state_mode, disable_triggers=False):
   
   # apply FS cut separately so it can be used with reject_duplicate_events
   if final_state_mode == "ditau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==15*15 & (Trigger_ditau)"
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
     if disable_triggers: good_events = good_events.replace(" & (Trigger_ditau)", "")
 
   elif final_state_mode == "mutau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==13*15 & (Trigger_mutau)"
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==13*15) & (Trigger_mutau)"
     if disable_triggers: good_events = good_events.replace(" & (Trigger_mutau)", "")
 
   elif final_state_mode == "etau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & abs(HTT_pdgId)==11*15 & (Trigger_etau)"
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*15) & (Trigger_etau)"
     if disable_triggers: good_events = good_events.replace(" & (Trigger_etau)", "")
 
   elif final_state_mode == "dimuon":

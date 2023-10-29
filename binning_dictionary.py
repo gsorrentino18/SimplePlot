@@ -23,6 +23,8 @@ binning_dictionary = {
   "MET_pt"      : (30, 0, 150),
   "PuppiMET_pt" : (30, 0, 150),
   "nCleanJet"   : (8, 0, 8),
+  "CleanJet_pt" : (30, 20, 200),
+  "CleanJet_eta": (50, -5, 5),
   "HTT_DiJet_MassInv_fromHighestMjj" : (30, 0, 1500),
   "HTT_DiJet_dEta_fromHighestMjj"    : (35, 0, 7),
   "HTT_H_pt_using_PUPPI_MET"         : (30, 0, 300),

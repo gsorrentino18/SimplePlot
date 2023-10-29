@@ -1,4 +1,5 @@
 import numpy as np
+#import ROOT
 
 ### README
 # this file contains functions to perform simple calculations and return or print the result
@@ -44,13 +45,15 @@ def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):
   which is a measure a two-particle system's mass when known parts (neutrinos)
   are missing. 
   Notably, there is another variable called "transverse mass" which is what
-  ROOT.Mt() calculates. This is not the variable we are interested in and instead
-  calculate the correct transverse mass by hand. Either form below is equivalenetly valid.
+  ROOT.Mt() calculates. This is not the variable we are interested in and we instead
+  calculate the correct transverse mass by hand. Either form in the function below is 
+  mathematically equivalenetly and valid.
   '''
   # used in mutau, etau, emu
-  #delta_phi = phi_mpi_pi(lep_phi - MET_phi)
-  #mt = np.sqrt(2 * lep_pt * MET_pt * (1 - np.cos(delta_phi) ) ) 
-  #alternate calculation, same quantity up to 4 decimal places
+  delta_phi = phi_mpi_pi(lep_phi - MET_phi)
+  mt = np.sqrt(2 * lep_pt * MET_pt * (1 - np.cos(delta_phi) ) ) 
+  '''
+  alternate calculation, same quantity up to 4 decimal places
   lep_x = lep_pt*np.cos(lep_phi)
   lep_y = lep_pt*np.sin(lep_phi)
   MET_x = MET_pt*np.cos(MET_phi)
@@ -59,20 +62,56 @@ def calculate_mt(lep_pt, lep_phi, MET_pt, MET_phi):
   sum_ptx_2 = (lep_x + MET_x) * (lep_x + MET_x)
   sum_pty_2 = (lep_y + MET_y) * (lep_y + MET_y)
   mt_2      = (sum_pt_2 - sum_ptx_2 - sum_pty_2)
+  mt = 9999
   if mt_2 < 0:
-    # this is floating-point calculation error, all values with 0.01 of 0
-    #print(mt_2, sum_pt_2, sum_ptx_2, sum_pty_2)
+    # this is floating-point calculation error, all values within 0.01 of 0
     mt = 0
+    print("negative value, set mt to zero")
+    print(mt_2)
   else: 
     mt = np.sqrt(mt_2) 
+  #mt = np.sqrt(mt_2)
+  '''
   return mt
 
-#def ROOT_mt(lep_pt, lep_eta, lep_phi, lep_mass, MET_pt, MET_phi): #import ROOT to use this function
-#  Lep_vec = ROOT.TLorentzVector()
-#  Lep_vec.SetPtEtaPhiE(lep_pt, lep_eta, lep_phi, lep_mass)
-#  MET_vec = ROOT.TLorentzVector(MET_pt, MET_phi)
-#  ROOT_mt = (Lep_vec + MET_vec).Mt()
-#  return ROOT_mt
+
+def ROOT_mt(lep_pt, lep_eta, lep_phi, lep_mass, MET_pt, MET_phi): #import ROOT to use this function
+  # this is the non-collider-physics definition of "transverse mass"
+  # which is what is implemented by ROOT's .Mt() method
+  Lep_vec = ROOT.TLorentzVector()
+  Lep_vec.SetPtEtaPhiE(lep_pt, lep_eta, lep_phi, lep_mass)
+  MET_vec = ROOT.TLorentzVector(MET_pt, MET_phi)
+  ROOT_mt = (Lep_vec + MET_vec).Mt()
+  return ROOT_mt
+
+
+def calculate_mt_pyROOT(lep_pt, lep_eta, lep_phi, lep_mass, # import ROOT to use this function
+                        MET_pt, MET_phi):
+  delta_phi = phi_mpi_pi(lep_phi - MET_phi)
+  mt = ROOT.TMath.Sqrt(2 * lep_pt * MET_pt * (1 - ROOT.TMath.Cos(delta_phi)))
+  # this is the same as calculate_mt, except here ROOT builtins are used
+  '''
+  Lep_vec = ROOT.TLorentzVector()
+  MET_vec = ROOT.TLorentzVector()
+  Lep_vec.SetPtEtaPhiM(lep_pt, lep_eta, lep_phi, lep_mass)
+  MET_vec.SetPtEtaPhiM(MET_pt, 0, MET_phi, 0)
+  met_x = MET_vec.Pt()*ROOT.TMath.Cos(MET_vec.Phi())
+  met_y = MET_vec.Pt()*ROOT.TMath.Sin(MET_vec.Phi())
+  met_pt = ROOT.TMath.Sqrt(met_x*met_x + met_y*met_y)
+  sum_pt_2 = (Lep_vec.Pt() + met_pt) * (Lep_vec.Pt() + met_pt)
+  sum_px_2 = (Lep_vec.Px() + met_x)  * (Lep_vec.Px() + met_x)
+  sum_py_2 = (Lep_vec.Py() + met_y)  * (Lep_vec.Py() + met_y)
+  mt2 = sum_pt_2 - sum_px_2 - sum_py_2
+  mt = 9999
+  if mt2 < 0:
+    print("weird value, setting mt to 0")
+    mt = 0
+    print(mt2)
+  else:
+    mt = ROOT.TMath.Sqrt( mt2 )
+  #mt = ROOT.TMath.Sqrt( mt2 )
+  '''
+  return mt
   
 
 def calculate_dR(eta1, phi1, eta2, phi2): 

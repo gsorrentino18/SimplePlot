@@ -48,9 +48,13 @@ full_file_map = {
   "DYJetsToLL_M-50_3J" : "DY/DYJetsToLL_M-50_3J*",
   "DYJetsToLL_M-50_4J" : "DY/DYJetsToLL_M-50_4J*",
 
-  "TTTo2L2Nu"         : "TT/TTTo2L2Nu*",
-  "TTToFullyHadronic" : "TT/TTToFullyHadronic*",
-  "TTToSemiLeptonic"  : "TT/TTToSemiLeptonic*",
+  #"TTTo2L2Nu"         : "TT/TTTo2L2Nu*",
+  #"TTToFullyHadronic" : "TT/TTToFullyHadronic*",
+  #"TTToSemiLeptonic"  : "TT/TTToSemiLeptonic*",
+
+  "TTTo2L2Nu"         : "TT_AdditionalSkim/TTTo2L2Nu*",
+  "TTToFullyHadronic" : "TT_AdditionalSkim/TTToFullyHadronic*",
+  "TTToSemiLeptonic"  : "TT_AdditionalSkim/TTToSemiLeptonic*",
 
   "ST_TWminus_2L2Nu"   : "ST/ST_TWminus_2L2Nu*",
   "ST_TbarWplus_2L2Nu" : "ST/ST_TbarWplus_2L2Nu*",
@@ -105,7 +109,6 @@ def load_process_from_file(process, file_directory, branches, good_events, final
   file_string = file_directory + "/" + file_map[process] + ".root:Events"
   if data: 
     branches = [branch for branch in branches if branch != "Generator_weight"]
-    good_events = reject_duplicate_events(final_state_mode, process) # process = dataset, like Tau/Muon/EGamma
   try:
     processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
   except FileNotFoundError:
@@ -150,6 +153,8 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
 
   return combined_processes
 
+# not used by default
+# only to be used if final states are plotted at the same time and datasets are simultaneously loaded
 def reject_duplicate_events(final_state_mode, dataset):
   '''
    disable any triggers in set_good_events

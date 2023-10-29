@@ -5,6 +5,7 @@ import numpy as np
 
 from get_and_set_functions import add_DeepTau_branches, add_trigger_branches
 from calculate_functions   import calculate_mt
+#from calculate_functions   import calculate_mt_pyROOT
 
 
 def append_lepton_indices(event_dictionary):
@@ -16,6 +17,7 @@ def append_lepton_indices(event_dictionary):
   FSLeptons = event_dictionary["FSLeptons"]
   l1_indices, l2_indices = [], []
   for event in FSLeptons:
+    if len(event)>2: print(f"More than one FS pair: {event}")
     l1_indices.append(event[0])
     l2_indices.append(event[1])
   event_dictionary["l1_indices"] = np.array(l1_indices)
@@ -46,8 +48,9 @@ def make_ditau_cut(event_dictionary, DeepTauVersion):
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_ditau] # "*" unpacks a tuple
   pass_cuts, FS_t1_pt, FS_t2_pt, FS_t1_eta, FS_t2_eta = [], [], [], [], []
   # note these are in the same order as the variables in the first line of this function :)
+  # TODO: double-check counts with/without trigger :)
   for i, lep_pt, lep_eta, tau_idx, l1_idx, l2_idx, vJet, vMu, vEle in zip(*to_check):
-    passKinems = (lep_pt[l1_idx] >= 40 and lep_pt[l2_idx] >= 40)
+    passKinems = (lep_pt[l1_idx] >= 40.0 and lep_pt[l2_idx] >= 40.0)
     t1passDT   = (vJet[tau_idx[l1_idx]] >= 5 and vMu[tau_idx[l1_idx]] >= 1 and vEle[tau_idx[l1_idx]] >= 1)
     t2passDT   = (vJet[tau_idx[l2_idx]] >= 5 and vMu[tau_idx[l2_idx]] >= 1 and vEle[tau_idx[l2_idx]] >= 1)
     if (passKinems and t1passDT and t2passDT):
@@ -74,13 +77,14 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   extend the existing methods as long as one can stomach the line breaks.
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
-  unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "PuppiMET_pt", "PuppiMET_phi",
+  #unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "PuppiMET_pt", "PuppiMET_phi",
+  unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass", "PuppiMET_pt", "PuppiMET_phi",
                   "Lepton_tauIdx", "Lepton_muIdx", "l1_indices", "l2_indices"]
   #TODO add this "CleanJet_btagWP" (no effect in August skims since it was always 1)
   unpack_mutau.append("HTT_Lep_pt") # TODO delete after TT bug found
   unpack_mutau.append("HTT_Tau_pt") # TODO delete after TT bug found
   unpack_mutau = add_DeepTau_branches(unpack_mutau, DeepTauVersion)
-  unpack_mutau = add_trigger_branches(unpack_mutau, final_state_mode="mutau")
+  unpack_mutau = add_trigger_branches(unpack_mutau, final_state_mode="mutau") # TODO: find cleaner solution
   unpack_mutau = (event_dictionary.get(key) for key in unpack_mutau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_mutau] # "*" unpacks a tuple
   pass_cuts, FS_mu_pt, FS_tau_pt, FS_mu_eta, FS_tau_eta, HTT_mt = [], [], [], [], [], []
@@ -88,47 +92,31 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   dummy_HTT_Tau_pt = [] #TODO delete after TT bug found
   # note these are in the same order as the variables in the first line of this function :)
   #for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, MET_pt, MET_phi, tau_idx, mu_idx,\
-  for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, MET_pt, MET_phi, tau_idx, mu_idx,\
+  for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, mu_M, MET_pt, MET_phi, tau_idx, mu_idx,\
       l1_idx, l2_idx, HTT_Lep_pt, HTT_Tau_pt, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
-      #l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check): # use after TT bug found
 
     tauLoc     = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
     muLoc      = mu_idx[l1_idx]  + mu_idx[l2_idx]  + 1
-    if (muLoc < 0 or tauLoc < 0): continue
+    #if (muLoc < 0 or tauLoc < 0): continue
     tauEtaVal  = tau_eta[tauLoc]
     tauPtVal   = tau_pt[tauLoc] 
     muPtVal    = mu_pt[muLoc] 
     muEtaVal   = mu_eta[muLoc]
     muPhiVal   = mu_phi[muLoc]
     mtVal      = calculate_mt(muPtVal, muPhiVal, MET_pt, MET_phi)
-    #ROOTmtVal  = ROOT_mt(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
-    #passROOTMT = (ROOTmtVal < 50.)
+    passMT     = (mtVal < 50)
+    #ROOTmtVal  = calculate_mt_pyROOT(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
+    #passROOTMT = (ROOTmtVal < 50.0)
 
-    #goodMuonsAndTausCut  = "HTT_Tau_pt > 30 && ( (HLT_IsoMu24 && HTT_Lep_pt > 25.) || \
-    #                      (!HLT_IsoMu24 && HLT_IsoMu20_eta2p1_LooseDeepTauPFTauHPS27_eta2p1_CrossL1 && \
-    #                       HTT_Lep_pt > 21. && Tau_eta[Lepton_tauIdx[FSLeptons[0]] + Lepton_tauIdx[FSLeptons[1]] + 1]) )"
+    passTauPtAndEta  = ((tauPtVal > 30.0) and (abs(tauEtaVal) < 2.3))
+    pass25MuPt   = ((trg24mu) and (muPtVal > 25.0) and (abs(muEtaVal) < 2.4))
+    pass28MuPt   = ((trg27mu) and (muPtVal > 28.0) and (abs(muEtaVal) < 2.4))
+    passMuPtCrossTrigger = ((crosstrg) and ((21.0 < muPtVal < 25.0) and (abs(muEtaVal) < 2.1))
+                                       and ((tauPtVal > 32.0)       and (abs(tauEtaVal) < 2.1)) ) 
 
-
-    passMT     = (mtVal < 50.)
-    passTauPtAndEta  = ((tauPtVal > 30.) and (abs(tauEtaVal) < 2.3))
-    pass25MuPt   = ((trg24mu) and (muPtVal > 25.) and (abs(muEtaVal) < 2.3))
-    pass28MuPt   = ((trg27mu) and (muPtVal > 28.) and (abs(muEtaVal) < 2.3))
-    passMuPtCrossTrigger = ((crosstrg) and ( (21. < muPtVal < 25.) and (abs(muEtaVal) < 2.1))
-                                     and ( (tauPtVal > 32)       and (abs(tauEtaVal) < 2.1)) ) 
     passTauDT  = ((vJet[tauLoc] >= 5) and (vMu[tauLoc] >= 4) and (vEle[tauLoc] >= 1))
 
-
-    noCut = True
-    #if noCut: # 1
-    #if (trg24mu or trg27mu or crosstrg):
-    #if (passTauPt and pass25MuPt and passTauDT): # 2
-    #if (passTauPt and (pass25MuPt or pass28MuPt or crosstrg)):
-    #if (passTauPt and (pass25MuPt or pass28MuPt or crosstrg) and passTauDT): # 2
-    #if (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger) and passTauDT): # 3
-    #if (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)):
-
     if (passMT and (passTauPtAndEta and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
-    #if (passROOTMT and (passTauPt and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
       pass_cuts.append(i)
       FS_mu_pt.append(muPtVal)
       FS_tau_pt.append(tauPtVal)
@@ -148,6 +136,61 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   event_dictionary["dummy_HTT_Tau_pt"] = np.array(dummy_HTT_Tau_pt) # TODO delete after TT bug found
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after mutau cuts = {nEvents_precut}, {nEvents_postcut}")
+  return event_dictionary
+
+
+def make_etau_cut(event_dictionary):
+  '''
+  Works similarly to 'make_ditau_cut'. 
+  '''
+  pass
+
+
+def make_jet_cut(event_dictionary):
+  nEvents_precut = len(event_dictionary["Lepton_pt"])
+  unpack_jetVars = ["nCleanJet", "CleanJet_pt", "CleanJet_eta"]
+  unpack_jetVars = (event_dictionary.get(key) for key in unpack_jetVars)
+  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_jetVars] # "*" unpacks a tuple
+  pass_zero_jet_cuts, pass_one_jet_cuts, pass_two_jet_cuts, pass_two_or_more_jet_cuts = [], [], [], []
+  nCleanJetGT30 = []
+  for i, nJet, jet_pt, jet_eta in zip(*to_check):
+    passingJets = 0
+    for ijet in range(0, nJet):
+      if (jet_pt[ijet] > 30.0) and (jet_eta[ijet] < 4.7):
+        passingJets += 1
+    nCleanJetGT30.append(passingJets)
+
+    if   passingJets == 0: pass_zero_jet_cuts.append(i)
+    elif passingJets == 1: pass_one_jet_cuts.append(i)
+    elif passingJets == 2: pass_two_jet_cuts.append(i)
+    elif passingJets >= 2: pass_two_or_more_jet_cuts.append(i)
+    #elif nJet == 1 and jet_pt[0] > 30: 
+    #    pass_one_jet_cuts.append(i)
+    #elif nJet > 1:
+    #  if nJet == 2 and jet_pt[0] > 30 and jet_pt[1] > 30: 
+    #    pass_two_jet_cuts.append(i)
+    #    pass_two_or_more_jet_cuts.append(i)
+    #  if nJet > 2: 
+    #    keepJets=True
+    #    for ijet in range(2, nJet):
+    #      if jet_pt[ijet] < 30:
+    #        keepJets = False
+    #    if keepJets == True:
+    #      pass_two_or_more_jet_cuts.append(i)
+
+  event_dictionary["pass_zero_jet_cuts"]        = np.array(pass_zero_jet_cuts)
+  event_dictionary["pass_one_jet_cuts"]         = np.array(pass_one_jet_cuts)
+  event_dictionary["pass_two_jet_cuts"]         = np.array(pass_two_jet_cuts)
+  event_dictionary["pass_two_or_more_jet_cuts"] = np.array(pass_two_or_more_jet_cuts)
+  event_dictionary["nCleanJetGT30"] = np.array(nCleanJetGT30)
+  nEvents_postzerojetcut      = len(np.array(pass_zero_jet_cuts))
+  nEvents_postonejetcut       = len(np.array(pass_one_jet_cuts))
+  nEvents_posttwojetcut       = len(np.array(pass_two_jet_cuts))
+  nEvents_posttwoormorejetcut = len(np.array(pass_two_or_more_jet_cuts))
+  print(f"nEvents passing zero jet cuts        = {nEvents_precut}, {nEvents_postzerojetcut}")
+  print(f"nEvents passing one  jet cuts        = {nEvents_precut}, {nEvents_postonejetcut}")
+  print(f"nEvents passing two  jet cuts        = {nEvents_precut}, {nEvents_posttwojetcut}")
+  print(f"nEvents passing two or more jet cuts = {nEvents_precut}, {nEvents_posttwoormorejetcut}")
   return event_dictionary
 
 
@@ -222,15 +265,48 @@ def apply_cut(event_dictionary, cut_branch):
   already pass cuts by construction.
   The returned event_dictionary now only contains events passing all cuts.
   '''
-  branches_added_during_cut = ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta",
-                               "FS_mu_pt", "FS_tau_pt", "FS_mu_eta", "FS_tau_eta",
-                               "HTT_mt", "dummy_HTT_Lep_pt", "dummy_HTT_Tau_pt",]
+
+  # if all events are cut, print a message
+  delete_sample = False
+  if len(event_dictionary[cut_branch]) == 0:
+    print("All events removed, sample deleted")
+    delete_sample = True
+
+  branches_added_during_FS_cut = ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta",
+                                  "FS_mu_pt", "FS_tau_pt", "FS_mu_eta", "FS_tau_eta",
+                                  "HTT_mt", "dummy_HTT_Lep_pt", "dummy_HTT_Tau_pt"]
+                                  #"pass_cuts"]
+  branches_added_during_jet_cut = ["pass_zero_jet_cuts", "pass_one_jet_cuts",
+                                   "pass_two_jet_cuts", "pass_two_or_more_jet_cuts",
+                                   "nCleanJetGT30"]
+
   for branch in event_dictionary:
-    if branch != cut_branch:
-      if branch in branches_added_during_cut:
+    print(branch, end='\t')
+    if delete_sample:
+      # TODO: fix later. this takes one event and makes the sample as small as possible
+      # without being empty. Should actually figure out how to deal with it being empty
+      event_dictionary[branch] = np.take(event_dictionary[branch], [0])
+
+
+    if branch != cut_branch and cut_branch == "pass_cuts":
+      if branch in branches_added_during_FS_cut:
         pass
       else:
         event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
+
+  # better thing to do would be to give calling function a list of safe branches that shouldn't be cut
+  # then this is more general
+  #
+  # this is ugly and bad
+    else:
+      if branch == "pass_cuts" and cut_branch == "pass_cuts":
+        pass
+      elif branch in branches_added_during_jet_cut:
+        pass
+      else:
+        event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
+
+
   return event_dictionary
 
 
@@ -287,14 +363,20 @@ def make_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode):
   '''
   if final_state_mode == "ditau":
     event_dictionary = make_ditau_cut(event_dictionary, useDeepTauVersion)
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts")
   elif final_state_mode == "mutau":
     event_dictionary = make_mutau_cut(event_dictionary, useDeepTauVersion)
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts")
+    event_dictionary = make_jet_cut(event_dictionary)
+    event_dictionary = apply_cut(event_dictionary, "pass_zero_jet_cuts")
   elif final_state_mode == "etau":
     event_dictionary = make_etau_cut(event_dictionary, useDeepTauVersion)
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts")
   elif final_state_mode == "dimuon":
     event_dictionary = manual_dimuon_lepton_veto(event_dictionary)
     event_dictionary = apply_cut(process_events, "pass_manual_lepton_veto")
     event_dictionary = make_dimuon_cut(event_dictionary)
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts")
   else:
     print(f"No cuts to apply for {final_state_mode} final state.")
   return event_dictionary
