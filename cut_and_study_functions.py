@@ -281,7 +281,7 @@ def apply_cut(event_dictionary, cut_branch):
                                    "nCleanJetGT30"]
 
   for branch in event_dictionary:
-    print(branch, end='\t')
+    #print(branch, end='\t')
     if delete_sample:
       # TODO: fix later. this takes one event and makes the sample as small as possible
       # without being empty. Should actually figure out how to deal with it being empty
@@ -367,8 +367,8 @@ def make_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode):
   elif final_state_mode == "mutau":
     event_dictionary = make_mutau_cut(event_dictionary, useDeepTauVersion)
     event_dictionary = apply_cut(event_dictionary, "pass_cuts")
-    event_dictionary = make_jet_cut(event_dictionary)
-    event_dictionary = apply_cut(event_dictionary, "pass_zero_jet_cuts")
+    #event_dictionary = make_jet_cut(event_dictionary)
+    #event_dictionary = apply_cut(event_dictionary, "pass_zero_jet_cuts")
   elif final_state_mode == "etau":
     event_dictionary = make_etau_cut(event_dictionary, useDeepTauVersion)
     event_dictionary = apply_cut(event_dictionary, "pass_cuts")

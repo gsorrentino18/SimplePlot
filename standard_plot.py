@@ -65,7 +65,6 @@ if __name__ == "__main__":
   reacquired at the next gc.collect() call
   '''
 
-
   lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir      = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/"
   lxplus_directory  = lxplus_redirector + eos_user_dir
@@ -102,13 +101,12 @@ if __name__ == "__main__":
   print(f"Testing: {testing}")
   print(f"USING DEEP TAU VERSION {useDeepTauVersion}")
 
-  # TODO re-enable after mutatu tt bar study
   good_events = set_good_events(final_state_mode)
-  #good_events = "(HTT_SRevent | HTT_SSevent | HTT_ARevent)"
   print(f"good events \n {good_events}")
 
   native_variables = ["MET_pt", "PuppiMET_pt", "nCleanJet", "HTT_dR", "HTT_m_vis",
                       #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj",
+                      "nCleanJet", "CleanJet_pt", "CleanJet_eta",
                       "HTT_H_pt_using_PUPPI_MET"]
   #added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", "CleanJet_btagWP"]
   #added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt"]
@@ -127,7 +125,8 @@ if __name__ == "__main__":
 
   added_by_processing = ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta",
                          "FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta",
-                         "HTT_mt"]
+                         "nCleanJetGT30",
+                         "HTT_mt"] # rename this, prepending with HTT makes it looks native
   branches = [
               "run", "luminosityBlock", "event", "Generator_weight",
               "FSLeptons", "Lepton_pt", "Lepton_eta",
@@ -143,20 +142,6 @@ if __name__ == "__main__":
   # errors like " 'NoneType' object is not iterable " usually mean you forgot
   # to add some branch relevant to the final state
 
-  # TODO: move to lxplus, make the jump!
-  # UPDATE: 40+ minutes on lxplus, and no output.. difficult situation to debug
-  # for now will keep things local and work to scale up and over by the end of October!
-  # UPDATE Oct 12: ~25 minutes on lxplus, with working output!
-  # idea to immediately cut any loaded data to reduce memory use, allowing quicker plotting
-  # of the 25 minutes, 1 was spent plotting, 3 processing, and the rest loading the files (network time)
-  # the User Time was 4.5 minutes
-  # UPDATE Oct 18th: did some memory consumption testing and found that 4GB of memory are used when running 
-  # this script in testing mode. Also, files not automatically closed. Would managing this better help?
-  # UPDATE Oct 23rd: managing this better helps a lot, reduces hang time by 2x on machines with fewer resources
-  # additionally, skimming samples by FS helps tremendously. now testing on lxplus < 5 minutes
-  # full datasets (F&G) ~ 40 minutes independent of final state, but this was impossible to do at all before
-  # definitely progressing. biggest issue is loading large samples (TTbar, DYInc) into memory, skim them harder
-
   file_map = testing_file_map if testing else full_file_map
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
@@ -164,6 +149,10 @@ if __name__ == "__main__":
   for process in file_map: 
 
     gc.collect()
+    if      final_state_mode == "ditau" and (process=="DataMuon" or process=="DataElectron"): continue
+    elif final_state_mode == "mutau" and (process=="DataTau" or process=="DataElectron"):  continue
+    elif final_state_mode == "etau"  and (process=="DataTau" or process=="DataMuon"):      continue
+
     new_process_list = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
@@ -175,9 +164,8 @@ if __name__ == "__main__":
     del(new_process_list)
 
     process_events = append_lepton_indices(process_events)
-    process_events = make_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
-    if len(process_events["pass_cuts"])==0: continue # skip datasets if nothing is in them
-    cut_events = apply_cut(process_events, "pass_cuts")
+    cut_events = make_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
+    if len(cut_events["pass_cuts"])==0: continue # skip datasets if nothing is in them
     del(process_events)
 
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
@@ -244,7 +232,6 @@ if __name__ == "__main__":
     hist_ax.legend()
   
     plt.savefig(plot_dir + "/" + str(var) + ".png")
-
 
     # calculate and print these quantities only once
     if (var == "HTT_m_vis"): 
