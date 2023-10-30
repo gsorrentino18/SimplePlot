@@ -20,6 +20,7 @@ luminosities = {
 testing_file_map = {
   "DataTau"  : "Data/Tau*G*",
   "DataMuon" : "Data/Muon*G*",
+  "DataElectron" : "Data/EGamma*G*",
 
   "DYInc" : "DY/DYJets*part1",
   "WJetsInc" : "WJ/WJ*part1",
@@ -41,6 +42,7 @@ testing_file_map = {
 full_file_map = {
   "DataTau"  : "Data/Tau*",
   "DataMuon" : "Data/Muon*",
+  "DataElectron" : "Data/EGamma*",
 
   "DYInc" : "DY/DY*part*",
   "DYJetsToLL_M-50_1J" : "DY/DYJetsToLL_M-50_1J*",
@@ -135,7 +137,7 @@ def sort_combined_processes(combined_processes_dictionary):
 
 
 def append_to_combined_processes(process, cut_events, vars_to_plot, combined_processes):
-  protected_processes = ["DataTau", "DataMuon", "ggH", "VBF"]
+  protected_processes = ["DataTau", "DataMuon", "DataElectron", "ggH", "VBF"]
   if process not in protected_processes:
     combined_processes[process] = { "PlotEvents": {}, 
                                    "Generator_weight": cut_events["Generator_weight"],

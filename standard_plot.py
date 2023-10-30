@@ -70,7 +70,9 @@ if __name__ == "__main__":
   lxplus_directory  = lxplus_redirector + eos_user_dir
   # there's no place like home :)
   home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3SkimmedSamples"
+  # TODO change this to know the final state
   home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/mutau"
+  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/etau"
   using_directory   = home_directory
   print(f"CURRENT FILE DIRECTORY : {using_directory}")
   
@@ -104,7 +106,7 @@ if __name__ == "__main__":
   good_events = set_good_events(final_state_mode)
   print(f"good events \n {good_events}")
 
-  native_variables = ["MET_pt", "PuppiMET_pt", "nCleanJet", "HTT_dR", "HTT_m_vis",
+  native_variables = ["MET_pt", "PuppiMET_pt", "PuppiMET_phi", "nCleanJet", "HTT_dR", "HTT_m_vis",
                       #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj",
                       "nCleanJet", "CleanJet_pt", "CleanJet_eta",
                       "HTT_H_pt_using_PUPPI_MET"]
@@ -130,7 +132,7 @@ if __name__ == "__main__":
   branches = [
               "run", "luminosityBlock", "event", "Generator_weight",
               "FSLeptons", "Lepton_pt", "Lepton_eta",
-              "Lepton_tauIdx", "Lepton_muIdx", 
+              "Lepton_tauIdx", "Lepton_muIdx", "Lepton_elIdx",
               "HTT_Lep_pt", "HTT_Tau_pt",
               "TrigObj_filterBits", # for matching...
              ]
@@ -149,9 +151,9 @@ if __name__ == "__main__":
   for process in file_map: 
 
     gc.collect()
-    if      final_state_mode == "ditau" and (process=="DataMuon" or process=="DataElectron"): continue
-    elif final_state_mode == "mutau" and (process=="DataTau" or process=="DataElectron"):  continue
-    elif final_state_mode == "etau"  and (process=="DataTau" or process=="DataMuon"):      continue
+    if   final_state_mode == "ditau" and (process=="DataMuon" or process=="DataElectron"): continue
+    elif final_state_mode == "mutau" and (process=="DataTau"  or process=="DataElectron"): continue
+    elif final_state_mode == "etau"  and (process=="DataTau"  or process=="DataMuon"):     continue
 
     new_process_list = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,
