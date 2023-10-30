@@ -3,9 +3,10 @@ import numpy as np
 ### README
 # this file contains functions to perform cuts and self-contained studies
 
-from get_and_set_functions import add_DeepTau_branches, add_trigger_branches
+#from get_and_set_functions import add_DeepTau_branches, add_trigger_branches
 from calculate_functions   import calculate_mt
 #from calculate_functions   import calculate_mt_pyROOT
+from triggers_dictionary import triggers_dictionary
 
 
 def append_lepton_indices(event_dictionary):
@@ -78,23 +79,24 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   extend the existing methods as long as one can stomach the line breaks.
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
-  #unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "PuppiMET_pt", "PuppiMET_phi",
-  unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass", "PuppiMET_pt", "PuppiMET_phi",
+  #unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass", "PuppiMET_pt", "PuppiMET_phi",
+  unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "PuppiMET_pt", "PuppiMET_phi",
                   "Lepton_tauIdx", "Lepton_muIdx", "l1_indices", "l2_indices"]
   #TODO add this "CleanJet_btagWP" (no effect in August skims since it was always 1)
-  unpack_mutau.append("HTT_Lep_pt") # TODO delete after TT bug found
-  unpack_mutau.append("HTT_Tau_pt") # TODO delete after TT bug found
+  #unpack_mutau.append("HTT_Lep_pt") # TODO delete after TT bug found
+  #unpack_mutau.append("HTT_Tau_pt") # TODO delete after TT bug found
   unpack_mutau = add_DeepTau_branches(unpack_mutau, DeepTauVersion)
   unpack_mutau = add_trigger_branches(unpack_mutau, final_state_mode="mutau") # TODO: find cleaner solution
   unpack_mutau = (event_dictionary.get(key) for key in unpack_mutau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_mutau] # "*" unpacks a tuple
-  pass_cuts, FS_mu_pt, FS_tau_pt, FS_mu_eta, FS_tau_eta, HTT_mt = [], [], [], [], [], []
+  pass_cuts, FS_mu_pt, FS_tau_pt, FS_mu_eta, FS_tau_eta, FS_mt = [], [], [], [], [], []
   dummy_HTT_Lep_pt = [] #TODO delete after TT bug found
   dummy_HTT_Tau_pt = [] #TODO delete after TT bug found
   # note these are in the same order as the variables in the first line of this function :)
-  #for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, MET_pt, MET_phi, tau_idx, mu_idx,\
-  for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, mu_M, MET_pt, MET_phi, tau_idx, mu_idx,\
-      l1_idx, l2_idx, HTT_Lep_pt, HTT_Tau_pt, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
+  #for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, mu_M, MET_pt, MET_phi, tau_idx, mu_idx,\
+  for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, MET_pt, MET_phi, tau_idx, mu_idx,\
+      l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
+      #l1_idx, l2_idx, HTT_Lep_pt, HTT_Tau_pt, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
 
     tauLoc     = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
     muLoc      = mu_idx[l1_idx]  + mu_idx[l2_idx]  + 1
@@ -124,18 +126,18 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
       FS_tau_pt.append(tauPtVal)
       FS_mu_eta.append(muEtaVal)
       FS_tau_eta.append(tauEtaVal)
-      HTT_mt.append(mtVal)
-      dummy_HTT_Lep_pt.append(HTT_Lep_pt) # TODO delete after TT bug found
-      dummy_HTT_Tau_pt.append(HTT_Tau_pt) # TODO delete after TT bug found
+      FS_mt.append(mtVal)
+      #dummy_HTT_Lep_pt.append(HTT_Lep_pt) # TODO delete after TT bug found
+      #dummy_HTT_Tau_pt.append(HTT_Tau_pt) # TODO delete after TT bug found
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
   event_dictionary["FS_mu_pt"]  = np.array(FS_mu_pt)
   event_dictionary["FS_tau_pt"] = np.array(FS_tau_pt)
   event_dictionary["FS_mu_eta"] = np.array(FS_mu_eta)
   event_dictionary["FS_tau_eta"] = np.array(FS_tau_eta)
-  event_dictionary["HTT_mt"]    = np.array(HTT_mt)
-  event_dictionary["dummy_HTT_Lep_pt"] = np.array(dummy_HTT_Lep_pt) # TODO delete after TT bug found
-  event_dictionary["dummy_HTT_Tau_pt"] = np.array(dummy_HTT_Tau_pt) # TODO delete after TT bug found
+  event_dictionary["FS_mt"]    = np.array(FS_mt)
+  #event_dictionary["dummy_HTT_Lep_pt"] = np.array(dummy_HTT_Lep_pt) # TODO delete after TT bug found
+  #event_dictionary["dummy_HTT_Tau_pt"] = np.array(dummy_HTT_Tau_pt) # TODO delete after TT bug found
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after mutau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
@@ -155,7 +157,7 @@ def make_etau_cut(event_dictionary, DeepTauVersion):
   unpack_etau = add_trigger_branches(unpack_etau, final_state_mode="etau")
   unpack_etau = (event_dictionary.get(key) for key in unpack_etau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_etau]
-  pass_cuts, FS_el_pt, FS_tau_pt, FS_el_eta, FS_tau_eta, HTT_mt = [], [], [], [], [], []
+  pass_cuts, FS_el_pt, FS_tau_pt, FS_el_eta, FS_tau_eta, FS_mt = [], [], [], [], [], []
   for i, tau_pt, tau_eta, el_pt, el_eta, el_phi, MET_pt, MET_phi,\
       tau_idx, el_idx, l1_idx, l2_idx,\
       vJet, vMu, vEle,\
@@ -333,7 +335,8 @@ def apply_cut(event_dictionary, cut_branch):
   branches_added_during_FS_cut = ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta",
                                   "FS_mu_pt", "FS_tau_pt", "FS_mu_eta", "FS_tau_eta",
                                   "FS_el_pt", "FS_el_eta", 
-                                  "HTT_mt", "dummy_HTT_Lep_pt", "dummy_HTT_Tau_pt"]
+                                  "FS_mt",] 
+                                  #"dummy_HTT_Lep_pt", "dummy_HTT_Tau_pt"]
                                   #"pass_cuts"]
   branches_added_during_jet_cut = ["pass_zero_jet_cuts", "pass_one_jet_cuts",
                                    "pass_two_jet_cuts", "pass_two_or_more_jet_cuts",
@@ -362,7 +365,8 @@ def apply_cut(event_dictionary, cut_branch):
       if branch == "pass_cuts" and cut_branch == "pass_cuts":
         pass
       elif branch in branches_added_during_jet_cut:
-        pass
+        print(f"{branch} is in branches added during jet cut")
+        #pass
       else:
         event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
 
@@ -415,7 +419,7 @@ def study_triggers():
   print(f"Run3 OR/AND: {Run3OR}\t{Run3AND}")
 
 
-def make_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode):
+def apply_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode):
   '''
   Organizational function that generalizes call to a (set of) cuts based on the
   final cut. Importantly, the function that rejects events, 'apply_cut',
@@ -439,11 +443,128 @@ def make_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode):
     print(f"No cuts to apply for {final_state_mode} final state.")
   return event_dictionary
 
-def apply_jet_cut(event_dictionary):
+
+def apply_jet_cut(event_dictionary, jet_cut):
   '''
+  jet_cut can be "pass_zero_jet_cut", "pass_one_jet_cut", "pass_two_jet_cut"
+                 "pass_one_or_more_jet_cut", "pass_two_or_more_jet_cut",
+                 "pass_inclusive_ptGT30_etaLT4p7_cut"
   '''
   event_dictionary = make_jet_cut(event_dictionary)
-  event_dictionary = apply_cut(event_dictionary, "pass_zero_jet_cuts")
+  event_dictionary = apply_cut(event_dictionary, jet_cut)
   return event_dictionary
 
 
+def set_branches(final_state_mode, useDeepTauVersion="2p5"):
+  common_branches = [
+    "run", "luminosityBlock", "event", "Generator_weight",
+    "FSLeptons", "Lepton_pt", "Lepton_eta",
+    "nCleanJet", "CleanJet_pt", "CleanJet_eta",
+    "HTT_m_vis", "HTT_dR",
+  ]
+  branches = common_branches
+  branches = add_final_state_branches(branches, final_state_mode)
+  branches = add_DeepTau_branches(branches, useDeepTauVersion)
+  branches = add_trigger_branches(branches, final_state_mode)
+  return branches
+
+
+def add_final_state_branches(branches_, final_state_mode):
+  '''
+  Helper function to add only relevant branches to loaded branches based on final state.
+  '''
+  final_state_branches = {
+    "ditau"  : ["Lepton_tauIdx"],
+
+    "mutau"  : ["Tau_pt", "Tau_eta", 
+                "Muon_pt", "Muon_eta", "Muon_phi",
+                "Lepton_tauIdx", "Lepton_muIdx", 
+                "PuppiMET_pt", "PuppiMET_phi"],
+
+    "etau"   : ["Tau_pt", "Tau_eta",
+                "Electron_pt", "Electron_eta", "Electron_phi",
+                "Lepton_tauIdx", "Lepton_elIdx",
+                "PuppiMET_pt", "PuppiMET_phi"],
+
+    "dimuon" : ["Muon_pt", "Muon_eta",
+                "HTT_m_vis", "HTT_dR",
+                "Lepton_iso", "Lepton_pdgId", "Lepton_muIdx"],
+  }
+
+  #branch_to_add = []
+  #if final_state_mode == "ditau":
+  #  pass
+
+  #elif final_state_mode == "mutau" or final_state_mode == "etau":
+  #  branch_to_add = ["Tau_pt", "Tau_eta", "MET_pt", "MET_phi", "PuppiMET_pt", "PuppiMET_phi"]
+  #  if final_state_mode == "mutau":
+  #    branch_to_add += ["Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass"]
+  #  elif final_state_mode == "etau":
+  #    branch_to_add += ["Electron_pt", "Electron_eta", "Electron_phi"]
+
+  #elif final_state_mode == "dimuon":
+  #    branch_to_add += ["Muon_pt", "Lepton_pdgId", "Lepton_iso", "HTT_m_vis", "HTT_dR"]
+
+  #else:
+  #  print("Hey, that's not a valid final state mode. Try ditau, mutau, etau, or mumu.")
+
+  branch_to_add = final_state_branches[final_state_mode]
+  for new_branch in branch_to_add:
+    branches_.append(new_branch)
+  
+  return branches_
+
+
+def add_DeepTau_branches(branches_, DeepTauVersion):
+  '''
+  Helper function to add DeepTauID branches
+  '''
+  if DeepTauVersion == "2p1":
+    for DeepTau_v2p1_branch in ["Tau_idDeepTau2017v2p1VSjet", "Tau_idDeepTau2017v2p1VSmu", "Tau_idDeepTau2017v2p1VSe"]:
+      branches_.append(DeepTau_v2p1_branch)
+
+  elif DeepTauVersion == "2p5":
+    for DeepTau_v2p5_branch in ["Tau_idDeepTau2018v2p5VSjet", "Tau_idDeepTau2018v2p5VSmu", "Tau_idDeepTau2018v2p5VSe"]:
+      branches_.append(DeepTau_v2p5_branch)
+
+  else:
+    print(f"no branches added with argument {DeepTauVersion}. Try 2p1 or 2p5.")
+
+  return branches_
+
+
+def add_trigger_branches(branches_, final_state_mode):
+  '''
+  Helper function to add HLT branches used by a given final state
+  '''
+  for trigger in triggers_dictionary[final_state_mode]:
+    branches_.append(trigger)
+  return branches_
+
+def set_vars_to_plot(final_state_mode, jet_mode):
+
+  jet_plotting_vars = {
+    "dummy": [],
+    "1j"   : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
+    "2j"   : ["CleanJetGT30_pt_2", "CleanJetGT30_eta_2"], # + above
+    "GT2j" : ["CleanJetGT30_pt_3", "CleanJetGT30_eta_3"], # + above
+  }
+
+  final_state_plotting_vars = {
+    "ditau"  : ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta"],
+    "mutau"  : ["FS_mu_pt", "FS_tau_pt", "FS_mu_eta", "FS_tau_eta",
+                "PuppiMET_pt"],
+    "etau"   : ["FS_el_pt", "FS_tau_pt", "FS_el_eta", "FS_tau_eta",
+                "PuppiMET_pt"],
+    "dimuon" : ["FS_m1_pt", "FS_m2_pt", "FS_m1_eta", "FS_m2_eta"],
+  }
+
+  vars_to_plot = ["HTT_m_vis", "HTT_dR"]
+  FS_vars_to_add = final_state_plotting_vars[final_state_mode]
+  for var in FS_vars_to_add:
+    vars_to_plot.append(var)
+  jet_vars_to_add = jet_plotting_vars[jet_mode]
+  for jet_var in jet_vars_to_add:
+    vars_to_plot.append(jet_vars_to_add)
+
+  return vars_to_plot

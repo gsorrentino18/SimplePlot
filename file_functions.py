@@ -151,6 +151,9 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
     combined_processes[process] = { "PlotEvents":{}
                                  }
   for var in vars_to_plot:
+    if "CleanJet" in var:
+      print(var)
+      print(cut_events[var])
     combined_processes[process]["PlotEvents"][var] = cut_events[var]
 
   return combined_processes

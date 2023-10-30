@@ -79,33 +79,6 @@ def get_binned_info(process_name, process_variable, xbins, process_weights, lumi
   return binned_values
 
 
-def add_final_state_branches(branches_, final_state_mode):
-  '''
-  Helper function to add only relevant branches to loaded branches based on final state.
-  '''
-  branch_to_add = []
-  if final_state_mode == "ditau":
-    pass
-
-  elif final_state_mode == "mutau" or final_state_mode == "etau":
-    branch_to_add = ["Tau_pt", "Tau_eta", "MET_pt", "MET_phi", "PuppiMET_pt", "PuppiMET_phi"]
-    if final_state_mode == "mutau":
-      branch_to_add += ["Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass"]
-    elif final_state_mode == "etau":
-      branch_to_add += ["Electron_pt", "Electron_eta", "Electron_phi"]
-
-  elif final_state_mode == "dimuon":
-      branch_to_add += ["Muon_pt", "Lepton_pdgId", "Lepton_iso", "HTT_m_vis", "HTT_dR"]
-
-  else:
-    print("Hey, that's not a valid final state mode. Try ditau, mutau, etau, or mumu.")
-
-  for new_branch in branch_to_add:
-    branches_.append(new_branch)
-  
-  return branches_
-
-
 def accumulate_MC_subprocesses(parent_process, process_dictionary):
   '''
   Add up separate MC histograms for processes belonging to the same family.
@@ -153,33 +126,6 @@ def get_parent_process(MC_process):
   else:
     print("No matching parent process for {MC_process}, continuing as individual process...")
   return parent_process
-
-
-def add_DeepTau_branches(branches_, DeepTauVersion):
-  '''
-  Helper function to add DeepTauID branches
-  '''
-  if DeepTauVersion == "2p1":
-    for DeepTau_v2p1_branch in ["Tau_idDeepTau2017v2p1VSjet", "Tau_idDeepTau2017v2p1VSmu", "Tau_idDeepTau2017v2p1VSe"]:
-      branches_.append(DeepTau_v2p1_branch)
-
-  elif DeepTauVersion == "2p5":
-    for DeepTau_v2p5_branch in ["Tau_idDeepTau2018v2p5VSjet", "Tau_idDeepTau2018v2p5VSmu", "Tau_idDeepTau2018v2p5VSe"]:
-      branches_.append(DeepTau_v2p5_branch)
-
-  else:
-    print(f"no branches added with argument {DeepTauVersion}. Try 2p1 or 2p5.")
-
-  return branches_
-
-
-def add_trigger_branches(branches_, final_state_mode):
-  '''
-  Helper function to add HLT branches used by a given final state
-  '''
-  for trigger in triggers_dictionary[final_state_mode]:
-    branches_.append(trigger)
-  return branches_
 
 
 def set_good_events(final_state_mode, disable_triggers=False):

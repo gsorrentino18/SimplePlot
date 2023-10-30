@@ -10,13 +10,15 @@ import gc
 from file_functions        import testing_file_map, full_file_map, luminosities
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
-from cut_and_study_functions import make_final_state_cut, apply_cut, append_lepton_indices
+#TODO                                                     v change this name for jet cut
+#                                   v or change this name for the general method
+from cut_and_study_functions import set_branches, set_vars_to_plot # set good events should be here
+from cut_and_study_functions import apply_final_state_cut, apply_jet_cut, append_lepton_indices
 
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot
 from plotting_functions    import plot_data, plot_MC, plot_signal
 
 from get_and_set_functions import set_good_events, make_bins, get_binned_info
-from get_and_set_functions import add_final_state_branches, add_DeepTau_branches, add_trigger_branches
 from get_and_set_functions import accumulate_MC_subprocesses, accumulate_datasets
 
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
@@ -29,8 +31,10 @@ if __name__ == "__main__":
   Just read the code, it speaks for itself.
   Kidding.
 
-  '''
+  This is a test bed for QCD plotting and is basically the same as "standard_plot" except
+  the plot that comes out is to study QCD estimations, not yields.
 
+  '''
 
   lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir      = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/"
@@ -68,42 +72,23 @@ if __name__ == "__main__":
   print(f"Testing: {testing}")
   print(f"USING DEEP TAU VERSION {useDeepTauVersion}")
 
-  # TODO re-enable after mutatu tt bar study
-  good_events = set_good_events(final_state_mode)
+  good_events  = set_good_events(final_state_mode)
+  branches     = set_branches(final_state_mode)
+  # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
+  vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode="dummy")
+  # TODO bundle info together and print in one nice statement
   print(f"good events \n {good_events}")
-
-  native_variables = ["MET_pt", "PuppiMET_pt", "nCleanJet", "HTT_dR", "HTT_m_vis",
-                      "nCleanJet", "CleanJet_pt", "CleanJet_eta",
-                      "HTT_H_pt_using_PUPPI_MET"]
-  added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta"]#, "HTT_mt"]
-  added_ditau_variables  = ["FS_t1_pt", "FS_t1_eta", "FS_t2_pt", "FS_t2_eta"]
-  added_variables  = added_ditau_variables if final_state_mode=="ditau" else added_mutau_variables
-  full_variables   = native_variables + added_variables
-  vars_to_plot     = ["MET_pt", "HTT_m_vis", "FS_tau_pt"] if testing else full_variables
+  print("Branches are")
+  print(branches)
+  print("Variables to plot are")
+  print(vars_to_plot)
 
   # TODO: make and store jet branches correctly
   #  i.e. branches above ending in "fromHighestMjj" should only be plotted for events with nJet>2
   #  "nCleanJetGT30" : (8, 0, 8), # GT = Greater Than 
+  #  "CleanJetGT30_pt" # naively, just store up to four jets pt ordered. see if it's still a problem after that
+  #  "CleanJetGT30_eta"
   
-  print(f"Plotting {vars_to_plot}!")
-
-  added_by_processing = ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta",
-                         "FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta",
-                         #"nCleanJetGT30",
-                         #"HTT_mt"]
-                        ]
-  branches = [
-              "run", "luminosityBlock", "event", "Generator_weight",
-              "FSLeptons", "Lepton_pt", "Lepton_eta",
-              "Lepton_tauIdx", "Lepton_muIdx", 
-              "HTT_Lep_pt", "HTT_Tau_pt",
-             ]
-
-  branches += [var for var in native_variables if var not in branches and var not in added_by_processing]
-  branches = add_DeepTau_branches(branches, useDeepTauVersion)
-  branches = add_trigger_branches(branches, final_state_mode)
-  branches = add_final_state_branches(branches, final_state_mode)
-
   file_map = testing_file_map if testing else full_file_map
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
@@ -122,12 +107,17 @@ if __name__ == "__main__":
 
     time_print(f"Processing {process}")
     process_events = new_process_list[process]["info"]
-    if len(process_events["run"])==0: continue # skip datasets if nothing is in them
+    # TODO: make ultility to check if these things are empty and print info if so
+    if len(process_events["run"])==0: continue
     del(new_process_list)
 
     process_events = append_lepton_indices(process_events)
-    cut_events = make_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
-    if len(cut_events["run"])==0: continue # skip datasets if nothing is in them
+    cut_events = apply_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
+    print("before jet cut")
+    print(cut_events["CleanJet_pt"])
+    if len(cut_events["run"])==0: continue
+    cut_events = apply_jet_cut(cut_events, "pass_zero_jet_cuts") # TODO mapping of name would be nice
+    if len(cut_events["run"])==0: continue
     del(process_events)
 
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
@@ -170,7 +160,7 @@ if __name__ == "__main__":
       h_MC_by_family[family] = {}
       h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
     h_backgrounds = h_MC_by_family
-    # used for ratio plot
+    # used for ratio plot and QCD
     h_summed_backgrounds = 0
     for background in h_backgrounds:
       h_summed_backgrounds += h_backgrounds[background]["BinnedEvents"]
@@ -192,6 +182,7 @@ if __name__ == "__main__":
       print(h_data - h_summed_backgrounds)
       h_QCD_bare = 1 - h_summed_backgrounds/h_data
       # mutau 0 jet
+      # 1.9322    + Tau_pt[Lepton_tauIdx[FSLeptons[0]] + Lepton_tauIdx[FSLeptons[1]] + 1] * 0.0160703
       h_QCD_FF   = [h_QCD_bare[i]*(1.9322 + xbins[i] * 0.0160703) for i in range(len(h_QCD_bare))]
       h_QCD      = h_data*h_QCD_FF
       plt.plot(xbins[0:-1], h_data, label="Data",
@@ -205,9 +196,6 @@ if __name__ == "__main__":
       plt.plot(xbins[0:-1], h_QCD, label="QCD", 
                           color="orange", marker="v", linestyle='none', markersize=4)
       plt.legend()
-      # for nCleanJets==0 # implies need to handle that for correct application
-      # 1.9322    + HTT_Tau_pt * 0.0160703
-
       # multiply each bin using the fit formula (for all plotted variables)
       # save by appending to background dictionary
       #h_QCD["QCD"]["BinnedEvents"] = h_data - h_summed_backgrounds #?

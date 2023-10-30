@@ -12,6 +12,9 @@ def calculate_underoverflow(events, xbins, weights):
   For MC, event weights must be passed correctly when the function is called.
   '''
   count_bin_values = [-999999., xbins[0], xbins[-1], 999999.]
+  print(events)
+  print(count_bin_values)
+  print(weights)
   values, bins = np.histogram(events, count_bin_values, weights=weights)
   underflow_value, overflow_value = values[0], values[-1]
   return underflow_value, overflow_value
