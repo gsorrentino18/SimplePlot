@@ -10,8 +10,6 @@ import gc
 from file_functions        import testing_file_map, full_file_map, luminosities
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
-#TODO                                                     v change this name for jet cut
-#                                   v or change this name for the general method
 from cut_and_study_functions import set_branches, set_vars_to_plot # set good events should be here
 from cut_and_study_functions import apply_final_state_cut, apply_jet_cut, append_lepton_indices
 
@@ -104,9 +102,11 @@ if __name__ == "__main__":
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
     if new_process_list == None: continue
+    print(new_process_list)
 
     time_print(f"Processing {process}")
     process_events = new_process_list[process]["info"]
+    print(process_events)
     # TODO: make ultility to check if these things are empty and print info if so
     if len(process_events["run"])==0: continue
     del(new_process_list)

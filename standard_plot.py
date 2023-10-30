@@ -10,18 +10,17 @@ import gc
 from file_functions        import testing_file_map, full_file_map, luminosities
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
-from cut_and_study_functions import make_final_state_cut, apply_cut, append_lepton_indices
+from cut_and_study_functions import set_branches, set_vars_to_plot # set good events should be here
+from cut_and_study_functions import apply_final_state_cut, apply_jet_cut, append_lepton_indices
 
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot
 from plotting_functions    import plot_data, plot_MC, plot_signal
 
 from get_and_set_functions import set_good_events, make_bins, get_binned_info
-from get_and_set_functions import add_final_state_branches, add_DeepTau_branches, add_trigger_branches
 from get_and_set_functions import accumulate_MC_subprocesses, accumulate_datasets
 
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
 from utility_functions     import time_print, attention, make_directory
-
  
 
 def match_objects_to_trigger_bit():
@@ -71,8 +70,8 @@ if __name__ == "__main__":
   # there's no place like home :)
   home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3SkimmedSamples"
   # TODO change this to know the final state
-  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/mutau"
   home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/etau"
+  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/mutau"
   using_directory   = home_directory
   print(f"CURRENT FILE DIRECTORY : {using_directory}")
   
@@ -103,18 +102,28 @@ if __name__ == "__main__":
   print(f"Testing: {testing}")
   print(f"USING DEEP TAU VERSION {useDeepTauVersion}")
 
-  good_events = set_good_events(final_state_mode)
+  good_events  = set_good_events(final_state_mode)
+  branches     = set_branches(final_state_mode)
+  # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
+  vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode="dummy")
+  # TODO bundle info together and print in one nice statement
   print(f"good events \n {good_events}")
+  print("Branches are")
+  print(branches)
+  print("Variables to plot are")
+  print(vars_to_plot)
 
+  ''' 
+  # TODO split by final_state_mode and put in a different file
   native_variables = ["MET_pt", "PuppiMET_pt", "PuppiMET_phi", "nCleanJet", "HTT_dR", "HTT_m_vis",
                       #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj",
                       "nCleanJet", "CleanJet_pt", "CleanJet_eta",
                       "HTT_H_pt_using_PUPPI_MET"]
-  #added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", "CleanJet_btagWP"]
-  #added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt"]
+
   added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", 
                             "dummy_HTT_Lep_pt", "dummy_HTT_Tau_pt"]
   added_ditau_variables  = ["FS_t1_pt", "FS_t1_eta", "FS_t2_pt", "FS_t2_eta"]
+
   added_variables  = added_ditau_variables if final_state_mode=="ditau" else added_mutau_variables
   full_variables   = native_variables + added_variables
   vars_to_plot     = ["MET_pt", "HTT_m_vis"] if testing else full_variables
@@ -143,6 +152,7 @@ if __name__ == "__main__":
   branches = add_final_state_branches(branches, final_state_mode)
   # errors like " 'NoneType' object is not iterable " usually mean you forgot
   # to add some branch relevant to the final state
+  '''
 
   file_map = testing_file_map if testing else full_file_map
 
@@ -158,15 +168,17 @@ if __name__ == "__main__":
     new_process_list = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
+    print(new_process_list)
     if new_process_list == None: continue
 
     time_print(f"Processing {process}")
     process_events = new_process_list[process]["info"]
+    print(process_events)
     if len(process_events["run"])==0: continue # skip datasets if nothing is in them
     del(new_process_list)
 
     process_events = append_lepton_indices(process_events)
-    cut_events = make_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
+    cut_events = apply_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
     if len(cut_events["pass_cuts"])==0: continue # skip datasets if nothing is in them
     del(process_events)
 
