@@ -491,23 +491,6 @@ def add_final_state_branches(branches_, final_state_mode):
                 "Lepton_iso", "Lepton_pdgId", "Lepton_muIdx"],
   }
 
-  #branch_to_add = []
-  #if final_state_mode == "ditau":
-  #  pass
-
-  #elif final_state_mode == "mutau" or final_state_mode == "etau":
-  #  branch_to_add = ["Tau_pt", "Tau_eta", "MET_pt", "MET_phi", "PuppiMET_pt", "PuppiMET_phi"]
-  #  if final_state_mode == "mutau":
-  #    branch_to_add += ["Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass"]
-  #  elif final_state_mode == "etau":
-  #    branch_to_add += ["Electron_pt", "Electron_eta", "Electron_phi"]
-
-  #elif final_state_mode == "dimuon":
-  #    branch_to_add += ["Muon_pt", "Lepton_pdgId", "Lepton_iso", "HTT_m_vis", "HTT_dR"]
-
-  #else:
-  #  print("Hey, that's not a valid final state mode. Try ditau, mutau, etau, or mumu.")
-
   branch_to_add = final_state_branches[final_state_mode]
   for new_branch in branch_to_add:
     branches_.append(new_branch)

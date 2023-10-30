@@ -20,9 +20,7 @@ from get_and_set_functions import set_good_events, make_bins, get_binned_info
 from get_and_set_functions import accumulate_MC_subprocesses, accumulate_datasets
 
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
-from utility_functions     import time_print, attention, make_directory
-
- 
+from utility_functions     import time_print, make_directory, print_setup_info
 
 if __name__ == "__main__":
   '''
@@ -31,55 +29,45 @@ if __name__ == "__main__":
 
   This is a test bed for QCD plotting and is basically the same as "standard_plot" except
   the plot that comes out is to study QCD estimations, not yields.
-
   '''
 
-  lxplus_redirector = "root://cms-xrd-global.cern.ch//"
-  eos_user_dir      = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/"
-  lxplus_directory  = lxplus_redirector + eos_user_dir
-  # there's no place like home :)
-  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3SkimmedSamples"
-  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/mutau"
-  using_directory   = home_directory
-  print(f"CURRENT FILE DIRECTORY : {using_directory}")
-  
-  
   import argparse 
   parser = argparse.ArgumentParser(description='Make a standard Data-MC agreement plot.')
-  # store_true : when the argument is supplied, store it's value as true
   # for 'testing' below, the default value is false if the argument is not specified
   parser.add_argument('--testing',     dest='testing',     default=False,   action='store_true')
   parser.add_argument('--hide_plots',  dest='hide_plots',  default=False,   action='store_true')
   parser.add_argument('--hide_yields', dest='hide_yields', default=False,   action='store_true')
   parser.add_argument('--final_state', dest='final_state', default="mutau", action='store')
   parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots", action='store')
+  parser.add_argument('--lumi',        dest='lumi',        default="2022 F&G", action='store')
 
   args = parser.parse_args() 
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
-  lumi = luminosities["2022 G"] if testing else luminosities["2022 F&G"]
+  lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
   useDeepTauVersion = "2p5"
 
-  # final_state_mode affects dataset, 'good_events' filter, and cuts
+  # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
-  plot_dir = make_directory(args.plot_dir, args.final_state, testing=testing) # for output files of plots
+  jet_mode         = "dummy"
 
-  # show info to user
-  attention(final_state_mode)
-  print(f"Testing: {testing}")
-  print(f"USING DEEP TAU VERSION {useDeepTauVersion}")
-
+  #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
+  eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
+  # there's no place like home :)
+  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
+  using_directory = home_dir # if not <<some env var specific to lxplus>>
+ 
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode)
   # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
-  vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode="dummy")
-  # TODO bundle info together and print in one nice statement
-  print(f"good events \n {good_events}")
-  print("Branches are")
-  print(branches)
-  print("Variables to plot are")
-  print(vars_to_plot)
+  vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
+  plot_dir = make_directory(args.plot_dir, args.final_state, testing=testing) # for output files of plots
+
+  # show info to user
+  print_setup_info(final_state_mode, lumi, jet_mode, testing, useDeepTauVersion,
+                   using_directory, plot_dir,
+                   good_events, branches, vars_to_plot)
 
   # TODO: make and store jet branches correctly
   #  i.e. branches above ending in "fromHighestMjj" should only be plotted for events with nJet>2
@@ -102,11 +90,9 @@ if __name__ == "__main__":
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
     if new_process_list == None: continue
-    print(new_process_list)
 
     time_print(f"Processing {process}")
     process_events = new_process_list[process]["info"]
-    print(process_events)
     # TODO: make ultility to check if these things are empty and print info if so
     if len(process_events["run"])==0: continue
     del(new_process_list)

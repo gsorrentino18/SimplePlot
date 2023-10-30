@@ -20,7 +20,7 @@ from get_and_set_functions import set_good_events, make_bins, get_binned_info
 from get_and_set_functions import accumulate_MC_subprocesses, accumulate_datasets
 
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
-from utility_functions     import time_print, attention, make_directory
+from utility_functions     import time_print, make_directory, print_setup_info
  
 
 def match_objects_to_trigger_bit():
@@ -64,95 +64,44 @@ if __name__ == "__main__":
   reacquired at the next gc.collect() call
   '''
 
-  lxplus_redirector = "root://cms-xrd-global.cern.ch//"
-  eos_user_dir      = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/"
-  lxplus_directory  = lxplus_redirector + eos_user_dir
-  # there's no place like home :)
-  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3SkimmedSamples"
-  # TODO change this to know the final state
-  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/etau"
-  home_directory    = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/mutau"
-  using_directory   = home_directory
-  print(f"CURRENT FILE DIRECTORY : {using_directory}")
-  
-  
   import argparse 
   parser = argparse.ArgumentParser(description='Make a standard Data-MC agreement plot.')
   # store_true : when the argument is supplied, store it's value as true
   # for 'testing' below, the default value is false if the argument is not specified
-  parser.add_argument('--testing',     dest='testing',     default=False,   action='store_true')
-  parser.add_argument('--hide_plots',  dest='hide_plots',  default=False,   action='store_true')
-  parser.add_argument('--hide_yields', dest='hide_yields', default=False,   action='store_true')
-  parser.add_argument('--final_state', dest='final_state', default="mutau", action='store')
-  parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots", action='store')
+  parser.add_argument('--testing',     dest='testing',     default=False,      action='store_true')
+  parser.add_argument('--hide_plots',  dest='hide_plots',  default=False,      action='store_true')
+  parser.add_argument('--hide_yields', dest='hide_yields', default=False,      action='store_true')
+  parser.add_argument('--final_state', dest='final_state', default="mutau",    action='store')
+  parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots",    action='store')
+  parser.add_argument('--lumi',        dest='lumi',        default="2022 F&G", action='store')
 
   args = parser.parse_args() 
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
-  lumi = luminosities["2022 G"] if testing else luminosities["2022 F&G"]
+  lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
   useDeepTauVersion = "2p5"
 
-  # final_state_mode affects dataset, 'good_events' filter, and cuts
+  # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
-  plot_dir = make_directory(args.plot_dir, args.final_state, testing=testing) # for output files of plots
+  jet_mode         = "dummy"
 
-  # show info to user
-  attention(final_state_mode)
-  print(f"Testing: {testing}")
-  print(f"USING DEEP TAU VERSION {useDeepTauVersion}")
-
+  #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
+  eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
+  # there's no place like home :)
+  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
+  using_directory = home_dir # if not <<some env var specific to lxplus>>
+ 
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode)
   # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
-  vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode="dummy")
-  # TODO bundle info together and print in one nice statement
-  print(f"good events \n {good_events}")
-  print("Branches are")
-  print(branches)
-  print("Variables to plot are")
-  print(vars_to_plot)
+  vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
+  plot_dir = make_directory(args.plot_dir, args.final_state, testing=testing) # for output files of plots
 
-  ''' 
-  # TODO split by final_state_mode and put in a different file
-  native_variables = ["MET_pt", "PuppiMET_pt", "PuppiMET_phi", "nCleanJet", "HTT_dR", "HTT_m_vis",
-                      #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj",
-                      "nCleanJet", "CleanJet_pt", "CleanJet_eta",
-                      "HTT_H_pt_using_PUPPI_MET"]
-
-  added_mutau_variables  = ["FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta", "HTT_mt", 
-                            "dummy_HTT_Lep_pt", "dummy_HTT_Tau_pt"]
-  added_ditau_variables  = ["FS_t1_pt", "FS_t1_eta", "FS_t2_pt", "FS_t2_eta"]
-
-  added_variables  = added_ditau_variables if final_state_mode=="ditau" else added_mutau_variables
-  full_variables   = native_variables + added_variables
-  vars_to_plot     = ["MET_pt", "HTT_m_vis"] if testing else full_variables
-
-  # TODO: make and store jet branches correctly
-  #  i.e. branches above ending in "fromHighestMjj" should only be plotted for events with nJet>2
-  #  "nCleanJetGT30" : (8, 0, 8), # GT = Greater Than 
-  
-  print(f"Plotting {vars_to_plot}!")
-
-  added_by_processing = ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta",
-                         "FS_mu_pt", "FS_mu_eta", "FS_tau_pt", "FS_tau_eta",
-                         "nCleanJetGT30",
-                         "HTT_mt"] # rename this, prepending with HTT makes it looks native
-  branches = [
-              "run", "luminosityBlock", "event", "Generator_weight",
-              "FSLeptons", "Lepton_pt", "Lepton_eta",
-              "Lepton_tauIdx", "Lepton_muIdx", "Lepton_elIdx",
-              "HTT_Lep_pt", "HTT_Tau_pt",
-              "TrigObj_filterBits", # for matching...
-             ]
-
-  branches += [var for var in native_variables if var not in branches and var not in added_by_processing]
-  branches = add_DeepTau_branches(branches, useDeepTauVersion)
-  branches = add_trigger_branches(branches, final_state_mode)
-  branches = add_final_state_branches(branches, final_state_mode)
-  # errors like " 'NoneType' object is not iterable " usually mean you forgot
-  # to add some branch relevant to the final state
-  '''
+  # show info to user
+  print_setup_info(final_state_mode, lumi, jet_mode, testing, useDeepTauVersion,
+                   using_directory, plot_dir,
+                   good_events, branches, vars_to_plot)
 
   file_map = testing_file_map if testing else full_file_map
 
@@ -168,12 +117,10 @@ if __name__ == "__main__":
     new_process_list = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
-    print(new_process_list)
     if new_process_list == None: continue
 
     time_print(f"Processing {process}")
     process_events = new_process_list[process]["info"]
-    print(process_events)
     if len(process_events["run"])==0: continue # skip datasets if nothing is in them
     del(new_process_list)
 

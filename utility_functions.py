@@ -74,4 +74,33 @@ def make_directory(directory_name, final_state, testing=False):
     makedirs(directory_name)
     print("WARNING: directory already exists, putting images in alternate: {directory_name}")
   return directory_name
+
+
+def print_setup_info(final_state_mode, lumi, jet_mode, testing, useDeepTauVersion,
+                   using_directory, plot_dir,
+                   good_events, branches, vars_to_plot):
+
+  screen_width, spacer = 76, "-"
+  attention(final_state_mode)
+  print(" other useful info ".upper().center(screen_width, spacer))
+  print(f"LUMI={lumi} \t JET MODE={jet_mode} \t TESTING={testing} \t DeepTauVersion={useDeepTauVersion}")
+  print(spacer*screen_width)
+
+  print(" good events pass initial filtering ".upper().center(screen_width, spacer))
+  print(good_events)
+  print()
+
+  print(" Loading branches ".upper().center(screen_width, spacer))
+  print(branches)
+  print()
+
+  print(" Going to plot these variables ".upper().center(screen_width, spacer))
+  print(vars_to_plot)
+  print(spacer*screen_width)
+
+  print(f"CURRENT FILE DIRECTORY : {using_directory}")
+  print(f"OUTPUT  PLOT DIRECTORY : {plot_dir}")
+  print(spacer*screen_width)
  
+
+
