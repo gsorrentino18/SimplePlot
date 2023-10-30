@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
   # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
-  jet_mode         = "dummy"
+  jet_mode         = "none"
 
   #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     new_process_list = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
-    if new_process_list == None: continue
+    if new_process_list == None: continue # skip datasets if nothing is in them
 
     time_print(f"Processing {process}")
     process_events = new_process_list[process]["info"]
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     del(new_process_list)
 
     process_events = append_lepton_indices(process_events)
-    cut_events = apply_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
+    cut_events = apply_final_state_cut(process_events, final_state_mode, useDeepTauVersion)
     if len(cut_events["pass_cuts"])==0: continue # skip datasets if nothing is in them
     del(process_events)
 
@@ -145,6 +145,7 @@ if __name__ == "__main__":
     xbins = make_bins(var)
     hist_ax, hist_ratio = setup_ratio_plot()
 
+    ### FUNCTION return h_data
     # accumulate datasets into one flat dictionary called h_data  
     h_data_by_dataset = {}
     for dataset in data_dictionary:
@@ -153,7 +154,9 @@ if __name__ == "__main__":
       h_data_by_dataset[dataset] = {}
       h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, xbins, data_weights, lumi)
     h_data = accumulate_datasets(h_data_by_dataset)
+    ###
 
+    # FUNCTION return h_backgrounds and h_summed_backgrounds
     # treat each MC process, then group the output by family into flat dictionaries
     # also sum all backgrounds into h_summed_backgrounds to use in ratio plot
     h_MC_by_process = {}
@@ -164,7 +167,7 @@ if __name__ == "__main__":
       h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, xbins, process_weights, lumi)
     # add together subprocesses of each MC family
     h_MC_by_family = {}
-    MC_families = ["DY", "WJ", "VV"] if testing else ["DY", "TT", "ST", "WJ", "VV"]
+    MC_families = ["DY", "TT", "ST", "WJ", "VV"]
     for family in MC_families:
       h_MC_by_family[family] = {}
       h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
@@ -173,7 +176,10 @@ if __name__ == "__main__":
     h_summed_backgrounds = 0
     for background in h_backgrounds:
       h_summed_backgrounds += h_backgrounds[background]["BinnedEvents"]
+    ###
 
+   
+    # FUNCTION return h_signals 
     # signal is put in a separate dictionary from MC, but they are processed very similarly
     h_signals = {}
     for signal in signal_dictionary:
@@ -181,6 +187,7 @@ if __name__ == "__main__":
       signal_weights  = signal_dictionary[signal]["Generator_weight"]
       h_signals[signal] = {}
       h_signals[signal]["BinnedEvents"] = get_binned_info(signal, signal_variable, xbins, signal_weights, lumi)
+    ###
 
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)

@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
   # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
-  jet_mode         = "dummy"
+  jet_mode         = "none"
 
   #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
@@ -69,12 +69,6 @@ if __name__ == "__main__":
                    using_directory, plot_dir,
                    good_events, branches, vars_to_plot)
 
-  # TODO: make and store jet branches correctly
-  #  i.e. branches above ending in "fromHighestMjj" should only be plotted for events with nJet>2
-  #  "nCleanJetGT30" : (8, 0, 8), # GT = Greater Than 
-  #  "CleanJetGT30_pt" # naively, just store up to four jets pt ordered. see if it's still a problem after that
-  #  "CleanJetGT30_eta"
-  
   file_map = testing_file_map if testing else full_file_map
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
@@ -98,11 +92,9 @@ if __name__ == "__main__":
     del(new_process_list)
 
     process_events = append_lepton_indices(process_events)
-    cut_events = apply_final_state_cut(process_events, useDeepTauVersion, final_state_mode)
-    print("before jet cut")
-    print(cut_events["CleanJet_pt"])
+    cut_events = apply_final_state_cut(process_events, final_state_mode, useDeepTauVersion)
     if len(cut_events["run"])==0: continue
-    cut_events = apply_jet_cut(cut_events, "pass_zero_jet_cuts") # TODO mapping of name would be nice
+    cut_events = apply_jet_cut(cut_events, "pass_one_jet_cuts") # TODO mapping of name would be nice
     if len(cut_events["run"])==0: continue
     del(process_events)
 
@@ -141,7 +133,7 @@ if __name__ == "__main__":
       h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, xbins, process_weights, lumi)
     # add together subprocesses of each MC family
     h_MC_by_family = {}
-    MC_families = ["DY", "WJ", "VV"] if testing else ["DY", "TT", "ST", "WJ", "VV"]
+    MC_families = ["DY", "TT", "ST", "WJ", "VV"]
     for family in MC_families:
       h_MC_by_family[family] = {}
       h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)

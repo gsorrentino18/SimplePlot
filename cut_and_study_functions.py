@@ -3,9 +3,7 @@ import numpy as np
 ### README
 # this file contains functions to perform cuts and self-contained studies
 
-#from get_and_set_functions import add_DeepTau_branches, add_trigger_branches
 from calculate_functions   import calculate_mt
-#from calculate_functions   import calculate_mt_pyROOT
 from triggers_dictionary import triggers_dictionary
 
 
@@ -26,7 +24,7 @@ def append_lepton_indices(event_dictionary):
   return event_dictionary
 
 
-def make_ditau_cut(event_dictionary, DeepTauVersion):
+def make_ditau_cut(event_dictionary, DeepTau_version):
   '''
   Use a minimal set of branches to define selection criteria and identify events which pass.
   A separate function uses the generated branch "pass_cuts" to remove the info from the
@@ -44,7 +42,7 @@ def make_ditau_cut(event_dictionary, DeepTauVersion):
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_ditau = ["Lepton_pt", "Lepton_eta", "Lepton_tauIdx", "l1_indices", "l2_indices"]
-  unpack_ditau = add_DeepTau_branches(unpack_ditau, DeepTauVersion)
+  unpack_ditau = add_DeepTau_branches(unpack_ditau, DeepTau_version)
   unpack_ditau = (event_dictionary.get(key) for key in unpack_ditau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_ditau] # "*" unpacks a tuple
   pass_cuts, FS_t1_pt, FS_t2_pt, FS_t1_eta, FS_t2_eta = [], [], [], [], []
@@ -72,31 +70,26 @@ def make_ditau_cut(event_dictionary, DeepTauVersion):
   return event_dictionary
 
 
-def make_mutau_cut(event_dictionary, DeepTauVersion):
+def make_mutau_cut(event_dictionary, DeepTau_version):
   '''
   Works similarly to 'make_ditau_cut'. 
   Notably, the mutau cuts are more complicated, but it is simple to 
   extend the existing methods as long as one can stomach the line breaks.
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
-  #unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass", "PuppiMET_pt", "PuppiMET_phi",
-  unpack_mutau = ["Tau_pt", "Tau_eta", "Muon_pt", "Muon_eta", "Muon_phi", "PuppiMET_pt", "PuppiMET_phi",
+  unpack_mutau = ["Tau_pt", "Tau_eta", 
+                  "Muon_pt", "Muon_eta", "Muon_phi", 
+                  "PuppiMET_pt", "PuppiMET_phi",
                   "Lepton_tauIdx", "Lepton_muIdx", "l1_indices", "l2_indices"]
   #TODO add this "CleanJet_btagWP" (no effect in August skims since it was always 1)
-  #unpack_mutau.append("HTT_Lep_pt") # TODO delete after TT bug found
-  #unpack_mutau.append("HTT_Tau_pt") # TODO delete after TT bug found
-  unpack_mutau = add_DeepTau_branches(unpack_mutau, DeepTauVersion)
-  unpack_mutau = add_trigger_branches(unpack_mutau, final_state_mode="mutau") # TODO: find cleaner solution
+  unpack_mutau = add_DeepTau_branches(unpack_mutau, DeepTau_version)
+  unpack_mutau = add_trigger_branches(unpack_mutau, final_state_mode="mutau")
   unpack_mutau = (event_dictionary.get(key) for key in unpack_mutau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_mutau] # "*" unpacks a tuple
   pass_cuts, FS_mu_pt, FS_tau_pt, FS_mu_eta, FS_tau_eta, FS_mt = [], [], [], [], [], []
-  dummy_HTT_Lep_pt = [] #TODO delete after TT bug found
-  dummy_HTT_Tau_pt = [] #TODO delete after TT bug found
   # note these are in the same order as the variables in the first line of this function :)
-  #for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, mu_M, MET_pt, MET_phi, tau_idx, mu_idx,\
   for i, tau_pt, tau_eta, mu_pt, mu_eta, mu_phi, MET_pt, MET_phi, tau_idx, mu_idx,\
-      l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
-      #l1_idx, l2_idx, HTT_Lep_pt, HTT_Tau_pt, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg, _ in zip(*to_check):
+      l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg in zip(*to_check):
 
     tauLoc     = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
     muLoc      = mu_idx[l1_idx]  + mu_idx[l2_idx]  + 1
@@ -106,7 +99,7 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
     muEtaVal   = mu_eta[muLoc]
     muPhiVal   = mu_phi[muLoc]
     mtVal      = calculate_mt(muPtVal, muPhiVal, MET_pt, MET_phi)
-    passMT     = (mtVal < 50)
+    passMT     = (mtVal < 50.0)
     #ROOTmtVal  = calculate_mt_pyROOT(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
     #passROOTMT = (ROOTmtVal < 50.0)
 
@@ -127,8 +120,6 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
       FS_mu_eta.append(muEtaVal)
       FS_tau_eta.append(tauEtaVal)
       FS_mt.append(mtVal)
-      #dummy_HTT_Lep_pt.append(HTT_Lep_pt) # TODO delete after TT bug found
-      #dummy_HTT_Tau_pt.append(HTT_Tau_pt) # TODO delete after TT bug found
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
   event_dictionary["FS_mu_pt"]  = np.array(FS_mu_pt)
@@ -136,14 +127,12 @@ def make_mutau_cut(event_dictionary, DeepTauVersion):
   event_dictionary["FS_mu_eta"] = np.array(FS_mu_eta)
   event_dictionary["FS_tau_eta"] = np.array(FS_tau_eta)
   event_dictionary["FS_mt"]    = np.array(FS_mt)
-  #event_dictionary["dummy_HTT_Lep_pt"] = np.array(dummy_HTT_Lep_pt) # TODO delete after TT bug found
-  #event_dictionary["dummy_HTT_Tau_pt"] = np.array(dummy_HTT_Tau_pt) # TODO delete after TT bug found
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after mutau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
 
 
-def make_etau_cut(event_dictionary, DeepTauVersion):
+def make_etau_cut(event_dictionary, DeepTau_version):
   '''
   Works similarly to 'make_ditau_cut'. 
   '''
@@ -153,7 +142,7 @@ def make_etau_cut(event_dictionary, DeepTauVersion):
                  "Electron_pt", "Electron_eta", "Electron_phi", 
                  "PuppiMET_pt", "PuppiMET_phi",
                  "Lepton_tauIdx", "Lepton_elIdx", "l1_indices", "l2_indices"]
-  unpack_etau = add_DeepTau_branches(unpack_etau, DeepTauVersion)
+  unpack_etau = add_DeepTau_branches(unpack_etau, DeepTau_version)
   unpack_etau = add_trigger_branches(unpack_etau, final_state_mode="etau")
   unpack_etau = (event_dictionary.get(key) for key in unpack_etau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_etau]
@@ -171,7 +160,7 @@ def make_etau_cut(event_dictionary, DeepTauVersion):
     elEtaVal   = el_eta[elLoc]
     elPhiVal   = el_phi[elLoc]
     mtVal      = calculate_mt(elPtVal, elPhiVal, MET_pt, MET_phi)
-    passMT     = (mtVal < 50)
+    passMT     = (mtVal < 50.0)
     #ROOTmtVal  = calculate_mt_pyROOT(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
     #passROOTMT = (ROOTmtVal < 50.0)
 
@@ -192,18 +181,17 @@ def make_etau_cut(event_dictionary, DeepTauVersion):
       FS_tau_pt.append(tauPtVal)
       FS_el_eta.append(elEtaVal)
       FS_tau_eta.append(tauEtaVal)
+      FS_mt.append(mtVal)
 
   event_dictionary["pass_cuts"]  = np.array(pass_cuts)
   event_dictionary["FS_el_pt"]   = np.array(FS_el_pt)
   event_dictionary["FS_tau_pt"]  = np.array(FS_tau_pt)
   event_dictionary["FS_el_eta"]  = np.array(FS_el_eta)
   event_dictionary["FS_tau_eta"] = np.array(FS_tau_eta)
+  event_dictionary["FS_mt"]      = np.array(FS_mt)
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after ditau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
-
-
-  pass
 
 
 def make_jet_cut(event_dictionary):
@@ -224,19 +212,6 @@ def make_jet_cut(event_dictionary):
     elif passingJets == 1: pass_one_jet_cuts.append(i)
     elif passingJets == 2: pass_two_jet_cuts.append(i)
     elif passingJets >= 2: pass_two_or_more_jet_cuts.append(i)
-    #elif nJet == 1 and jet_pt[0] > 30: 
-    #    pass_one_jet_cuts.append(i)
-    #elif nJet > 1:
-    #  if nJet == 2 and jet_pt[0] > 30 and jet_pt[1] > 30: 
-    #    pass_two_jet_cuts.append(i)
-    #    pass_two_or_more_jet_cuts.append(i)
-    #  if nJet > 2: 
-    #    keepJets=True
-    #    for ijet in range(2, nJet):
-    #      if jet_pt[ijet] < 30:
-    #        keepJets = False
-    #    if keepJets == True:
-    #      pass_two_or_more_jet_cuts.append(i)
 
   event_dictionary["pass_zero_jet_cuts"]        = np.array(pass_zero_jet_cuts)
   event_dictionary["pass_one_jet_cuts"]         = np.array(pass_one_jet_cuts)
@@ -318,58 +293,26 @@ def make_run_cut(event_dictionary, good_runs):
   return event_dictionary
 
 
-def apply_cut(event_dictionary, cut_branch):
+def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
   '''
   Remove all entries in 'event_dictionary' not in 'cut_branch' using the numpy 'take' method.
   Branches that are added during previous cut steps are added here because their entries
   already pass cuts by construction.
   The returned event_dictionary now only contains events passing all cuts.
-  '''
 
-  # if all events are cut, print a message
+  If all events are removed by cut, print a message to alert the user.
+  The deletion is actually handled in the main body when the size of the dictionary is checked.
+  '''
   delete_sample = False
   if len(event_dictionary[cut_branch]) == 0:
     print("All events removed, sample deleted")
     delete_sample = True
 
-  branches_added_during_FS_cut = ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta",
-                                  "FS_mu_pt", "FS_tau_pt", "FS_mu_eta", "FS_tau_eta",
-                                  "FS_el_pt", "FS_el_eta", 
-                                  "FS_mt",] 
-                                  #"dummy_HTT_Lep_pt", "dummy_HTT_Tau_pt"]
-                                  #"pass_cuts"]
-  branches_added_during_jet_cut = ["pass_zero_jet_cuts", "pass_one_jet_cuts",
-                                   "pass_two_jet_cuts", "pass_two_or_more_jet_cuts",
-                                   "nCleanJetGT30"]
-
   for branch in event_dictionary:
-    #print(branch, end='\t')
     if delete_sample:
-      # TODO: fix later. this takes one event and makes the sample as small as possible
-      # without being empty. Should actually figure out how to deal with it being empty
-      #event_dictionary[branch] = np.take(event_dictionary[branch], [0])
       pass
-
-
-    elif branch != cut_branch and cut_branch == "pass_cuts":
-      if branch in branches_added_during_FS_cut:
-        pass
-      else:
-        event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
-
-  # better thing to do would be to give calling function a list of safe branches that shouldn't be cut
-  # then this is more general
-  #
-  # this is ugly and bad
-    else:
-      if branch == "pass_cuts" and cut_branch == "pass_cuts":
-        pass
-      elif branch in branches_added_during_jet_cut:
-        print(f"{branch} is in branches added during jet cut")
-        #pass
-      else:
-        event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
-
+    elif ((branch != cut_branch) and (branch not in protected_branches)):
+      event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
 
   return event_dictionary
 
@@ -388,7 +331,7 @@ def Era_F_trigger_study(data_events, final_state_mode):
                362105, 362106, 362107, 362148, 362153, 362154, 362159, 
                362161, 362163, 362166, 362167]
   data_events = make_run_cut(data_events, good_runs)
-  data_events = apply_cut(data_events, "pass_run_cut")
+  data_events = apply_cut(data_events, "pass_run_cut") # will break if used
 
   print("after reducing run range")
   for trigger in FS_triggers:
@@ -419,21 +362,22 @@ def study_triggers():
   print(f"Run3 OR/AND: {Run3OR}\t{Run3AND}")
 
 
-def apply_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode):
+def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version):
   '''
   Organizational function that generalizes call to a (set of) cuts based on the
   final cut. Importantly, the function that rejects events, 'apply_cut',
   is called elsewhere
   '''
+  protected_branches = set_protected_branches(final_state_mode=final_state_mode)
   if final_state_mode == "ditau":
-    event_dictionary = make_ditau_cut(event_dictionary, useDeepTauVersion)
-    event_dictionary = apply_cut(event_dictionary, "pass_cuts")
+    event_dictionary = make_ditau_cut(event_dictionary, DeepTau_version)
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
   elif final_state_mode == "mutau":
-    event_dictionary = make_mutau_cut(event_dictionary, useDeepTauVersion)
-    event_dictionary = apply_cut(event_dictionary, "pass_cuts")
+    event_dictionary = make_mutau_cut(event_dictionary, DeepTau_version)
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
   elif final_state_mode == "etau":
-    event_dictionary = make_etau_cut(event_dictionary, useDeepTauVersion)
-    event_dictionary = apply_cut(event_dictionary, "pass_cuts")
+    event_dictionary = make_etau_cut(event_dictionary, DeepTau_version)
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
   elif final_state_mode == "dimuon":
     event_dictionary = manual_dimuon_lepton_veto(event_dictionary)
     event_dictionary = apply_cut(process_events, "pass_manual_lepton_veto")
@@ -444,18 +388,21 @@ def apply_final_state_cut(event_dictionary, useDeepTauVersion, final_state_mode)
   return event_dictionary
 
 
-def apply_jet_cut(event_dictionary, jet_cut):
+def apply_jet_cut(event_dictionary, jet_mode):
   '''
-  jet_cut can be "pass_zero_jet_cut", "pass_one_jet_cut", "pass_two_jet_cut"
+  Organizational function to reduce event_dictionary to contain only
+  events with jets passing certain criteria. Enables plotting of jet objects
+  jet_mode can be "pass_zero_jet_cut", "pass_one_jet_cut", "pass_two_jet_cut"
                  "pass_one_or_more_jet_cut", "pass_two_or_more_jet_cut",
                  "pass_inclusive_ptGT30_etaLT4p7_cut"
   '''
-  event_dictionary = make_jet_cut(event_dictionary)
-  event_dictionary = apply_cut(event_dictionary, jet_cut)
+  event_dictionary   = make_jet_cut(event_dictionary)
+  protected_branches = set_protected_branches(jet_mode=jet_mode)
+  event_dictionary   = apply_cut(event_dictionary, jet_mode, protected_branches)
   return event_dictionary
 
 
-def set_branches(final_state_mode, useDeepTauVersion="2p5"):
+def set_branches(final_state_mode, DeepTau_version="2p5"):
   common_branches = [
     "run", "luminosityBlock", "event", "Generator_weight",
     "FSLeptons", "Lepton_pt", "Lepton_eta",
@@ -464,7 +411,7 @@ def set_branches(final_state_mode, useDeepTauVersion="2p5"):
   ]
   branches = common_branches
   branches = add_final_state_branches(branches, final_state_mode)
-  branches = add_DeepTau_branches(branches, useDeepTauVersion)
+  branches = add_DeepTau_branches(branches, DeepTau_version)
   branches = add_trigger_branches(branches, final_state_mode)
   return branches
 
@@ -524,25 +471,36 @@ def add_trigger_branches(branches_, final_state_mode):
     branches_.append(trigger)
   return branches_
 
-def set_vars_to_plot(final_state_mode, jet_mode):
 
+def set_vars_to_plot(final_state_mode, jet_mode="none"):
+  '''
+  Helper function to keep plotting variables organized
+  '''
   jet_plotting_vars = {
-    "dummy": [],
-    "1j"   : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
-    "2j"   : ["CleanJetGT30_pt_2", "CleanJetGT30_eta_2"], # + above
-    "GT2j" : ["CleanJetGT30_pt_3", "CleanJetGT30_eta_3"], # + above
+    "none": [],
+    "pass_zero_jet_cuts"  : [],
+    "pass_one_jet_cuts"   : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
+
+    "pass_two_jet_cuts"   : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
+                             "CleanJetGT30_pt_2", "CleanJetGT30_eta_2"],
+
+    "pass_two_or_more_jet_cuts" : [
+      "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
+      "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
+      "CleanJetGT30_pt_3", "CleanJetGT30_eta_3"],
   }
 
   final_state_plotting_vars = {
+    "none"   : [],
     "ditau"  : ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta"],
     "mutau"  : ["FS_mu_pt", "FS_tau_pt", "FS_mu_eta", "FS_tau_eta",
-                "PuppiMET_pt"],
+                "FS_mt", "PuppiMET_pt"],
     "etau"   : ["FS_el_pt", "FS_tau_pt", "FS_el_eta", "FS_tau_eta",
-                "PuppiMET_pt"],
+                "FS_mt", "PuppiMET_pt"],
     "dimuon" : ["FS_m1_pt", "FS_m2_pt", "FS_m1_eta", "FS_m2_eta"],
   }
 
-  vars_to_plot = ["HTT_m_vis", "HTT_dR"]
+  vars_to_plot = ["HTT_m_vis", "HTT_dR"] # common to all final states
   FS_vars_to_add = final_state_plotting_vars[final_state_mode]
   for var in FS_vars_to_add:
     vars_to_plot.append(var)
@@ -551,3 +509,24 @@ def set_vars_to_plot(final_state_mode, jet_mode):
     vars_to_plot.append(jet_vars_to_add)
 
   return vars_to_plot
+
+def set_protected_branches(final_state_mode="none", jet_mode="none", DeepTau_version="none"):
+  '''
+  Set branches to be protected (i.e. not cut on) when using "apply_cut."
+  Generally, you should protect any branches introduced by a cut.
+  '''
+  if final_state_mode=="none": # no mode given, assume jet cut
+    initial_branches = ["HTT_m_vis", "HTT_dR"]
+    protected_branches = ["pass_zero_jet_cuts", "pass_one_jet_cuts", "pass_two_jet_cuts",
+                          "pass_two_or_more_jet_cuts"]
+
+  else:
+    initial_branches = set_branches(final_state_mode, DeepTau_version="2p5")
+    vars_to_trim     = set_vars_to_plot(final_state_mode, jet_mode)
+    protected_branches = [var for var in vars_to_trim if var not in initial_branches]
+
+  return protected_branches
+
+
+
+

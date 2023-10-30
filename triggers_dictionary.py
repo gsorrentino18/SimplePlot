@@ -12,7 +12,7 @@ triggers_dictionary = {
              "HLT_IsoMu24", 
              "HLT_IsoMu27",
              "HLT_IsoMu20_eta2p1_LooseDeepTauPFTauHPS27_eta2p1_CrossL1", 
-             "HLT_IsoMu20_eta2p1_TightChargedIsoPFTauHPS27_eta2p1_TightID_CrossL1", # Run2, only for Era F study
+             #"HLT_IsoMu20_eta2p1_TightChargedIsoPFTauHPS27_eta2p1_TightID_CrossL1", # Run2, only for Era F study
           ],
   "etau"  : [
              #"HLT_Ele30_WPTight_Gsf",
