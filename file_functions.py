@@ -139,22 +139,31 @@ def sort_combined_processes(combined_processes_dictionary):
 def append_to_combined_processes(process, cut_events, vars_to_plot, combined_processes):
   protected_processes = ["DataTau", "DataMuon", "DataElectron", "ggH", "VBF"]
   if process not in protected_processes:
-    combined_processes[process] = { "PlotEvents": {}, 
+    combined_processes[process] = {"PlotEvents": {}, 
+                                   "Cuts": {},
                                    "Generator_weight": cut_events["Generator_weight"],
-                                 }
+                                  }
   elif process == "ggH" or process == "VBF":
-    combined_processes[process] = { "PlotEvents": {},
+    combined_processes[process] = {"PlotEvents": {},
+                                   "Cuts": {},
                                    "Generator_weight": cut_events["Generator_weight"],
                                    "plot_scaling" : 100 if process == "ggH" else 500 if process == "VBF" else 50,
-                                 }
+                                  }
   elif "Data" in process:
-    combined_processes[process] = { "PlotEvents":{}
+    combined_processes[process] = { "PlotEvents": {},
+                                    "Cuts": {},
                                  }
   for var in vars_to_plot:
     if "CleanJet" in var:
-      print(var)
-      print(cut_events[var])
+      #print(var) # TODO: remove debug print statement
+      #print(cut_events[var])
+      pass
     combined_processes[process]["PlotEvents"][var] = cut_events[var]
+
+  for cut in ["pass_cuts", 
+              "pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts",
+              "pass_GTE2j_cuts"]:
+    combined_processes[process]["Cuts"][cut] = cut_events[cut]
 
   return combined_processes
 

@@ -140,6 +140,30 @@ def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
                     color="black", marker="o", linestyle='none', markersize=2)
 
 
+def get_trimmed_Generator_weight_copy(variable, single_background_dictionary):
+  '''
+  When plotting inclusively, we would like to show j1_pt, j2_pt, j3_pt, etc.
+  However, these branches are not available for every event, and to plot them we
+  also need the Generator_weight branch. So, what we do is make copies of the Generator_weight
+  branch for only the events also found in the variable we want to plot. This is
+  possible because the jet_mode cut branch is defined and stored in our dictionary
+  '''
+  Gen_weight = single_background_dictionary["Generator_weight"]
+  Cuts       = single_background_dictionary["Cuts"]
+  temp_weight = 0
+  if   "_1" in variable:
+    events_GTE1j = sorted(np.concatenate([Cuts["pass_1j_cuts"], Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
+    temp_weight    = np.take(Gen_weight, events_GTE1j)
+  elif "_2" in variable:
+    events_GTE2j = sorted(np.concatenate([Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
+    temp_weight    = np.take(Gen_weight, events_GTE2j)
+  elif "_3" in variable:
+    events_3j    = Cuts["pass_3j_cuts"] 
+    temp_weight    = np.take(Gen_weight, events_3j)
+
+  return temp_weight
+
+
 def get_binned_data(data_dictionary, variable, xbins_, lumi_):
   '''
   Standard loop to get only the plotted variable from a dictionary containing data.
@@ -166,7 +190,10 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_):
   h_MC_by_process = {}
   for process in background_dictionary:
     process_variable = background_dictionary[process]["PlotEvents"][variable]
-    process_weights  = background_dictionary[process]["Generator_weight"]
+    if "JetGT30_" in variable:
+      process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process])
+    else:
+      process_weights = background_dictionary[process]["Generator_weight"]
     h_MC_by_process[process] = {}
     h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, 
                                                                xbins_, process_weights, lumi_)
@@ -192,7 +219,10 @@ def get_binned_signals(signal_dictionary, variable, xbins_, lumi_):
   h_signals = {}
   for signal in signal_dictionary:
     signal_variable = signal_dictionary[signal]["PlotEvents"][variable]
-    signal_weights  = signal_dictionary[signal]["Generator_weight"]
+    if "JetGT30_" in variable:
+      signal_weights = get_trimmed_Generator_weight_copy(variable, signal_dictionary[signal])
+    else:
+      signal_weights = signal_dictionary[signal]["Generator_weight"]
     h_signals[signal] = {}
     h_signals[signal]["BinnedEvents"] = get_binned_info(signal, signal_variable,
                                                         xbins_, signal_weights, lumi_)

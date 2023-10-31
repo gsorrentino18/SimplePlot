@@ -23,7 +23,18 @@ binning_dictionary = {
 
 # common, calculated on the fly
   "FS_mt"        : (20, 0, 200),
-  "nCleanJetGT30" : (8, 0, 8), # GT = Greater Than 
+  "nCleanJetGT30" : (8, 0, 8), # GT(E) = Greater Than (Equal to)
+  "pass_0j_cuts"  : (100, 0, 100), 
+  "pass_1j_cuts"  : (100, 0, 100),
+  "pass_2j_cuts"  : (100, 0, 100), 
+  "pass_3j_cuts"  : (100, 0, 100),
+  "pass_GTE2j_cuts" : (100, 0, 100),
+  "CleanJetGT30_pt_1"  : (60, 0, 300),
+  "CleanJetGT30_pt_2"  : (60, 0, 300),
+  "CleanJetGT30_pt_3"  : (60, 0, 300),
+  "CleanJetGT30_eta_1" : (50, -5, 5),
+  "CleanJetGT30_eta_2" : (50, -5, 5),
+  "CleanJetGT30_eta_3" : (50, -5, 5),
 
 # common, from branches
   "MET_pt"      : (30, 0, 150),

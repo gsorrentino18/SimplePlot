@@ -38,6 +38,51 @@ def match_objects_to_trigger_bit():
   # step 3 calculate dR and compare with 0.5
   dR_trig_offline = calculate_dR(trig_eta, trig_phi, off_eta, off_phi)
 
+def plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD, h_MC_frac, h_QCD_FF):
+  FF_before_after_ax, FF_info_ax = setup_ratio_plot()
+  FF_before_after_ax.plot(xbins[0:-1], h_data, label="Data",
+                          color="black", marker="o", linestyle='none', markersize=3)
+  FF_before_after_ax.plot(xbins[0:-1], h_summed_backgrounds, label="MC",
+                          color="blue", marker="^", linestyle='none', markersize=3)
+  FF_before_after_ax.plot(xbins[0:-1], h_QCD, label="QCD", 
+                          color="orange", marker="v", linestyle='none', markersize=4)
+
+  FF_info_ax.plot(xbins[0:-1], h_MC_frac, label="1-MC/Data",
+                  color="red", marker="*", linestyle='none', markersize=3)
+  FF_info_ax.plot(xbins[0:-1], h_QCD_FF, label="FF from fit",
+                  color="green", marker="s", linestyle='none', markersize=3)
+
+  FF_before_after_ax.legend()
+  FF_info_ax.legend()
+
+
+def set_FF_values(final_state_mode, jet_mode):
+  '''
+  '''
+  # should have aiso/iso as well
+  FF_values = {
+    "ditau" : {
+      "0j"  : [7.25594, -0.0289055],
+      "1j"  : [6.57284, -0.0214702],
+      "2j"  : [5.74548, -0.011847], # Not 2j, ≥2j. need to decide on the convention and propagate. GTE? ≥? two_or_more?
+    },
+    "mutau" : {
+      "0j"  : [1.93213, 0.0160684],
+      "1j"  : [1.87358, 0.0166869],
+      "2j"  : [2.06906, 0.00789786],
+    },
+    "etau"  : {#Dummy values
+      "0j"  : [1, 1],
+      "1j"  : [1, 1],
+      "2j"  : [1, 1],
+    },
+  }
+  intercept = FF_values[final_state_mode][jet_mode][0]
+  slope     = FF_values[final_state_mode][jet_mode][1]
+
+  return intercept, slope
+ 
+
 if __name__ == "__main__":
   '''
   Just read the code, it speaks for itself.
@@ -59,7 +104,7 @@ if __name__ == "__main__":
   Usually, calling the garbage collector manually like this reduces code efficiency, and if the program
   runs very slowly in the future the memory consumption would be the first thing to check.
   In the main loop below, gc.collect() tells python to remove unused objects and free up resources,
-  and del(large_object) lets python know we no longer need an object, and its resources can be
+  and del(large_object) in related functions lets python know we no longer need an object, and its resources can be
   reacquired at the next gc.collect() call
   '''
 
@@ -67,12 +112,13 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Make a standard Data-MC agreement plot.')
   # store_true : when the argument is supplied, store it's value as true
   # for 'testing' below, the default value is false if the argument is not specified
-  parser.add_argument('--testing',     dest='testing',     default=False,      action='store_true')
-  parser.add_argument('--hide_plots',  dest='hide_plots',  default=False,      action='store_true')
-  parser.add_argument('--hide_yields', dest='hide_yields', default=False,      action='store_true')
-  parser.add_argument('--final_state', dest='final_state', default="mutau",    action='store')
-  parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots",    action='store')
-  parser.add_argument('--lumi',        dest='lumi',        default="2022 F&G", action='store')
+  parser.add_argument('--testing',     dest='testing',     default=False,       action='store_true')
+  parser.add_argument('--hide_plots',  dest='hide_plots',  default=False,       action='store_true')
+  parser.add_argument('--hide_yields', dest='hide_yields', default=False,       action='store_true')
+  parser.add_argument('--final_state', dest='final_state', default="mutau",     action='store')
+  parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots",     action='store')
+  parser.add_argument('--lumi',        dest='lumi',        default="2022 F&G",  action='store')
+  parser.add_argument('--jet_mode',    dest='jet_mode',    default="Inclusive", action='store')
 
   args = parser.parse_args() 
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
@@ -83,7 +129,7 @@ if __name__ == "__main__":
 
   # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
-  jet_mode         = "none"
+  jet_mode         = args.jet_mode # default Inclusive [possible values 0j, 1j, 2j, GTE2j]
 
   #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
@@ -112,14 +158,15 @@ if __name__ == "__main__":
     if   final_state_mode == "ditau"  and (process=="DataMuon" or process=="DataElectron"): continue
     elif final_state_mode == "mutau"  and (process=="DataTau"  or process=="DataElectron"): continue
     elif final_state_mode == "etau"   and (process=="DataTau"  or process=="DataMuon"):     continue
-    elif final_state_mode == "dimuon" and (process=="DataTau"  or process=="DataElectron"): continue
+    #elif final_state_mode == "dimuon" and (process=="DataTau"  or process=="DataElectron"): continue
+    elif final_state_mode == "dimuon" and not (process=="DataMuon" or process=="DY"): continue
 
     new_process_dictionary = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
     if new_process_dictionary == None: continue # skip process if empty
 
-    cut_events = apply_cuts_to_process(process, new_process_dictionary, final_state_mode, 
+    cut_events = apply_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
                                        DeepTau_version=useDeepTauVersion)
     if cut_events == None: continue
 
@@ -142,36 +189,22 @@ if __name__ == "__main__":
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi)
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi) 
 
-    # after calculating, need to add to h_summed_backgrounds to account for in ratio plot  
-    if (var == "FS_tau_pt"): 
-      FF_before_after_ax, FF_info_ax = setup_ratio_plot()
-      print("Testing QCD")
-      print(h_data)
-      print(h_summed_backgrounds)
-      print(h_data - h_summed_backgrounds)
-      h_MC_frac = 1 - h_summed_backgrounds/h_data
-      # mutau 0 jet
-      # 1.9322    + Tau_pt[Lepton_tauIdx[FSLeptons[0]] + Lepton_tauIdx[FSLeptons[1]] + 1] * 0.0160703
-      h_QCD_FF   = [h_MC_frac[i]*(1.9322 + xbins[i] * 0.0160703) for i in range(len(h_MC_frac))]
-      h_QCD      = h_data*h_QCD_FF
-      FF_before_after_ax.plot(xbins[0:-1], h_data, label="Data",
-                              color="black", marker="o", linestyle='none', markersize=3)
-      FF_before_after_ax.plot(xbins[0:-1], h_summed_backgrounds, label="MC",
-                              color="blue", marker="^", linestyle='none', markersize=3)
-      FF_before_after_ax.plot(xbins[0:-1], h_QCD, label="QCD", 
-                              color="orange", marker="v", linestyle='none', markersize=4)
+    if (var == "FS_tau_pt" and final_state_mode == "mutau"): 
+      # TODO : these weights should come from different variable in different region
+      h_MC_frac = 1 - h_summed_backgrounds/h_data 
+      h_MC_frac[np.isnan(h_MC_frac)] = 0 # set NaNs, from division by zero above, to zero
+      # multiply each bin using the fit formula (TODO : for all plotted variables, only for taupt currently)
+      jet_mode = "1j"
+      intercept, slope = set_FF_values(final_state_mode, jet_mode)
+      h_QCD_FF   = [h_MC_frac[i]*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
+      h_QCD_calc = h_data*h_QCD_FF
 
-      FF_info_ax.plot(xbins[0:-1], h_MC_frac, label="1-MC/Data",
-                      color="red", marker="*", linestyle='none', markersize=3)
-      FF_info_ax.plot(xbins[0:-1], h_QCD_FF, label="FF from fit",
-                      color="green", marker="s", linestyle='none', markersize=3)
+      plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD_calc, h_MC_frac, h_QCD_FF)
 
-      FF_before_after_ax.legend()
-      FF_info_ax.legend()
-      # multiply each bin using the fit formula (for all plotted variables)
-      # save by appending to background dictionary
-      #h_QCD["QCD"]["BinnedEvents"] = h_data - h_summed_backgrounds #?
-      # plot (should be handled automatically, we'll see)
+      h_QCD = np.array(h_QCD_calc)
+      h_backgrounds["QCD"] = {}
+      h_backgrounds["QCD"]["BinnedEvents"] = h_QCD # save by appending to background dictionary
+      h_summed_backgrounds += h_QCD # add to h_summed_backgrounds so it's acknowledged in ratio plot
 
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)

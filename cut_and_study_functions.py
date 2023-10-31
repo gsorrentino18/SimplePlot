@@ -3,9 +3,9 @@ import numpy as np
 ### README
 # this file contains functions to perform cuts and self-contained studies
 
-from calculate_functions   import calculate_mt
+from calculate_functions import calculate_mt
 from triggers_dictionary import triggers_dictionary
-from utility_functions import time_print
+from utility_functions   import time_print
 
 
 def append_lepton_indices(event_dictionary):
@@ -200,33 +200,68 @@ def make_jet_cut(event_dictionary):
   unpack_jetVars = ["nCleanJet", "CleanJet_pt", "CleanJet_eta"]
   unpack_jetVars = (event_dictionary.get(key) for key in unpack_jetVars)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_jetVars] # "*" unpacks a tuple
-  pass_zero_jet_cuts, pass_one_jet_cuts, pass_two_jet_cuts, pass_two_or_more_jet_cuts = [], [], [], []
-  nCleanJetGT30 = []
+  nCleanJetGT30, pass_0j_cuts, pass_1j_cuts, pass_2j_cuts, pass_3j_cuts, pass_GTE2j_cuts = [], [], [], [], [], []
+  CleanJetGT30_pt_1, CleanJetGT30_pt_2, CleanJetGT30_pt_3    = [], [], []
+  CleanJetGT30_eta_1, CleanJetGT30_eta_2, CleanJetGT30_eta_3 = [], [], []
   for i, nJet, jet_pt, jet_eta in zip(*to_check):
     passingJets = 0
+    passingJetsPt, passingJetsEta = [], []
     for ijet in range(0, nJet):
       if (jet_pt[ijet] > 30.0) and (jet_eta[ijet] < 4.7):
         passingJets += 1
+        passingJetsPt.append(jet_pt[ijet])
+        passingJetsEta.append(jet_eta[ijet])
     nCleanJetGT30.append(passingJets)
 
-    if   passingJets == 0: pass_zero_jet_cuts.append(i)
-    elif passingJets == 1: pass_one_jet_cuts.append(i)
-    elif passingJets == 2: pass_two_jet_cuts.append(i)
-    elif passingJets >= 2: pass_two_or_more_jet_cuts.append(i)
+    if passingJets == 0: 
+      pass_0j_cuts.append(i)
 
-  event_dictionary["pass_zero_jet_cuts"]        = np.array(pass_zero_jet_cuts)
-  event_dictionary["pass_one_jet_cuts"]         = np.array(pass_one_jet_cuts)
-  event_dictionary["pass_two_jet_cuts"]         = np.array(pass_two_jet_cuts)
-  event_dictionary["pass_two_or_more_jet_cuts"] = np.array(pass_two_or_more_jet_cuts)
-  event_dictionary["nCleanJetGT30"] = np.array(nCleanJetGT30)
-  #nEvents_postzerojetcut      = len(np.array(pass_zero_jet_cuts))
-  #nEvents_postonejetcut       = len(np.array(pass_one_jet_cuts))
-  #nEvents_posttwojetcut       = len(np.array(pass_two_jet_cuts))
-  #nEvents_posttwoormorejetcut = len(np.array(pass_two_or_more_jet_cuts))
-  print(f"nEvents before and after 0  jet cuts = {nEvents_precut}, {len(np.array(pass_zero_jet_cuts))}")
-  print(f"nEvents before and after 1  jet cuts = {nEvents_precut}, {len(np.array(pass_one_jet_cuts))}")
-  print(f"nEvents before and after 2  jet cuts = {nEvents_precut}, {len(np.array(pass_two_jet_cuts))}")
-  print(f"nEvents before and after ≥2 jet cuts = {nEvents_precut}, {len(np.array(pass_two_or_more_jet_cuts))}")
+    if passingJets == 1: 
+      pass_1j_cuts.append(i)
+      CleanJetGT30_pt_1.append(passingJetsPt[0])
+      CleanJetGT30_eta_1.append(passingJetsEta[0])
+
+    if passingJets >= 2: 
+      pass_GTE2j_cuts.append(i)
+      if passingJets == 2: 
+        pass_2j_cuts.append(i)
+        CleanJetGT30_pt_1.append(passingJetsPt[0])
+        CleanJetGT30_pt_2.append(passingJetsPt[1])
+        CleanJetGT30_eta_1.append(passingJetsEta[0])
+        CleanJetGT30_eta_2.append(passingJetsEta[1])
+      elif passingJets > 2:
+        if passingJets == 3:
+          pass_3j_cuts.append(i)
+          CleanJetGT30_pt_1.append(passingJetsPt[0])
+          CleanJetGT30_pt_2.append(passingJetsPt[1])
+          CleanJetGT30_pt_3.append(passingJetsPt[2])
+          CleanJetGT30_eta_1.append(passingJetsEta[0])
+          CleanJetGT30_eta_2.append(passingJetsEta[1])
+          CleanJetGT30_eta_3.append(passingJetsEta[2])
+        elif passingJets > 3:
+          pass
+          #print("More than 3 FS jets")
+
+  event_dictionary["nCleanJetGT30"]   = np.array(nCleanJetGT30)
+  event_dictionary["pass_0j_cuts"]    = np.array(pass_0j_cuts)
+  event_dictionary["pass_1j_cuts"]    = np.array(pass_1j_cuts)
+  event_dictionary["pass_2j_cuts"]    = np.array(pass_2j_cuts)
+  event_dictionary["pass_3j_cuts"]    = np.array(pass_3j_cuts)
+  event_dictionary["pass_GTE2j_cuts"] = np.array(pass_GTE2j_cuts)
+
+  event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
+  event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
+  event_dictionary["CleanJetGT30_pt_3"]  = np.array(CleanJetGT30_pt_3)
+  event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
+  event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
+  event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
+
+  print(f"nEvents before and after 0  jet cuts = {nEvents_precut}, {len(np.array(pass_0j_cuts))}")
+  print(f"nEvents before and after 1  jet cuts = {nEvents_precut}, {len(np.array(pass_1j_cuts))}")
+  print(f"nEvents before and after 2  jet cuts = {nEvents_precut}, {len(np.array(pass_2j_cuts))}")
+  print(f"nEvents before and after 3  jet cuts = {nEvents_precut}, {len(np.array(pass_3j_cuts))}")
+  print(f"nEvents before and after ≥2 jet cuts = {nEvents_precut}, {len(np.array(pass_GTE2j_cuts))}")
+
   return event_dictionary
 
 
@@ -402,17 +437,18 @@ def apply_jet_cut(event_dictionary, jet_mode):
   '''
   Organizational function to reduce event_dictionary to contain only
   events with jets passing certain criteria. Enables plotting of jet objects
-  jet_mode can be "pass_zero_jet_cut", "pass_one_jet_cut", "pass_two_jet_cut"
-                 "pass_one_or_more_jet_cut", "pass_two_or_more_jet_cut",
-                 "pass_inclusive_ptGT30_etaLT4p7_cut"
+  jet_mode can be "Inclusive", "pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cut",
   '''
   event_dictionary   = make_jet_cut(event_dictionary)
   protected_branches = set_protected_branches(jet_mode=jet_mode)
-  event_dictionary   = apply_cut(event_dictionary, jet_mode, protected_branches)
+  if jet_mode == "Inclusive":
+    pass # do no cutting
+  else:
+    event_dictionary   = apply_cut(event_dictionary, jet_mode, protected_branches)
   return event_dictionary
 
 
-def apply_cuts_to_process(process, process_dictionary, final_state_mode, DeepTau_version="2p5"):
+def apply_cuts_to_process(process, process_dictionary, final_state_mode, jet_mode="Inclusive", DeepTau_version="2p5"):
   '''
   Organizational function to hold two function calls and empty list handling that
   is performed for all loaded datasets in our framework.
@@ -424,11 +460,11 @@ def apply_cuts_to_process(process, process_dictionary, final_state_mode, DeepTau
   if len(process_events["run"])==0: return None
 
   process_events = append_lepton_indices(process_events)
-  cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version)
-  if len(cut_events["pass_cuts"])==0: return None 
+  FS_cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version)
+  if len(FS_cut_events["run"])==0: return None 
 
-  # add jet mode cut, default to no cut (inclusive jets)
-  # also add proper branches to jet plotting
+  cut_events = apply_jet_cut(FS_cut_events, jet_mode)
+  if len(cut_events["run"])==0: return None
 
   return cut_events
 
@@ -506,19 +542,25 @@ def add_trigger_branches(branches_, final_state_mode):
 def set_vars_to_plot(final_state_mode, jet_mode="none"):
   '''
   Helper function to keep plotting variables organized
+  Shouldn't this be in  plotting functions?
   '''
   jet_plotting_vars = {
-    "none": [],
-    "pass_zero_jet_cuts"  : [],
-    "pass_one_jet_cuts"   : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
-
-    "pass_two_jet_cuts"   : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
-                             "CleanJetGT30_pt_2", "CleanJetGT30_eta_2"],
-
-    "pass_two_or_more_jet_cuts" : [
+    "Inclusive" : ["nCleanJetGT30",
       "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
       "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
-      "CleanJetGT30_pt_3", "CleanJetGT30_eta_3"],
+      "CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
+    ],
+
+    "0j" : [],
+    "1j" : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
+    "2j" : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
+            "CleanJetGT30_pt_2", "CleanJetGT30_eta_2"],
+
+    "GTE2j" : [
+      "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
+      "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
+      "CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
+    ],
   }
 
   final_state_plotting_vars = {
@@ -535,21 +577,24 @@ def set_vars_to_plot(final_state_mode, jet_mode="none"):
   FS_vars_to_add = final_state_plotting_vars[final_state_mode]
   for var in FS_vars_to_add:
     vars_to_plot.append(var)
+
   jet_vars_to_add = jet_plotting_vars[jet_mode]
   for jet_var in jet_vars_to_add:
-    vars_to_plot.append(jet_vars_to_add)
+    vars_to_plot.append(jet_var)
 
   return vars_to_plot
 
-def set_protected_branches(final_state_mode="none", jet_mode="none", DeepTau_version="none"):
+
+def set_protected_branches(final_state_mode="none", jet_mode="Inclusive", DeepTau_version="none"):
   '''
   Set branches to be protected (i.e. not cut on) when using "apply_cut."
   Generally, you should protect any branches introduced by a cut.
   '''
   if final_state_mode == "none": # no mode given, assume jet cut
     initial_branches   = ["HTT_m_vis", "HTT_dR"]
-    protected_branches = ["pass_zero_jet_cuts", "pass_one_jet_cuts", "pass_two_jet_cuts",
-                          "pass_two_or_more_jet_cuts"]
+    protected_branches = ["pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cuts"]
+    protected_branches += set_vars_to_plot(final_state_mode="none", jet_mode="GTE2j")
+    # want to have CleanJetGT30_pt_1, 2, 3 and etas
 
   else:
     initial_branches = set_branches(final_state_mode, DeepTau_version="2p5")
