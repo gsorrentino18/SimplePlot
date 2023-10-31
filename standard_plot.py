@@ -109,9 +109,10 @@ if __name__ == "__main__":
   for process in file_map: 
 
     gc.collect()
-    if   final_state_mode == "ditau" and (process=="DataMuon" or process=="DataElectron"): continue
-    elif final_state_mode == "mutau" and (process=="DataTau"  or process=="DataElectron"): continue
-    elif final_state_mode == "etau"  and (process=="DataTau"  or process=="DataMuon"):     continue
+    if   final_state_mode == "ditau"  and (process=="DataMuon" or process=="DataElectron"): continue
+    elif final_state_mode == "mutau"  and (process=="DataTau"  or process=="DataElectron"): continue
+    elif final_state_mode == "etau"   and (process=="DataTau"  or process=="DataMuon"):     continue
+    elif final_state_mode == "dimuon" and (process=="DataTau"  or process=="DataElectron"): continue
 
     new_process_dictionary = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,

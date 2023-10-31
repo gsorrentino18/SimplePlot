@@ -219,14 +219,14 @@ def make_jet_cut(event_dictionary):
   event_dictionary["pass_two_jet_cuts"]         = np.array(pass_two_jet_cuts)
   event_dictionary["pass_two_or_more_jet_cuts"] = np.array(pass_two_or_more_jet_cuts)
   event_dictionary["nCleanJetGT30"] = np.array(nCleanJetGT30)
-  nEvents_postzerojetcut      = len(np.array(pass_zero_jet_cuts))
-  nEvents_postonejetcut       = len(np.array(pass_one_jet_cuts))
-  nEvents_posttwojetcut       = len(np.array(pass_two_jet_cuts))
-  nEvents_posttwoormorejetcut = len(np.array(pass_two_or_more_jet_cuts))
-  print(f"nEvents passing zero jet cuts        = {nEvents_precut}, {nEvents_postzerojetcut}")
-  print(f"nEvents passing one  jet cuts        = {nEvents_precut}, {nEvents_postonejetcut}")
-  print(f"nEvents passing two  jet cuts        = {nEvents_precut}, {nEvents_posttwojetcut}")
-  print(f"nEvents passing two or more jet cuts = {nEvents_precut}, {nEvents_posttwoormorejetcut}")
+  #nEvents_postzerojetcut      = len(np.array(pass_zero_jet_cuts))
+  #nEvents_postonejetcut       = len(np.array(pass_one_jet_cuts))
+  #nEvents_posttwojetcut       = len(np.array(pass_two_jet_cuts))
+  #nEvents_posttwoormorejetcut = len(np.array(pass_two_or_more_jet_cuts))
+  print(f"nEvents before and after 0  jet cuts = {nEvents_precut}, {len(np.array(pass_zero_jet_cuts))}")
+  print(f"nEvents before and after 1  jet cuts = {nEvents_precut}, {len(np.array(pass_one_jet_cuts))}")
+  print(f"nEvents before and after 2  jet cuts = {nEvents_precut}, {len(np.array(pass_two_jet_cuts))}")
+  print(f"nEvents before and after ≥2 jet cuts = {nEvents_precut}, {len(np.array(pass_two_or_more_jet_cuts)}")
   return event_dictionary
 
 
@@ -236,6 +236,7 @@ def manual_dimuon_lepton_veto(event_dictionary):
   is made specifically for the dimuon final state. Some special handling is required
   due to the way events are selected in step2 of the NanoTauFramework
   '''
+  nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_veto = ["Lepton_pdgId", "Lepton_iso"]
   unpack_veto = (event_dictionary.get(key) for key in unpack_veto)
   to_check    = [range(len(event_dictionary["Lepton_pt"])), *unpack_veto]
@@ -251,7 +252,7 @@ def manual_dimuon_lepton_veto(event_dictionary):
         pass_manual_lepton_veto.append(i)
 
   event_dictionary["pass_manual_lepton_veto"] = np.array(pass_manual_lepton_veto)
-  print(f"events passing manual dimuon lepton veto = {len(np.array(pass_manual_lepton_veto))}")
+  print(f"events before and after manual dimuon lepton veto = {nEvents_precut}, {len(np.array(pass_manual_lepton_veto))}")
   return event_dictionary
 
 
@@ -259,19 +260,27 @@ def make_dimuon_cut(event_dictionary):
   '''
   Works similarly to 'make_ditau_cut'. 
   '''
-  unpack_dimuon = ["Lepton_pt", "Lepton_iso", "HTT_m_vis", "HTT_dR", "l1_indices", "l2_indices"]
+  nEvents_precut = len(event_dictionary["Lepton_pt"])
+  unpack_dimuon = ["Lepton_pt", "Lepton_eta", "Lepton_iso", "HTT_m_vis", "HTT_dR", "l1_indices", "l2_indices"]
   unpack_dimuon = (event_dictionary.get(key) for key in unpack_dimuon)
   to_check      = [range(len(event_dictionary["Lepton_pt"])), *unpack_dimuon]
-  pass_cuts = []
-  #TODO : extend function to add dimuon variables for plotting
-  for i, pt, iso, mvis, dR, l1_idx, l2_idx in zip(*to_check):
+  pass_cuts, FS_m1_pt, FS_m2_pt, FS_m1_eta, FS_m2_eta = [], [], [], [], []
+  for i, pt, eta, iso, mvis, dR, l1_idx, l2_idx in zip(*to_check):
     passKinematics = (pt[l1_idx] > 26 and pt[l2_idx] > 20 and mvis > 20 and dR > 0.5)
     passIso        = (iso[l1_idx] < 0.15 and iso[l2_idx] < 0.15)
     if (passKinematics and passIso):
       pass_cuts.append(i)
+      FS_m1_pt.append(pt[l1_idx])
+      FS_m2_pt.append(pt[l2_idx])
+      FS_m1_eta.append(eta[l1_idx])
+      FS_m2_eta.append(eta[l2_idx])
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
-  print(f"events passing dimuon cuts = {len(np.array(pass_cuts))}")
+  event_dictionary["FS_m1_pt"]  = np.array(FS_m1_pt)
+  event_dictionary["FS_m2_pt"]  = np.array(FS_m2_pt)
+  event_dictionary["FS_m1_eta"] = np.array(FS_m1_eta)
+  event_dictionary["FS_m2_eta"] = np.array(FS_m2_eta)
+  print(f"events before and after dimuon cuts = {nEvents_precut}, {len(np.array(pass_cuts))}")
   return event_dictionary
 
 
