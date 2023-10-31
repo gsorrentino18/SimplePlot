@@ -80,6 +80,13 @@ def setup_ratio_plot():
   return (upper_ax, lower_ax)
 
 
+def setup_simple_plot():
+  '''
+  Define a simple plot window to be used for investigations
+  '''
+  pass
+
+
 def add_CMS_preliminary(axis):
   '''
   Add text to plot following CMS plotting guidelines

@@ -226,7 +226,7 @@ def make_jet_cut(event_dictionary):
   print(f"nEvents before and after 0  jet cuts = {nEvents_precut}, {len(np.array(pass_zero_jet_cuts))}")
   print(f"nEvents before and after 1  jet cuts = {nEvents_precut}, {len(np.array(pass_one_jet_cuts))}")
   print(f"nEvents before and after 2  jet cuts = {nEvents_precut}, {len(np.array(pass_two_jet_cuts))}")
-  print(f"nEvents before and after ≥2 jet cuts = {nEvents_precut}, {len(np.array(pass_two_or_more_jet_cuts)}")
+  print(f"nEvents before and after ≥2 jet cuts = {nEvents_precut}, {len(np.array(pass_two_or_more_jet_cuts))}")
   return event_dictionary
 
 
@@ -427,6 +427,9 @@ def apply_cuts_to_process(process, process_dictionary, final_state_mode, DeepTau
   cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version)
   if len(cut_events["pass_cuts"])==0: return None 
 
+  # add jet mode cut, default to no cut (inclusive jets)
+  # also add proper branches to jet plotting
+
   return cut_events
 
 
@@ -543,8 +546,8 @@ def set_protected_branches(final_state_mode="none", jet_mode="none", DeepTau_ver
   Set branches to be protected (i.e. not cut on) when using "apply_cut."
   Generally, you should protect any branches introduced by a cut.
   '''
-  if final_state_mode=="none": # no mode given, assume jet cut
-    initial_branches = ["HTT_m_vis", "HTT_dR"]
+  if final_state_mode == "none": # no mode given, assume jet cut
+    initial_branches   = ["HTT_m_vis", "HTT_dR"]
     protected_branches = ["pass_zero_jet_cuts", "pass_one_jet_cuts", "pass_two_jet_cuts",
                           "pass_two_or_more_jet_cuts"]
 

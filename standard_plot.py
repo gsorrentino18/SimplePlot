@@ -142,6 +142,37 @@ if __name__ == "__main__":
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi)
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi) 
 
+    # after calculating, need to add to h_summed_backgrounds to account for in ratio plot  
+    if (var == "FS_tau_pt"): 
+      FF_before_after_ax, FF_info_ax = setup_ratio_plot()
+      print("Testing QCD")
+      print(h_data)
+      print(h_summed_backgrounds)
+      print(h_data - h_summed_backgrounds)
+      h_MC_frac = 1 - h_summed_backgrounds/h_data
+      # mutau 0 jet
+      # 1.9322    + Tau_pt[Lepton_tauIdx[FSLeptons[0]] + Lepton_tauIdx[FSLeptons[1]] + 1] * 0.0160703
+      h_QCD_FF   = [h_MC_frac[i]*(1.9322 + xbins[i] * 0.0160703) for i in range(len(h_MC_frac))]
+      h_QCD      = h_data*h_QCD_FF
+      FF_before_after_ax.plot(xbins[0:-1], h_data, label="Data",
+                              color="black", marker="o", linestyle='none', markersize=3)
+      FF_before_after_ax.plot(xbins[0:-1], h_summed_backgrounds, label="MC",
+                              color="blue", marker="^", linestyle='none', markersize=3)
+      FF_before_after_ax.plot(xbins[0:-1], h_QCD, label="QCD", 
+                              color="orange", marker="v", linestyle='none', markersize=4)
+
+      FF_info_ax.plot(xbins[0:-1], h_MC_frac, label="1-MC/Data",
+                      color="red", marker="*", linestyle='none', markersize=3)
+      FF_info_ax.plot(xbins[0:-1], h_QCD_FF, label="FF from fit",
+                      color="green", marker="s", linestyle='none', markersize=3)
+
+      FF_before_after_ax.legend()
+      FF_info_ax.legend()
+      # multiply each bin using the fit formula (for all plotted variables)
+      # save by appending to background dictionary
+      #h_QCD["QCD"]["BinnedEvents"] = h_data - h_summed_backgrounds #?
+      # plot (should be handled automatically, we'll see)
+
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)
     plot_MC(hist_ax, xbins, h_backgrounds, lumi)
