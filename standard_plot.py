@@ -40,6 +40,11 @@ def match_objects_to_trigger_bit():
 
 def plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD, h_MC_frac, h_QCD_FF):
   FF_before_after_ax, FF_info_ax = setup_ratio_plot()
+
+  FF_before_after_ax.set_title("QCD Preview")
+  FF_before_after_ax.set_ylabel("Events / Bin")
+  FF_before_after_ax.minorticks_on()
+
   FF_before_after_ax.plot(xbins[0:-1], h_data, label="Data",
                           color="black", marker="o", linestyle='none', markersize=3)
   FF_before_after_ax.plot(xbins[0:-1], h_summed_backgrounds, label="MC",
@@ -51,6 +56,7 @@ def plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD, h_MC_frac, h_QC
                   color="red", marker="*", linestyle='none', markersize=3)
   FF_info_ax.plot(xbins[0:-1], h_QCD_FF, label="FF from fit",
                   color="green", marker="s", linestyle='none', markersize=3)
+  FF_info_ax.axhline(y=1, color='grey', linestyle='--')
 
   FF_before_after_ax.legend()
   FF_info_ax.legend()
@@ -134,9 +140,9 @@ if __name__ == "__main__":
   #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
   # there's no place like home :)
-  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
   home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3PreEEFSSplitSamples/" + final_state_mode
-  using_directory = home_dir # if not <<some env var specific to lxplus>>
+  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
+  using_directory = home_dir # TODO: add some auto handling for 'if not <<some env var specific to lxplus>>'
  
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode)
@@ -151,7 +157,6 @@ if __name__ == "__main__":
 
   file_map = testing_file_map if testing else full_file_map
   if final_state_mode == "dimuon": file_map = dimuon_file_map
-  print(file_map)
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -161,7 +166,6 @@ if __name__ == "__main__":
     if   final_state_mode == "ditau"  and (process=="DataMuon" or process=="DataElectron"): continue
     elif final_state_mode == "mutau"  and (process=="DataTau"  or process=="DataElectron"): continue
     elif final_state_mode == "etau"   and (process=="DataTau"  or process=="DataMuon"):     continue
-    #elif final_state_mode == "dimuon" and (process=="DataTau"  or process=="DataElectron"): continue
     elif final_state_mode == "dimuon" and not (process=="DataMuon" or "DY" in process): continue
 
     new_process_dictionary = load_process_from_file(process, using_directory, 
