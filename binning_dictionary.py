@@ -18,17 +18,23 @@ binning_dictionary = {
   "FS_el_eta"  : (30, -3, 3),
   "FS_tau_pt"  : (36, 0, 180),
   "FS_tau_eta" : (30, -3, 3),
-  #"dummy_HTT_Lep_pt" : (40, 0, 120),
-  #"dummy_HTT_Tau_pt" : (30, 0, 180),
+
+# dimuon
+  "FS_m1_pt"   : (40, 0, 120),
+  "FS_m2_pt"   : (40, 0, 120),
+  "FS_m1_eta"  : (30, -3, 3),
+  "FS_m2_eta"  : (30, -3, 3),
 
 # common, calculated on the fly
   "FS_mt"        : (20, 0, 200),
   "nCleanJetGT30" : (8, 0, 8), # GT(E) = Greater Than (Equal to)
+  #TODO: delete these
   "pass_0j_cuts"  : (100, 0, 100), 
   "pass_1j_cuts"  : (100, 0, 100),
   "pass_2j_cuts"  : (100, 0, 100), 
   "pass_3j_cuts"  : (100, 0, 100),
-  "pass_GTE2j_cuts" : (100, 0, 100),
+  "pass_GTE2j_cuts"    : (100, 0, 100),
+  ##
   "CleanJetGT30_pt_1"  : (60, 0, 300),
   "CleanJetGT30_pt_2"  : (60, 0, 300),
   "CleanJetGT30_pt_3"  : (60, 0, 300),

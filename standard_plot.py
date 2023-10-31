@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
-from file_functions        import testing_file_map, full_file_map, luminosities
+from file_functions        import testing_file_map, full_file_map, dimuon_file_map, luminosities
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
 from cut_and_study_functions import set_branches, set_vars_to_plot # TODO set good events should be here
@@ -135,6 +135,7 @@ if __name__ == "__main__":
   eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
   # there's no place like home :)
   home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
+  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3PreEEFSSplitSamples/" + final_state_mode
   using_directory = home_dir # if not <<some env var specific to lxplus>>
  
   good_events  = set_good_events(final_state_mode)
@@ -149,6 +150,8 @@ if __name__ == "__main__":
                    good_events, branches, vars_to_plot)
 
   file_map = testing_file_map if testing else full_file_map
+  if final_state_mode == "dimuon": file_map = dimuon_file_map
+  print(file_map)
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -159,7 +162,7 @@ if __name__ == "__main__":
     elif final_state_mode == "mutau"  and (process=="DataTau"  or process=="DataElectron"): continue
     elif final_state_mode == "etau"   and (process=="DataTau"  or process=="DataMuon"):     continue
     #elif final_state_mode == "dimuon" and (process=="DataTau"  or process=="DataElectron"): continue
-    elif final_state_mode == "dimuon" and not (process=="DataMuon" or process=="DY"): continue
+    elif final_state_mode == "dimuon" and not (process=="DataMuon" or "DY" in process): continue
 
     new_process_dictionary = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,

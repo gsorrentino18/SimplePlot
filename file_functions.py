@@ -1,7 +1,6 @@
 import uproot
 
 from utility_functions import time_print, text_options
-#from get_and_set_functions import reject_duplicate_events
 from get_and_set_functions import set_good_events
 
 ### README ###
@@ -11,10 +10,27 @@ from get_and_set_functions import set_good_events
 # Additionally, this file contains methods relevant to loading and sorting samples from files.
 
 # fb ^ -1
+# useful webpage : https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis#Year_2022
+# without normtag
 luminosities = {
-  "2022 F"   : 17.61,
-  "2022 G"   :  3.06,
-  "2022 F&G" : 20.67, # calculate by hand when new quantities are relevant
+  "2022 C&D" : 7.875,
+  "2022 C"   : 4.953, # 2022 pre EE
+  "2022 D"   : 2.922, # 2022 pre EE
+  "2022 E"   : 5.672, # 2022 EE
+  "2022 F"   : 17.61, # 2022 EE
+  "2022 G"   :  3.06, # 2022 EE
+  "2022 F&G" : 20.67,
+}
+# with normtag (default in future)
+# TODO: update this and study plots, 2% effect everywhere
+luminosities_w_normtag = {
+  "2022 C&D" : 8.077,
+  "2022 C"   : 5.0707,
+  "2022 D"   : 3.0063,
+  "2022 E"   : 5.8783,
+  "2022 F"   : 18.0070,
+  "2022 G"   : 3.1219,
+  "2022 F&G" : 21.1289,
 }
 
 testing_file_map = {
@@ -37,6 +53,11 @@ testing_file_map = {
   "ZZTo4L"    : "VV/ZZTo4L*", 
 
   "VBF"   : "Signal/VBF*",
+}
+
+dimuon_file_map = {
+  "DataMuon" : "Data/Muon*",
+  "DYInc"    : "DY/DY*part*",
 }
 
 full_file_map = {

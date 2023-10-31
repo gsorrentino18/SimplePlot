@@ -277,6 +277,8 @@ def manual_dimuon_lepton_veto(event_dictionary):
   to_check    = [range(len(event_dictionary["Lepton_pt"])), *unpack_veto]
   pass_manual_lepton_veto = []
   for i, lep_pdgId_array, lep_iso_array in zip(*to_check):
+
+    event_passes_manual_lepton_veto = False
     for pdgId, iso in zip(lep_pdgId_array, lep_iso_array):
       nIsoEle, nIsoMu = 0, 0
       if abs(pdgId) == 11:
@@ -284,7 +286,10 @@ def manual_dimuon_lepton_veto(event_dictionary):
       elif abs(pdgId) == 13:
         nIsoMu  += 1 if (iso < 0.3) else 0
       if nIsoEle < 1 and nIsoMu < 3:
-        pass_manual_lepton_veto.append(i)
+        event_passes_manual_lepton_veto = True
+
+    if event_passes_manual_lepton_veto:
+      pass_manual_lepton_veto.append(i)
 
   event_dictionary["pass_manual_lepton_veto"] = np.array(pass_manual_lepton_veto)
   print(f"events before and after manual dimuon lepton veto = {nEvents_precut}, {len(np.array(pass_manual_lepton_veto))}")
@@ -352,7 +357,7 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
   if len(event_dictionary[cut_branch]) == 0:
     print("All events removed, sample deleted")
     delete_sample = True
-
+ 
   for branch in event_dictionary:
     if delete_sample:
       pass
@@ -425,9 +430,9 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version):
     event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
   elif final_state_mode == "dimuon":
     event_dictionary = manual_dimuon_lepton_veto(event_dictionary)
-    event_dictionary = apply_cut(process_events, "pass_manual_lepton_veto")
+    event_dictionary = apply_cut(event_dictionary, "pass_manual_lepton_veto")
     event_dictionary = make_dimuon_cut(event_dictionary)
-    event_dictionary = apply_cut(event_dictionary, "pass_cuts")
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
   else:
     print(f"No cuts to apply for {final_state_mode} final state.")
   return event_dictionary
@@ -478,7 +483,7 @@ def set_branches(final_state_mode, DeepTau_version="2p5"):
   ]
   branches = common_branches
   branches = add_final_state_branches(branches, final_state_mode)
-  branches = add_DeepTau_branches(branches, DeepTau_version)
+  if final_state_mode != "dimuon": branches = add_DeepTau_branches(branches, DeepTau_version)
   branches = add_trigger_branches(branches, final_state_mode)
   return branches
 

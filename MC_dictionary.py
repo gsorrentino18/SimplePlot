@@ -49,7 +49,9 @@ MC_dictionary = {
            "label": "VBF", "color": color_dictionary["VBF"],
            "plot_scaling" : 500},
 
-  "DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 3222224508811.3296,
+  #"DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 3222224508811.3296,
+  #TODO: CHANGE ME BACK FOR 2022 post EE studies! This is for 2022 pre EE dimuon!
+  "DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 1925298812420.0,
              "label": "DY", "color": color_dictionary["DY"],
              "plot_scaling" : 1},
 
