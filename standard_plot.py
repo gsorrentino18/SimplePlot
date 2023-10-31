@@ -10,14 +10,14 @@ import gc
 from file_functions        import testing_file_map, full_file_map, luminosities
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
-from cut_and_study_functions import set_branches, set_vars_to_plot # set good events should be here
-from cut_and_study_functions import apply_final_state_cut, apply_jet_cut, append_lepton_indices
+from cut_and_study_functions import set_branches, set_vars_to_plot # TODO set good events should be here
+from cut_and_study_functions import apply_cuts_to_process
 
+from plotting_functions    import get_binned_data, get_binned_backgrounds, get_binned_signals
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot
 from plotting_functions    import plot_data, plot_MC, plot_signal
 
-from get_and_set_functions import set_good_events, make_bins, get_binned_info
-from get_and_set_functions import accumulate_MC_subprocesses, accumulate_datasets
+from get_and_set_functions import set_good_events, make_bins
 
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
 from utility_functions     import time_print, make_directory, print_setup_info
@@ -37,7 +37,6 @@ def match_objects_to_trigger_bit():
   # step 2 ensure correct trigger bit is fired
   # step 3 calculate dR and compare with 0.5
   dR_trig_offline = calculate_dR(trig_eta, trig_phi, off_eta, off_phi)
-
 
 if __name__ == "__main__":
   '''
@@ -114,24 +113,17 @@ if __name__ == "__main__":
     elif final_state_mode == "mutau" and (process=="DataTau"  or process=="DataElectron"): continue
     elif final_state_mode == "etau"  and (process=="DataTau"  or process=="DataMuon"):     continue
 
-    new_process_list = load_process_from_file(process, using_directory, 
+    new_process_dictionary = load_process_from_file(process, using_directory, 
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
-    if new_process_list == None: continue # skip datasets if nothing is in them
+    if new_process_dictionary == None: continue # skip process if empty
 
-    time_print(f"Processing {process}")
-    process_events = new_process_list[process]["info"]
-    if len(process_events["run"])==0: continue # skip datasets if nothing is in them
-    del(new_process_list)
-
-    process_events = append_lepton_indices(process_events)
-    cut_events = apply_final_state_cut(process_events, final_state_mode, useDeepTauVersion)
-    if len(cut_events["pass_cuts"])==0: continue # skip datasets if nothing is in them
-    del(process_events)
+    cut_events = apply_cuts_to_process(process, new_process_dictionary, final_state_mode, 
+                                       DeepTau_version=useDeepTauVersion)
+    if cut_events == None: continue
 
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
                                                                combined_process_dictionary)
-    del(cut_events)
 
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
@@ -145,49 +137,9 @@ if __name__ == "__main__":
     xbins = make_bins(var)
     hist_ax, hist_ratio = setup_ratio_plot()
 
-    ### FUNCTION return h_data
-    # accumulate datasets into one flat dictionary called h_data  
-    h_data_by_dataset = {}
-    for dataset in data_dictionary:
-      data_variable = data_dictionary[dataset]["PlotEvents"][var]
-      data_weights  = np.ones(np.shape(data_variable)) # weights of one for data
-      h_data_by_dataset[dataset] = {}
-      h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, xbins, data_weights, lumi)
-    h_data = accumulate_datasets(h_data_by_dataset)
-    ###
-
-    # FUNCTION return h_backgrounds and h_summed_backgrounds
-    # treat each MC process, then group the output by family into flat dictionaries
-    # also sum all backgrounds into h_summed_backgrounds to use in ratio plot
-    h_MC_by_process = {}
-    for process in background_dictionary:
-      process_variable = background_dictionary[process]["PlotEvents"][var]
-      process_weights  = background_dictionary[process]["Generator_weight"]
-      h_MC_by_process[process] = {}
-      h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, xbins, process_weights, lumi)
-    # add together subprocesses of each MC family
-    h_MC_by_family = {}
-    MC_families = ["DY", "TT", "ST", "WJ", "VV"]
-    for family in MC_families:
-      h_MC_by_family[family] = {}
-      h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
-    h_backgrounds = h_MC_by_family
-    # used for ratio plot
-    h_summed_backgrounds = 0
-    for background in h_backgrounds:
-      h_summed_backgrounds += h_backgrounds[background]["BinnedEvents"]
-    ###
-
-   
-    # FUNCTION return h_signals 
-    # signal is put in a separate dictionary from MC, but they are processed very similarly
-    h_signals = {}
-    for signal in signal_dictionary:
-      signal_variable = signal_dictionary[signal]["PlotEvents"][var]
-      signal_weights  = signal_dictionary[signal]["Generator_weight"]
-      h_signals[signal] = {}
-      h_signals[signal]["BinnedEvents"] = get_binned_info(signal, signal_variable, xbins, signal_weights, lumi)
-    ###
+    h_data = get_binned_data(data_dictionary, var, xbins, lumi)
+    h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi)
+    h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi) 
 
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)

@@ -5,6 +5,7 @@ import numpy as np
 
 from calculate_functions   import calculate_mt
 from triggers_dictionary import triggers_dictionary
+from utility_functions import time_print
 
 
 def append_lepton_indices(event_dictionary):
@@ -400,6 +401,24 @@ def apply_jet_cut(event_dictionary, jet_mode):
   protected_branches = set_protected_branches(jet_mode=jet_mode)
   event_dictionary   = apply_cut(event_dictionary, jet_mode, protected_branches)
   return event_dictionary
+
+
+def apply_cuts_to_process(process, process_dictionary, final_state_mode, DeepTau_version="2p5"):
+  '''
+  Organizational function to hold two function calls and empty list handling that
+  is performed for all loaded datasets in our framework.
+  Can be extended to hold additional standard cuts (i.e. jets) or the returned
+  value can be cut on as needed.
+  '''
+  time_print(f"Processing {process}")
+  process_events = process_dictionary[process]["info"]
+  if len(process_events["run"])==0: return None
+
+  process_events = append_lepton_indices(process_events)
+  cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version)
+  if len(cut_events["pass_cuts"])==0: return None 
+
+  return cut_events
 
 
 def set_branches(final_state_mode, DeepTau_version="2p5"):

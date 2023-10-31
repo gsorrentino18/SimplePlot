@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 from MC_dictionary        import MC_dictionary
 
 from get_and_set_functions import get_midpoints, set_MC_process_info
-from file_functions              import luminosities
+from file_functions        import luminosities
+
+from get_and_set_functions import get_binned_info, accumulate_MC_subprocesses, accumulate_datasets
 
 def plot_data(histogram_axis, xbins, data_info, luminosity):
   '''
@@ -129,4 +131,64 @@ def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
   midpoints = get_midpoints(xbins)
   ratio_axis.errorbar(midpoints, numerator_data/denominator_data, yerr=combined_statistical_error,
                     color="black", marker="o", linestyle='none', markersize=2)
+
+
+def get_binned_data(data_dictionary, variable, xbins_, lumi_):
+  '''
+  Standard loop to get only the plotted variable from a dictionary containing data.
+
+  This is written so that it can be extended to use multiple datasets, but the default
+  usage is only one dataset at a time. 
+  '''
+  h_data_by_dataset = {}
+  for dataset in data_dictionary:
+    data_variable = data_dictionary[dataset]["PlotEvents"][variable]
+    data_weights  = np.ones(np.shape(data_variable)) # weights of one for data
+    h_data_by_dataset[dataset] = {}
+    h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
+                                                                 xbins_, data_weights, lumi_)
+  h_data = accumulate_datasets(h_data_by_dataset)
+  return h_data
+
+
+def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_):
+  '''
+  Treat each MC process, then group the output by family into flat dictionaries.
+  Also, sum all backgrounds into h_summed_backgrounds to use in ratio plot.
+  '''
+  h_MC_by_process = {}
+  for process in background_dictionary:
+    process_variable = background_dictionary[process]["PlotEvents"][variable]
+    process_weights  = background_dictionary[process]["Generator_weight"]
+    h_MC_by_process[process] = {}
+    h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, 
+                                                               xbins_, process_weights, lumi_)
+  # add together subprocesses of each MC family
+  h_MC_by_family = {}
+  MC_families = ["DY", "TT", "ST", "WJ", "VV"]
+  for family in MC_families:
+    h_MC_by_family[family] = {}
+    h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
+  h_backgrounds = h_MC_by_family
+  # used for ratio plot
+  h_summed_backgrounds = 0
+  for background in h_backgrounds:
+    h_summed_backgrounds += h_backgrounds[background]["BinnedEvents"]
+
+  return h_backgrounds, h_summed_backgrounds
+
+
+def get_binned_signals(signal_dictionary, variable, xbins_, lumi_):
+  '''
+  Signal is put in a separate dictionary from MC, but they are processed very similarly
+  '''
+  h_signals = {}
+  for signal in signal_dictionary:
+    signal_variable = signal_dictionary[signal]["PlotEvents"][variable]
+    signal_weights  = signal_dictionary[signal]["Generator_weight"]
+    h_signals[signal] = {}
+    h_signals[signal]["BinnedEvents"] = get_binned_info(signal, signal_variable,
+                                                        xbins_, signal_weights, lumi_)
+  return h_signals
+
 
