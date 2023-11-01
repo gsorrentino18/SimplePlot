@@ -60,6 +60,11 @@ dimuon_file_map = {
   "DYInc"    : "DY/DY*part*",
 }
 
+testing_dimuon_file_map = {
+  "DataMuon" : "Data/Muon*G*",
+  "DYInc"    : "DY/DYJets*part1",
+}
+
 full_file_map = {
   "DataTau"  : "Data/Tau*",
   "DataMuon" : "Data/Muon*",
@@ -71,13 +76,14 @@ full_file_map = {
   "DYJetsToLL_M-50_3J" : "DY/DYJetsToLL_M-50_3J*",
   "DYJetsToLL_M-50_4J" : "DY/DYJetsToLL_M-50_4J*",
 
-  #"TTTo2L2Nu"         : "TT/TTTo2L2Nu*",
-  #"TTToFullyHadronic" : "TT/TTToFullyHadronic*",
-  #"TTToSemiLeptonic"  : "TT/TTToSemiLeptonic*",
+  "TTTo2L2Nu"         : "TT/TTTo2L2Nu*",
+  "TTToFullyHadronic" : "TT/TTToFullyHadronic*",
+  "TTToSemiLeptonic"  : "TT/TTToSemiLeptonic*",
 
-  "TTTo2L2Nu"         : "TT_AdditionalSkim/TTTo2L2Nu*",
-  "TTToFullyHadronic" : "TT_AdditionalSkim/TTToFullyHadronic*",
-  "TTToSemiLeptonic"  : "TT_AdditionalSkim/TTToSemiLeptonic*",
+  # No significant speed-up locally
+  #"TTTo2L2Nu"         : "TT_AdditionalSkim/TTTo2L2Nu*",
+  #"TTToFullyHadronic" : "TT_AdditionalSkim/TTToFullyHadronic*",
+  #"TTToSemiLeptonic"  : "TT_AdditionalSkim/TTToSemiLeptonic*",
 
   "ST_TWminus_2L2Nu"   : "ST/ST_TWminus_2L2Nu*",
   "ST_TbarWplus_2L2Nu" : "ST/ST_TbarWplus_2L2Nu*",

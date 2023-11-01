@@ -167,7 +167,7 @@ def set_good_events(final_state_mode, disable_triggers=False):
 
   elif final_state_mode == "dimuon":
     # lepton veto must be applied manually for this final state
-    good_events = "(HTT_pdgId==-13*13) & (METfilters) & (HLT_IsoMu24)"
+    good_events = "(METfilters) & (HTT_pdgId==-13*13) & (HLT_IsoMu24)"
     if disable_triggers: good_events = good_events.replace(" & (HLT_IsoMu24)", "")
 
   return good_events

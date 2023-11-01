@@ -7,21 +7,20 @@ import matplotlib.pyplot as plt
 import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
-from file_functions        import testing_file_map, full_file_map, dimuon_file_map, luminosities
+from file_functions        import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map, luminosities
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
 from cut_and_study_functions import set_branches, set_vars_to_plot # TODO set good events should be here
 from cut_and_study_functions import apply_cuts_to_process
 
 from plotting_functions    import get_binned_data, get_binned_backgrounds, get_binned_signals
-from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot
+from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot, spruce_up_legend
 from plotting_functions    import plot_data, plot_MC, plot_signal
 
 from get_and_set_functions import set_good_events, make_bins
 
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
 from utility_functions     import time_print, make_directory, print_setup_info
- 
 
 def match_objects_to_trigger_bit():
   '''
@@ -156,7 +155,8 @@ if __name__ == "__main__":
                    good_events, branches, vars_to_plot)
 
   file_map = testing_file_map if testing else full_file_map
-  if final_state_mode == "dimuon": file_map = dimuon_file_map
+  if final_state_mode == "dimuon": 
+    file_map = testing_dimuon_file_map if testing else dimuon_file_map
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -221,14 +221,16 @@ if __name__ == "__main__":
     make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
   
     spruce_up_plot(hist_ax, hist_ratio, var, lumi)
-    hist_ax.legend()
-  
+    spruce_up_legend(hist_ax, final_state_mode)
+
     plt.savefig(plot_dir + "/" + str(var) + ".png")
 
     # calculate and print these quantities only once
     if (var == "HTT_m_vis"): 
       calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
-      yields_for_CSV(hist_ax, desired_order=["Data", "TT", "WJ", "DY", "VV", "ST", "ggH", "VBF"])
+      labels, yields = yields_for_CSV(hist_ax, desired_order=["Data", "TT", "WJ", "DY", "VV", "ST", "ggH", "VBF"])
+      print(f"Reordered     Labels: {labels}")
+      print(f"Corresponding Yields: {yields}")
 
   if hide_plots: pass
   else: plt.show()

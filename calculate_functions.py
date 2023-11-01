@@ -139,7 +139,5 @@ def yields_for_CSV(histogram_axis, desired_order=[]):
           label_yield_end   = original_label.find("]")
           label_yield       = original_label[label_yield_start+1:label_yield_end]
           corresponding_yields.append(int(label_yield))
-    print(f"Legend Labels: {reordered_labels}")
-    print(f"Yields: {corresponding_yields}")
-
+    return reordered_labels, corresponding_yields
 

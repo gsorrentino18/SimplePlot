@@ -124,6 +124,19 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   ratio_plot_axis.set_ylabel("Obs. / Exp.")
   ratio_plot_axis.axhline(y=1, color='grey', linestyle='--')
 
+
+def spruce_up_legend(histogram_axis, final_state_mode):
+  histogram_axis.legend()
+  if final_state_mode == "dimuon":
+    handles, original_labels = histogram_axis.get_legend_handles_labels()
+    labels, yields = yields_for_CSV(histogram_axis)
+    save_entry = [i for i,yield_ in enumerate(yields) if yield_ != 0]
+    save_handles = [handles[entry] for entry in save_entry]
+    save_labels  = [labels[entry] for entry in save_entry]
+    histogram_axis.legend(save_handles, save_labels)
+    print(f"Legend lables were previously {original_labels}")
+    print("Removed samples with yield=0 from legend!")
+
  
 def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
   '''
