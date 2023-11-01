@@ -185,7 +185,9 @@ if __name__ == "__main__":
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting
-  
+
+  print(background_dictionary)
+
   for var in vars_to_plot:
     time_print(f"Plotting {var}")
 
@@ -201,7 +203,7 @@ if __name__ == "__main__":
       h_MC_frac = 1 - h_summed_backgrounds/h_data 
       h_MC_frac[np.isnan(h_MC_frac)] = 0 # set NaNs, from division by zero above, to zero
       # multiply each bin using the fit formula (TODO : for all plotted variables, only for taupt currently)
-      jet_mode = "1j"
+      jet_mode = "0j"
       intercept, slope = set_FF_values(final_state_mode, jet_mode)
       h_QCD_FF   = [h_MC_frac[i]*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
       h_QCD_calc = h_data*h_QCD_FF

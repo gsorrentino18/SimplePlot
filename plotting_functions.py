@@ -13,6 +13,8 @@ from file_functions        import luminosities
 
 from get_and_set_functions import get_binned_info, accumulate_MC_subprocesses, accumulate_datasets
 
+from calculate_functions import yields_for_CSV
+
 def plot_data(histogram_axis, xbins, data_info, luminosity):
   '''
   Add the data histogram to the existing histogram axis, computing errors in a simple way.
@@ -203,12 +205,15 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_):
   '''
   h_MC_by_process = {}
   for process in background_dictionary:
+    print(process, variable)
     process_variable = background_dictionary[process]["PlotEvents"][variable]
     if len(process_variable) == 0: continue
     if "JetGT30_" in variable:
       process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process])
     else:
       process_weights = background_dictionary[process]["Generator_weight"]
+    print("shapes")
+    print(process_variable.shape, process_weights.shape)
     h_MC_by_process[process] = {}
     h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, 
                                                                xbins_, process_weights, lumi_)

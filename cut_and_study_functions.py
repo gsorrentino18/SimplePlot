@@ -342,11 +342,14 @@ def make_dimuon_cut(event_dictionary):
   Works similarly to 'make_ditau_cut'. 
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
-  unpack_dimuon = ["Lepton_pt", "Lepton_eta", "Lepton_iso", "HTT_m_vis", "HTT_dR", "l1_indices", "l2_indices"]
+  unpack_dimuon = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso", 
+                   "HTT_m_vis", "HTT_dR", "l1_indices", "l2_indices"]
   unpack_dimuon = (event_dictionary.get(key) for key in unpack_dimuon)
   to_check      = [range(len(event_dictionary["Lepton_pt"])), *unpack_dimuon]
-  pass_cuts, FS_m1_pt, FS_m2_pt, FS_m1_eta, FS_m2_eta = [], [], [], [], []
-  for i, pt, eta, iso, mvis, dR, l1_idx, l2_idx in zip(*to_check):
+  pass_cuts = []
+  FS_m1_pt, FS_m1_eta, FS_m1_phi, FS_m1_iso = [], [], [], []
+  FS_m2_pt, FS_m2_eta, FS_m2_phi, FS_m2_iso = [], [], [], []
+  for i, pt, eta, phi, iso, mvis, dR, l1_idx, l2_idx in zip(*to_check):
     passKinematics = (pt[l1_idx] > 26 and pt[l2_idx] > 20 and mvis > 20 and dR > 0.5)
     passIso        = (iso[l1_idx] < 0.15 and iso[l2_idx] < 0.15)
     if (passKinematics and passIso):
@@ -355,12 +358,20 @@ def make_dimuon_cut(event_dictionary):
       FS_m2_pt.append(pt[l2_idx])
       FS_m1_eta.append(eta[l1_idx])
       FS_m2_eta.append(eta[l2_idx])
+      FS_m1_phi.append(phi[l1_idx])
+      FS_m2_phi.append(phi[l2_idx])
+      FS_m1_iso.append(iso[l1_idx])
+      FS_m2_iso.append(iso[l2_idx])
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
   event_dictionary["FS_m1_pt"]  = np.array(FS_m1_pt)
   event_dictionary["FS_m2_pt"]  = np.array(FS_m2_pt)
   event_dictionary["FS_m1_eta"] = np.array(FS_m1_eta)
   event_dictionary["FS_m2_eta"] = np.array(FS_m2_eta)
+  event_dictionary["FS_m1_phi"] = np.array(FS_m1_phi)
+  event_dictionary["FS_m2_phi"] = np.array(FS_m2_phi)
+  event_dictionary["FS_m1_iso"] = np.array(FS_m1_iso)
+  event_dictionary["FS_m2_iso"] = np.array(FS_m2_iso)
   print(f"events before and after dimuon cuts = {nEvents_precut}, {len(np.array(pass_cuts))}")
   return event_dictionary
 
@@ -403,6 +414,7 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
     if delete_sample:
       pass
     elif ((branch != cut_branch) and (branch not in protected_branches)):
+      print(f"cutting branch {branch}")
       event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
 
   return event_dictionary
@@ -479,18 +491,33 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version):
   return event_dictionary
 
 
-def apply_jet_cut(event_dictionary, jet_mode):
+def apply_jet_cut(event_dictionary, jet_mode_key):
   '''
   Organizational function to reduce event_dictionary to contain only
   events with jets passing certain criteria. Enables plotting of jet objects
   jet_mode can be "Inclusive", "pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cut",
+  jet_mode can be "Inclusive", "0j", "1j", "2j", "3j", "GTE2j",
   '''
+  jet_modes = {
+    "Inclusive" : "Inclusive",
+    "0j" : "pass_0j_cuts",
+    "1j" : "pass_1j_cuts",
+    "2j" : "pass_2j_cuts",
+    "3j" : "pass_3j_cuts",
+    "GTE2j" : "pass_GTE2j_cuts",
+  }
   event_dictionary   = make_jet_cut(event_dictionary)
-  protected_branches = set_protected_branches(jet_mode=jet_mode)
-  if jet_mode == "Inclusive":
+  protected_branches = set_protected_branches(jet_mode=jet_modes[jet_mode_key])
+  if jet_mode_key == "Inclusive":
+    print("jet mode is Inclusive, no jet cut performed")
     pass # do no cutting
   else:
-    event_dictionary   = apply_cut(event_dictionary, jet_mode, protected_branches)
+    print("defs made a jet cut")
+    print(protected_branches)
+    print(event_dictionary.keys())
+    event_dictionary = apply_cut(event_dictionary, jet_modes[jet_mode_key], protected_branches)
+    print(len(event_dictionary["HTT_m_vis"]))
+    # can check size here directly
   return event_dictionary
 
 
@@ -521,6 +548,7 @@ def set_branches(final_state_mode, DeepTau_version="2p5"):
     "FSLeptons", "Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",
     "nCleanJet", "CleanJet_pt", "CleanJet_eta",
     "HTT_m_vis", "HTT_dR",
+    "HTT_DiJet_dEta_fromHighestMjj", "HTT_DiJet_MassInv_fromHighestMjj",
   ]
   branches = common_branches
   branches = add_final_state_branches(branches, final_state_mode)
@@ -603,6 +631,7 @@ def set_vars_to_plot(final_state_mode, jet_mode="none"):
             "CleanJetGT30_pt_2", "CleanJetGT30_eta_2"],
 
     "GTE2j" : [
+      "nCleanJetGT30", "HTT_DiJet_dEta_fromHighestMjj", "HTT_DiJet_MassInv_fromHighestMjj",
       "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
       "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
       "CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
@@ -633,22 +662,26 @@ def set_vars_to_plot(final_state_mode, jet_mode="none"):
 
   return vars_to_plot
 
-
+# TODO fix this function and make it more straightforward
+# way too easy to get confused with it currently
 def set_protected_branches(final_state_mode="none", jet_mode="Inclusive", DeepTau_version="none"):
   '''
   Set branches to be protected (i.e. not cut on) when using "apply_cut."
   Generally, you should protect any branches introduced by a cut.
   '''
   if final_state_mode == "none": # no mode given, assume jet cut
-    initial_branches   = ["HTT_m_vis", "HTT_dR"]
+    print("in if of set_protected_branches")
     protected_branches = ["pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cuts"]
     protected_branches += set_vars_to_plot(final_state_mode="none", jet_mode="GTE2j")
-    # want to have CleanJetGT30_pt_1, 2, 3 and etas
+    protected_branches = [val for val in protected_branches if val != "HTT_m_vis"]
+    protected_branches = [val for val in protected_branches if val != "HTT_dR"]
 
   else:
+    print("in else of set_protected_branches")
     initial_branches = set_branches(final_state_mode, DeepTau_version="2p5")
     vars_to_trim     = set_vars_to_plot(final_state_mode, jet_mode)
     protected_branches = [var for var in vars_to_trim if var not in initial_branches]
+    # should be any branch added by cuts or HTT_DiJet branches
 
   return protected_branches
 
