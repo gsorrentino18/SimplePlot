@@ -165,14 +165,15 @@ def get_trimmed_Generator_weight_copy(variable, single_background_dictionary):
   Cuts       = single_background_dictionary["Cuts"]
   temp_weight = 0
   if   "_1" in variable:
-    events_GTE1j = sorted(np.concatenate([Cuts["pass_1j_cuts"], Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
-    temp_weight    = np.take(Gen_weight, events_GTE1j)
+    # events with ≥1 j
+    pass_jet_cut = sorted(np.concatenate([Cuts["pass_1j_cuts"], Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
   elif "_2" in variable:
-    events_GTE2j = sorted(np.concatenate([Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
-    temp_weight    = np.take(Gen_weight, events_GTE2j)
+    # events with ≥2 j
+    pass_jet_cut = sorted(np.concatenate([Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
   elif "_3" in variable:
-    events_3j    = Cuts["pass_3j_cuts"] 
-    temp_weight    = np.take(Gen_weight, events_3j)
+    pass_jet_cut    = Cuts["pass_3j_cuts"]
+
+  temp_weight = np.take(Gen_weight, pass_jet_cut)
 
   return temp_weight
 
@@ -203,6 +204,7 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_):
   h_MC_by_process = {}
   for process in background_dictionary:
     process_variable = background_dictionary[process]["PlotEvents"][variable]
+    if len(process_variable) == 0: continue
     if "JetGT30_" in variable:
       process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process])
     else:
@@ -232,6 +234,7 @@ def get_binned_signals(signal_dictionary, variable, xbins_, lumi_):
   h_signals = {}
   for signal in signal_dictionary:
     signal_variable = signal_dictionary[signal]["PlotEvents"][variable]
+    if len(signal_variable) == 0: continue
     if "JetGT30_" in variable:
       signal_weights = get_trimmed_Generator_weight_copy(variable, signal_dictionary[signal])
     else:
