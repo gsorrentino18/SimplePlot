@@ -9,10 +9,15 @@ Also, XSec.py must be copied from NanoTauAnalysis.
 Your final state skims should be structured in the following way
 
 `pwd`
+
 `/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples`
+
 `ls`
+
 `dimuon ditau  etau   mutau`
+
 `ls ditau/`
+
 `DY                ST                TT                VV`
 `Data              Signal            TT_AdditionalSkim WJ`
 
@@ -50,7 +55,7 @@ discover mistakes and need to make different kinds of plots with the same data. 
 already are support functions that aren't meant to be changed, but file lists, cuts, and plot style should
 be adjusted freely.
 
-To adjust the cuts to the ditau final state, `grep "make\_ditau\_cut" *.py` and open `cut_and_study_functions.py`.
+To adjust the cuts to the ditau final state, `grep "make_ditau_cut" *.py` and open `cut_and_study_functions.py`.
 Here, you should find the function that makes the ditau cuts where you can freely adjust your parameters. 
 This is done similarly for other final states.
 Adding new variables to plot can be tricky, and I'll try to write more details about this in the future 
