@@ -15,7 +15,8 @@ from get_and_set_functions import get_binned_info, accumulate_MC_subprocesses, a
 
 from calculate_functions import yields_for_CSV
 
-def plot_data(histogram_axis, xbins, data_info, luminosity):
+def plot_data(histogram_axis, xbins, data_info, luminosity, 
+              color="black", label="Data"):
   '''
   Add the data histogram to the existing histogram axis, computing errors in a simple way.
   For data, since points and error bars are used, they are shifted to the center of the bins.
@@ -30,9 +31,9 @@ def plot_data(histogram_axis, xbins, data_info, luminosity):
   stat_error  = np.array([np.sqrt(entry * (1 - entry/sum_of_data)) if entry > 0 else 0 for entry in data_info])
   #stat_error = np.array([np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) # unsure if correct?
   midpoints   = get_midpoints(xbins)
-  label = f"Data [{np.sum(data_info):>.0f}]"
+  label = f"Data [{np.sum(data_info):>.0f}]" if label == "Data" else label
   histogram_axis.errorbar(midpoints, data_info, yerr=stat_error, 
-                          color="black", marker="o", linestyle='none', markersize=2, label=label)
+                          color=color, marker="o", linestyle='none', markersize=2, label=label)
   #histogram_axis.plot(midpoints, data_info, color="black", marker="o", linestyle='none', markersize=2, label="Data")
   # above plots without error bars
 
@@ -191,6 +192,8 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
   for dataset in data_dictionary:
     data_variable = data_dictionary[dataset]["PlotEvents"][variable]
     data_weights  = np.ones(np.shape(data_variable)) # weights of one for data
+    if dataset == "DataMuonEraF":
+      data_weights = (3.06/17.61)*data_weights
     h_data_by_dataset[dataset] = {}
     h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
                                                                  xbins_, data_weights, lumi_)
