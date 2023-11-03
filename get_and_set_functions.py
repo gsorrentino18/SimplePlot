@@ -26,7 +26,7 @@ def make_bins(variable_name):
   '''
   nbins, xmin, xmax = binning_dictionary[variable_name]
   check_uniformity = (xmax-xmin)/nbins
-  if (check_uniformity % 1 != 0 and check_uniformity % 0.1 != 0):
+  if (check_uniformity % 1 != 0 and check_uniformity % 0.1 != 0 and check_uniformity % 0.01 != 0):
     print(f"nbins, xmin, xmax : {nbins}, {xmin}, {xmax}")
     print(f"(xmax-xmin)/nbins = {check_uniformity}, results in bad bin edges and centers")
   xbins = np.linspace(xmin, xmax, nbins+1)
@@ -96,6 +96,7 @@ def accumulate_MC_subprocesses(parent_process, process_dictionary):
     if get_parent_process(MC_process) == parent_process:
       accumulated_values += process_dictionary[MC_process]["BinnedEvents"]
   return accumulated_values
+
 
 def accumulate_datasets(dataset_dictionary):
   '''
