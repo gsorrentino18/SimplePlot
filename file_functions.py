@@ -20,6 +20,7 @@ luminosities = {
   "2022 F"   : 17.61, # 2022 EE
   "2022 G"   :  3.06, # 2022 EE
   "2022 F&G" : 20.67,
+  "2022 EFG" : 26.342,
 }
 # with normtag (default in future)
 # TODO: update this and study plots, 2% effect everywhere
@@ -31,6 +32,13 @@ luminosities_w_normtag = {
   "2022 F"   : 18.0070,
   "2022 G"   : 3.1219,
   "2022 F&G" : 21.1289,
+  "2022 EFG" : 27.0072,
+}
+
+pre2022_file_map = {
+  "DataMuon" : "Data/Muon*",
+
+  "DYInc"    : "DY/DYJets*",
 }
 
 testing_file_map = {
@@ -53,6 +61,15 @@ testing_file_map = {
   "ZZTo4L"    : "VV/ZZTo4L*", 
 
   "VBF"   : "Signal/VBF*",
+}
+
+compare_eras_file_map = {
+  "DataMuonEraF" : "Data/Muon*F*",
+  "DataMuonEraG" : "Data/Muon*G*",
+  "DataTauEraF" : "Data/Tau*F*",
+  "DataTauEraG" : "Data/Tau*G*",
+  "DataElectronEraF" : "Data/Electron*F*",
+  "DataElectronEraG" : "Data/Electron*G*",
 }
 
 dimuon_file_map = {
@@ -113,7 +130,7 @@ full_file_map = {
   "ggH"   : "Signal/ggH*",
 }
 
-def load_process_from_file(process, file_directory, branches, good_events, final_state_mode, data=False, testing=False):
+def load_process_from_file(process, file_directory, file_map, branches, good_events, final_state_mode, data=False, testing=False):
   '''
   Most important function! Contains the only call to uproot in this library! 
   Loads into memory files relevant to the given 'final_state_mode' by reading
@@ -132,8 +149,6 @@ def load_process_from_file(process, file_directory, branches, good_events, final
   Note: that a numpy array is generated for each loaded process, which corresponds
   to a set of files. 
   '''
-  file_map = testing_file_map if testing else full_file_map
-
   time_print(f"Loading {file_map[process]}")
   file_string = file_directory + "/" + file_map[process] + ".root:Events"
   if data: 
@@ -164,7 +179,10 @@ def sort_combined_processes(combined_processes_dictionary):
 
 
 def append_to_combined_processes(process, cut_events, vars_to_plot, combined_processes):
-  protected_processes = ["DataTau", "DataMuon", "DataElectron", "ggH", "VBF"]
+  protected_processes = ["DataTau", "DataMuon", "DataElectron", "ggH", "VBF",
+                         "DataTauEraF", "DataTauEraG",
+                         "DataMuonEraF", "DataMuonEraG",
+                         "DataElectronEraF", "DataElectronEraG"]
   if process not in protected_processes:
     combined_processes[process] = {"PlotEvents": {}, 
                                    "Cuts": {},
