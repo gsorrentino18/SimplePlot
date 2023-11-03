@@ -42,14 +42,18 @@ def make_ditau_cut(event_dictionary, DeepTau_version):
   events works properly
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
-  unpack_ditau = ["Lepton_pt", "Lepton_eta", "Lepton_tauIdx", "l1_indices", "l2_indices"]
+  unpack_ditau = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_tauIdx", 
+                  "Tau_dxy", "Tau_dz", "l1_indices", "l2_indices"]
   unpack_ditau = add_DeepTau_branches(unpack_ditau, DeepTau_version)
   unpack_ditau = (event_dictionary.get(key) for key in unpack_ditau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_ditau] # "*" unpacks a tuple
-  pass_cuts, FS_t1_pt, FS_t2_pt, FS_t1_eta, FS_t2_eta = [], [], [], [], []
+  pass_cuts = []
+  FS_t1_pt, FS_t1_eta, FS_t1_phi, FS_t1_dxy, FS_t1_dz = [], [], [], [], []
+  FS_t2_pt, FS_t2_eta, FS_t2_phi, FS_t2_dxy, FS_t2_dz = [], [], [], [], []
   # note these are in the same order as the variables in the first line of this function :)
   # TODO: double-check counts with/without trigger :)
-  for i, lep_pt, lep_eta, tau_idx, l1_idx, l2_idx, vJet, vMu, vEle in zip(*to_check):
+  for i, lep_pt, lep_eta, lep_phi, tau_idx,\
+      tau_dxy, tau_dz, l1_idx, l2_idx, vJet, vMu, vEle in zip(*to_check):
     passKinems = (lep_pt[l1_idx] >= 40.0 and lep_pt[l2_idx] >= 40.0)
     # Medium v Jet, VLoose v Muon, VVVLoose v Ele
     t1passDT   = (vJet[tau_idx[l1_idx]] >= 5 and vMu[tau_idx[l1_idx]] >= 1 and vEle[tau_idx[l1_idx]] >= 1)
@@ -57,15 +61,27 @@ def make_ditau_cut(event_dictionary, DeepTau_version):
     if (passKinems and t1passDT and t2passDT):
       pass_cuts.append(i)
       FS_t1_pt.append(lep_pt[l1_idx])
-      FS_t2_pt.append(lep_pt[l2_idx])
       FS_t1_eta.append(lep_eta[l1_idx])
+      FS_t1_phi.append(lep_phi[l1_idx])
+      FS_t1_dxy.append(abs(tau_dxy[l1_idx]))
+      FS_t1_dz.append(tau_dz[l2_idx])
+      FS_t2_pt.append(lep_pt[l2_idx])
       FS_t2_eta.append(lep_eta[l2_idx])
+      FS_t2_phi.append(lep_phi[l2_idx])
+      FS_t2_dxy.append(abs(tau_dxy[l2_idx]))
+      FS_t2_dz.append(tau_dz[l2_idx])
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
   event_dictionary["FS_t1_pt"]  = np.array(FS_t1_pt)
-  event_dictionary["FS_t2_pt"]  = np.array(FS_t2_pt)
   event_dictionary["FS_t1_eta"] = np.array(FS_t1_eta)
+  event_dictionary["FS_t1_phi"] = np.array(FS_t1_phi)
+  event_dictionary["FS_t1_dxy"] = np.array(FS_t1_dxy)
+  event_dictionary["FS_t1_dz"]  = np.array(FS_t1_dz)
+  event_dictionary["FS_t2_pt"]  = np.array(FS_t2_pt)
   event_dictionary["FS_t2_eta"] = np.array(FS_t2_eta)
+  event_dictionary["FS_t2_phi"] = np.array(FS_t2_phi)
+  event_dictionary["FS_t2_dxy"] = np.array(FS_t2_dxy)
+  event_dictionary["FS_t2_dz"]  = np.array(FS_t2_dz)
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after ditau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
@@ -79,6 +95,7 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_mutau = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",
+                  "Muon_dxy", "Muon_dz", "Tau_dxy", "Tau_dz",
                   "PuppiMET_pt", "PuppiMET_phi",
                   "Lepton_tauIdx", "Lepton_muIdx", "l1_indices", "l2_indices"]
   #TODO add this "CleanJet_btagWP" (no effect in August skims since it was always 1)
@@ -87,33 +104,42 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
   unpack_mutau = (event_dictionary.get(key) for key in unpack_mutau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_mutau] # "*" unpacks a tuple
   pass_cuts, FS_mt = [], []
-  FS_mu_pt, FS_mu_eta, FS_mu_phi, FS_mu_iso = [], [], [], [] # TODO add phi
-  FS_tau_pt, FS_tau_eta = [], []
+  FS_mu_pt, FS_mu_eta, FS_mu_phi, FS_mu_iso, FS_mu_dxy, FS_mu_dz = [], [], [], [], [], []
+  FS_tau_pt, FS_tau_eta, FS_tau_phi, FS_tau_dxy, FS_tau_dz = [], [], [], [], []
   # note these are in the same order as the variables in the first line of this function :)
-  for i, lep_pt, lep_eta, lep_phi, lep_iso, MET_pt, MET_phi, tau_idx, mu_idx,\
+  for i, lep_pt, lep_eta, lep_phi, lep_iso,\
+      mu_dxy, mu_dz, tau_dxy, tau_dz,\
+      MET_pt, MET_phi, tau_idx, mu_idx,\
       l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg in zip(*to_check):
 
     # some handling to figure out which FS index applies to what lepton
     # note for the DeepTauID we use the tau branch index directly instead of the lepton branch
     # (for tau branches we need the tau_idx, for lepton branches we can simply use the l1_idx, l2_idx)
-    tauLoc, tauDTLoc, muLoc = 999, 999, 999
+    tauFSLoc, tauBranchLoc, muFSLoc, muBranchLoc = 999, 999, 999, 999
     if (tau_idx[l1_idx] != -1 and mu_idx[l2_idx] != -1):
-      tauLoc = l1_idx
-      tauDTLoc = tau_idx[l1_idx]
+      tauFSLoc = l1_idx
+      tauBranchLoc = tau_idx[l1_idx]
       muLoc  = l2_idx
+      muBranchLoc = mu_idx[l2_idx]
     elif (tau_idx[l2_idx] != -1 and mu_idx[l1_idx] != -1):
-      tauLoc = l2_idx
-      tauDTLoc = tau_idx[l2_idx]
+      tauFSLoc = l2_idx
+      tauBranchLoc = tau_idx[l2_idx]
       muLoc  = l1_idx
+      muBranchLoc = mu_idx[l1_idx]
     else:
       print("Should not print :)")
 
-    tauPtVal   = lep_pt[tauLoc] 
-    tauEtaVal  = lep_eta[tauLoc]
     muPtVal    = lep_pt[muLoc] 
     muEtaVal   = lep_eta[muLoc]
     muPhiVal   = lep_phi[muLoc]
     muIsoVal   = lep_iso[muLoc]
+    muDxyVal   = abs(mu_dxy[muBranchLoc])
+    muDzVal    = mu_dz[muBranchLoc]
+    tauPtVal   = lep_pt[tauFSLoc] 
+    tauEtaVal  = lep_eta[tauFSLoc]
+    tauPhiVal  = lep_phi[tauFSLoc]
+    tauDxyVal  = abs(tau_dxy[tauBranchLoc])
+    tauDzVal   = tau_dz[tauBranchLoc]
     mtVal      = calculate_mt(muPtVal, muPhiVal, MET_pt, MET_phi)
     passMT     = (mtVal < 50.0)
     #ROOTmtVal  = calculate_mt_pyROOT(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
@@ -127,16 +153,21 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
                                        and ((tauPtVal > 32.0)       and (abs(tauEtaVal) < 2.1)) ) 
 
     # Medium v Jet, Tight v Muon, VVVLoose v Ele
-    passTauDT  = ((vJet[tauDTLoc] >= 5) and (vMu[tauDTLoc] >= 4) and (vEle[tauDTLoc] >= 1))
+    passTauDT  = ((vJet[tauBranchLoc] >= 5) and (vMu[tauBranchLoc] >= 4) and (vEle[tauBranchLoc] >= 1))
 
     if (passMT and (passTauPtAndEta and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT):
       pass_cuts.append(i)
       FS_tau_pt.append(tauPtVal)
       FS_tau_eta.append(tauEtaVal)
+      FS_tau_phi.append(tauPhiVal)
+      FS_tau_dxy.append(tauDxyVal)
+      FS_tau_dz.append(tauDzVal)
       FS_mu_pt.append(muPtVal)
       FS_mu_eta.append(muEtaVal)
       FS_mu_phi.append(muPhiVal)
       FS_mu_iso.append(muIsoVal)
+      FS_mu_dxy.append(muDxyVal)
+      FS_mu_dz.append(muDzVal)
       FS_mt.append(mtVal)
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
@@ -144,8 +175,13 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
   event_dictionary["FS_mu_eta"] = np.array(FS_mu_eta)
   event_dictionary["FS_mu_phi"] = np.array(FS_mu_phi)
   event_dictionary["FS_mu_iso"] = np.array(FS_mu_iso)
-  event_dictionary["FS_tau_pt"] = np.array(FS_tau_pt)
+  event_dictionary["FS_mu_dxy"] = np.array(FS_mu_dxy)
+  event_dictionary["FS_mu_dz"]  = np.array(FS_mu_dz)
+  event_dictionary["FS_tau_pt"]  = np.array(FS_tau_pt)
   event_dictionary["FS_tau_eta"] = np.array(FS_tau_eta)
+  event_dictionary["FS_tau_phi"] = np.array(FS_tau_phi)
+  event_dictionary["FS_tau_dxy"] = np.array(FS_tau_dxy)
+  event_dictionary["FS_tau_dz"]  = np.array(FS_tau_dz)
   event_dictionary["FS_mt"]    = np.array(FS_mt)
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after mutau cuts = {nEvents_precut}, {nEvents_postcut}")
@@ -158,6 +194,7 @@ def make_etau_cut(event_dictionary, DeepTau_version):
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_etau = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",
+                 "Electron_dxy", "Electron_dz", "Tau_dxy", "Tau_dz",
                  "PuppiMET_pt", "PuppiMET_phi",
                  "Lepton_tauIdx", "Lepton_elIdx", "l1_indices", "l2_indices"]
   unpack_etau = add_DeepTau_branches(unpack_etau, DeepTau_version)
@@ -165,32 +202,41 @@ def make_etau_cut(event_dictionary, DeepTau_version):
   unpack_etau = (event_dictionary.get(key) for key in unpack_etau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_etau]
   pass_cuts, FS_mt = [], []
-  FS_el_pt, FS_el_eta, FS_el_phi, FS_el_iso = [], [], [], []
-  FS_tau_pt, FS_tau_eta = [], []
-  for i, lep_pt, lep_eta, lep_phi, lep_iso, MET_pt, MET_phi, tau_idx, el_idx,\
+  FS_el_pt, FS_el_eta, FS_el_phi, FS_el_iso, FS_el_dxy, FS_el_dz = [], [], [], [], [], []
+  FS_tau_pt, FS_tau_eta, FS_tau_phi, FS_tau_dxy, FS_tau_dz = [], [], [], [], []
+  for i, lep_pt, lep_eta, lep_phi, lep_iso,\
+      el_dxy, el_dz, tau_dxy, tau_dz,\
+      MET_pt, MET_phi, tau_idx, el_idx,\
       l1_idx, l2_idx, vJet, vMu, vEle, trg32el, trg35el, crosstrg in zip(*to_check):
 
     # some handling to figure out which FS index applies to what lepton
     # note for the DeepTauID we use the tau branch index directly instead of the lepton branch
     # (for tau branches we need the tau_idx, for lepton branches we can simply use the l1_idx, l2_idx)
-    tauLoc, tauDTLoc, muLoc = 999, 999, 999
+    tauFSLoc, tauBranchLoc, elFSLoc, elBranchLoc = 999, 999, 999, 999
     if (tau_idx[l1_idx] != -1 and el_idx[l2_idx] != -1):
-      tauLoc = l1_idx
-      tauDTLoc = tau_idx[l1_idx]
-      elLoc  = l2_idx
+      tauFSLoc = l1_idx
+      tauBranchLoc = tau_idx[l1_idx]
+      elFSLoc  = l2_idx
+      elBranchLoc = el_idx[l2_idx]
     elif (tau_idx[l2_idx] != -1 and el_idx[l1_idx] != -1):
-      tauLoc = l2_idx
-      tauDTLoc = tau_idx[l2_idx]
-      elLoc  = l1_idx
+      tauFSLoc = l2_idx
+      tauBranchLoc = tau_idx[l2_idx]
+      elFSLoc  = l1_idx
+      elBranchLoc = el_idx[l1_idx]
     else:
       print("Should not print :)")
 
-    tauPtVal   = lep_pt[tauLoc] 
-    tauEtaVal  = lep_eta[tauLoc]
-    elPtVal    = lep_pt[elLoc] 
-    elEtaVal   = lep_eta[elLoc]
-    elPhiVal   = lep_phi[elLoc]
-    elIsoVal   = lep_iso[elLoc]
+    elPtVal    = lep_pt[elFSLoc] 
+    elEtaVal   = lep_eta[elFSLoc]
+    elPhiVal   = lep_phi[elFSLoc]
+    elIsoVal   = lep_iso[elFSLoc]
+    elDxyVal   = abs(lep_dxy[elFSLoc])
+    elDzVal    = lep_dz[elFSLoc]
+    tauPtVal   = lep_pt[tauFSLoc] 
+    tauEtaVal  = lep_eta[tauFSLoc]
+    tauPhiVal  = lep_phi[tauFSLoc]
+    tauDxyVal  = abs(lep_dxy[tauFSLoc])
+    tauDzVal   = lep_dz[tauFSLoc]
     mtVal      = calculate_mt(elPtVal, elPhiVal, MET_pt, MET_phi)
     passMT     = (mtVal < 50.0)
     #ROOTmtVal  = calculate_mt_pyROOT(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
@@ -205,16 +251,21 @@ def make_etau_cut(event_dictionary, DeepTau_version):
                                        and ((tauPtVal > 35.0)       and (abs(tauEtaVal) < 2.1)) ) 
 
     # Medium v Jet, VLoose v Muon, Tight v Ele
-    passTauDT  = ((vJet[tauDTLoc] >= 5) and (vMu[tauDTLoc] >= 1) and (vEle[tauDTLoc] >= 6))
+    passTauDT  = ((vJet[tauBranchLoc] >= 5) and (vMu[tauBranchLoc] >= 1) and (vEle[tauBranchLoc] >= 6))
 
     if (passMT and passTauPtAndEta and (pass33ElPt or pass36ElPt or passElPtCrossTrigger) and passTauDT):
       pass_cuts.append(i)
-      FS_tau_pt.append(tauPtVal)
-      FS_tau_eta.append(tauEtaVal)
       FS_el_pt.append(elPtVal)
       FS_el_eta.append(elEtaVal)
       FS_el_phi.append(elPhiVal)
       FS_el_iso.append(elIsoVal)
+      FS_el_dxy.append(elDxyVal)
+      FS_el_dz.append(elDzVal)
+      FS_tau_pt.append(tauPtVal)
+      FS_tau_eta.append(tauEtaVal)
+      FS_tau_phi.append(tauPhiVal)
+      FS_tau_dxy.append(tauDxyVal)
+      FS_tau_dz.append(tauDzVal)
       FS_mt.append(mtVal)
 
   event_dictionary["pass_cuts"]  = np.array(pass_cuts)
@@ -222,8 +273,13 @@ def make_etau_cut(event_dictionary, DeepTau_version):
   event_dictionary["FS_el_eta"]  = np.array(FS_el_eta)
   event_dictionary["FS_el_phi"]  = np.array(FS_el_phi)
   event_dictionary["FS_el_iso"]  = np.array(FS_el_iso)
+  event_dictionary["FS_el_dxy"]  = np.array(FS_el_dxy)
+  event_dictionary["FS_el_dz"]   = np.array(FS_el_dz)
   event_dictionary["FS_tau_pt"]  = np.array(FS_tau_pt)
   event_dictionary["FS_tau_eta"] = np.array(FS_tau_eta)
+  event_dictionary["FS_tau_phi"] = np.array(FS_tau_phi)
+  event_dictionary["FS_tau_dxy"] = np.array(FS_tau_dxy)
+  event_dictionary["FS_tau_dz"]  = np.array(FS_tau_dz)
   event_dictionary["FS_mt"]      = np.array(FS_mt)
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after ditau cuts = {nEvents_precut}, {nEvents_postcut}")
@@ -343,35 +399,45 @@ def make_dimuon_cut(event_dictionary):
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_dimuon = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso", 
+                   "Lepton_muIdx", "Muon_dxy", "Muon_dz",
                    "HTT_m_vis", "HTT_dR", "l1_indices", "l2_indices"]
   unpack_dimuon = (event_dictionary.get(key) for key in unpack_dimuon)
   to_check      = [range(len(event_dictionary["Lepton_pt"])), *unpack_dimuon]
   pass_cuts = []
-  FS_m1_pt, FS_m1_eta, FS_m1_phi, FS_m1_iso = [], [], [], []
-  FS_m2_pt, FS_m2_eta, FS_m2_phi, FS_m2_iso = [], [], [], []
-  for i, pt, eta, phi, iso, mvis, dR, l1_idx, l2_idx in zip(*to_check):
-    passKinematics = (pt[l1_idx] > 26 and pt[l2_idx] > 20 and mvis > 20 and dR > 0.5)
+  FS_m1_pt, FS_m1_eta, FS_m1_phi, FS_m1_iso, FS_m1_dxy, FS_m1_dz = [], [], [], [], [], []
+  FS_m2_pt, FS_m2_eta, FS_m2_phi, FS_m2_iso, FS_m1_dxy, FS_m1_dz = [], [], [], [], [], []
+  for i, pt, eta, phi, iso, muIdx, mu_dxy, mu_dz, mvis, dR, l1_idx, l2_idx in zip(*to_check):
+    # removed (dR > 0.5) and changed (mvis > 20) cut. Our minimum dR is 0.3 from skim level
+    passKinematics = (pt[l1_idx] > 26 and pt[l2_idx] > 20 and (70 < mvis < 130))
     passIso        = (iso[l1_idx] < 0.15 and iso[l2_idx] < 0.15)
     if (passKinematics and passIso):
       pass_cuts.append(i)
       FS_m1_pt.append(pt[l1_idx])
-      FS_m2_pt.append(pt[l2_idx])
       FS_m1_eta.append(eta[l1_idx])
-      FS_m2_eta.append(eta[l2_idx])
       FS_m1_phi.append(phi[l1_idx])
-      FS_m2_phi.append(phi[l2_idx])
       FS_m1_iso.append(iso[l1_idx])
+      FS_m1_dxy.append(abs(mu_dxy[muIdx[l1_idx]]))
+      FS_m1_dz.append(mu_dz[muIdx[l1_idx]])
+      FS_m2_pt.append(pt[l2_idx])
+      FS_m2_eta.append(eta[l2_idx])
+      FS_m2_phi.append(phi[l2_idx])
       FS_m2_iso.append(iso[l2_idx])
+      FS_m2_dxy.append(abs(mu_dxy[muIdx[l2_idx]]))
+      FS_m2_dz.append(mu_dz[muIdx[l2_idx]])
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
   event_dictionary["FS_m1_pt"]  = np.array(FS_m1_pt)
-  event_dictionary["FS_m2_pt"]  = np.array(FS_m2_pt)
   event_dictionary["FS_m1_eta"] = np.array(FS_m1_eta)
-  event_dictionary["FS_m2_eta"] = np.array(FS_m2_eta)
   event_dictionary["FS_m1_phi"] = np.array(FS_m1_phi)
-  event_dictionary["FS_m2_phi"] = np.array(FS_m2_phi)
   event_dictionary["FS_m1_iso"] = np.array(FS_m1_iso)
+  event_dictionary["FS_m1_dxy"] = np.array(FS_m1_dxy)
+  event_dictionary["FS_m1_dz"] = np.array(FS_m1_dz)
+  event_dictionary["FS_m2_pt"]  = np.array(FS_m2_pt)
+  event_dictionary["FS_m2_eta"] = np.array(FS_m2_eta)
+  event_dictionary["FS_m2_phi"] = np.array(FS_m2_phi)
   event_dictionary["FS_m2_iso"] = np.array(FS_m2_iso)
+  event_dictionary["FS_m2_dxy"] = np.array(FS_m2_dxy)
+  event_dictionary["FS_m2_dz"] = np.array(FS_m2_dz)
   print(f"events before and after dimuon cuts = {nEvents_precut}, {len(np.array(pass_cuts))}")
   return event_dictionary
 
@@ -562,21 +628,20 @@ def add_final_state_branches(branches_, final_state_mode):
   Helper function to add only relevant branches to loaded branches based on final state.
   '''
   final_state_branches = {
-    "ditau"  : ["Lepton_tauIdx"],
+    "ditau"  : ["Lepton_tauIdx", "Tau_dxy", "Tau_dz"],
 
-    "mutau"  : ["Tau_pt", "Tau_eta", 
-                "Muon_pt", "Muon_eta", "Muon_phi",
+    "mutau"  : ["Muon_dxy", "Muon_dz",
+                "Tau_dxy", "Tau_dz",
                 "Lepton_tauIdx", "Lepton_muIdx", 
                 "PuppiMET_pt", "PuppiMET_phi"],
 
-    "etau"   : ["Tau_pt", "Tau_eta",
-                "Electron_pt", "Electron_eta", "Electron_phi",
+    "etau"   : ["Electron_dxy", "Electron_dz",
+                "Tau_dxy", "Tau_dz",
                 "Lepton_tauIdx", "Lepton_elIdx",
                 "PuppiMET_pt", "PuppiMET_phi"],
 
-    "dimuon" : ["Muon_pt", "Muon_eta",
-                "HTT_m_vis", "HTT_dR",
-                "Lepton_iso", "Lepton_pdgId", "Lepton_muIdx"],
+    "dimuon" : ["Lepton_pdgId", "Lepton_muIdx",
+                "Muon_dxy", "Muon_dz"],
   }
 
   branch_to_add = final_state_branches[final_state_mode]
@@ -640,15 +705,19 @@ def set_vars_to_plot(final_state_mode, jet_mode="none"):
 
   final_state_plotting_vars = {
     "none"   : [],
-    "ditau"  : ["FS_t1_pt", "FS_t2_pt", "FS_t1_eta", "FS_t2_eta"],
-    "mutau"  : ["FS_mu_pt", "FS_tau_pt", "FS_mu_eta", "FS_tau_eta",
-                "FS_mu_phi", "FS_mu_iso",
+    "ditau"  : ["FS_t1_pt", "FS_t1_eta", "FS_t1_phi", "FS_t1_dxy", "FS_t1_dz",
+                "FS_t2_pt", "FS_t2_eta", "FS_t2_phi", "FS_t2_dxy", "FS_t2_dz"],
+
+    "mutau"  : ["FS_mu_pt", "FS_mu_eta", "FS_mu_phi", "FS_mu_iso", "FS_mu_dxy", "FS_mu_dz",
+                "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz",
                 "FS_mt", "PuppiMET_pt"],
-    "etau"   : ["FS_el_pt", "FS_tau_pt", "FS_el_eta", "FS_tau_eta",
-                "FS_el_phi", "FS_el_iso",
+
+    "etau"   : ["FS_el_pt", "FS_el_eta", "FS_el_phi", "FS_el_iso", "FS_el_dxy", "FS_el_dz",
+                "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz",
                 "FS_mt", "PuppiMET_pt"],
-    "dimuon" : ["FS_m1_pt", "FS_m2_pt", "FS_m1_eta", "FS_m2_eta",
-                "FS_m1_phi", "FS_m2_phi", "FS_m1_iso", "FS_m2_iso"],
+
+    "dimuon" : ["FS_m1_pt", "FS_m1_eta", "FS_m1_phi", "FS_m1_iso", "FS_m1_dxy", "FS_m1_dz",
+                "FS_m2_pt", "FS_m2_eta", "FS_m2_phi", "FS_m2_iso", "FS_m2_dxy", "FS_m2_dz"],
   }
 
   vars_to_plot = ["HTT_m_vis", "HTT_dR"] # common to all final states
