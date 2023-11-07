@@ -16,7 +16,7 @@ from get_and_set_functions import get_binned_info, accumulate_MC_subprocesses, a
 from calculate_functions import yields_for_CSV
 
 def plot_data(histogram_axis, xbins, data_info, luminosity, 
-              color="black", label="Data"):
+              color="black", label="Data", marker="o", fillstyle="full"):
   '''
   Add the data histogram to the existing histogram axis, computing errors in a simple way.
   For data, since points and error bars are used, they are shifted to the center of the bins.
@@ -33,7 +33,8 @@ def plot_data(histogram_axis, xbins, data_info, luminosity,
   midpoints   = get_midpoints(xbins)
   label = f"Data [{np.sum(data_info):>.0f}]" if label == "Data" else label
   histogram_axis.errorbar(midpoints, data_info, yerr=stat_error, 
-                          color=color, marker="o", linestyle='none', markersize=2, label=label)
+                          color=color, marker=marker, fillstyle=fillstyle, label=label,
+                          linestyle='none', markersize=3)
   #histogram_axis.plot(midpoints, data_info, color="black", marker="o", linestyle='none', markersize=2, label="Data")
   # above plots without error bars
 
@@ -83,13 +84,6 @@ def setup_ratio_plot():
   return (upper_ax, lower_ax)
 
 
-def setup_simple_plot():
-  '''
-  Define a simple plot window to be used for investigations
-  '''
-  pass
-
-
 def add_CMS_preliminary(axis):
   '''
   Add text to plot following CMS plotting guidelines
@@ -114,6 +108,7 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   # reverse dictionary search to get correct era title from luminosity
   title = [key for key in luminosities.items() if key[1] == luminosity][0][0]
   title_string = f"{title}, {luminosity}" + r"$fb^{-1}$"
+  #title_string = "2022, Lumi Normalized to Era D" # to be used with compare_eras.py
   histogram_axis.set_title(title_string, loc='right')
   histogram_axis.set_ylabel("Events / Bin")
   histogram_axis.minorticks_on()
@@ -167,7 +162,9 @@ def get_trimmed_Generator_weight_copy(variable, single_background_dictionary):
   Gen_weight = single_background_dictionary["Generator_weight"]
   Cuts       = single_background_dictionary["Cuts"]
   temp_weight = 0
-  if   "_1" in variable:
+  if   "_1" in variable: #ahhhh, also need to know jet_mode
+  # solution is to make and append these weights to the generator dictionary
+  # instead of asking for and making them when i need them at plotting
     # events with ≥1 j
     pass_jet_cut = sorted(np.concatenate([Cuts["pass_1j_cuts"], Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
   elif "_2" in variable:
@@ -192,8 +189,19 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
   for dataset in data_dictionary:
     data_variable = data_dictionary[dataset]["PlotEvents"][variable]
     data_weights  = np.ones(np.shape(data_variable)) # weights of one for data
+    # normalized to Era D, Era E for some reason is still larger than it should be
+    if dataset == "DataMuonEraC":
+      data_weights = (2.922/4.953)*data_weights
+    if dataset == "DataMuonEraD":
+      data_weights = (2.922/2.922)*data_weights
+    if dataset == "DataMuonEraE":
+      data_weights = (2.922/5.672)*data_weights
     if dataset == "DataMuonEraF":
-      data_weights = (3.06/17.61)*data_weights
+      data_weights = (2.922/17.61)*data_weights
+    if (dataset == "DataMuonEraG") or (dataset=="DataMuonEraGPrompt"):
+      data_weights = (2.922/3.06)*data_weights
+    #print(f"For {dataset} using weights:")
+    #print(data_weights)
     h_data_by_dataset[dataset] = {}
     h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
                                                                  xbins_, data_weights, lumi_)
