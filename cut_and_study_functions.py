@@ -63,13 +63,13 @@ def make_ditau_cut(event_dictionary, DeepTau_version):
       FS_t1_pt.append(lep_pt[l1_idx])
       FS_t1_eta.append(lep_eta[l1_idx])
       FS_t1_phi.append(lep_phi[l1_idx])
-      FS_t1_dxy.append(abs(tau_dxy[l1_idx]))
-      FS_t1_dz.append(tau_dz[l2_idx])
+      FS_t1_dxy.append(abs(tau_dxy[tau_idx[l1_idx]]))
+      FS_t1_dz.append(tau_dz[tau_idx[l1_idx]])
       FS_t2_pt.append(lep_pt[l2_idx])
       FS_t2_eta.append(lep_eta[l2_idx])
       FS_t2_phi.append(lep_phi[l2_idx])
-      FS_t2_dxy.append(abs(tau_dxy[l2_idx]))
-      FS_t2_dz.append(tau_dz[l2_idx])
+      FS_t2_dxy.append(abs(tau_dxy[tau_idx[l2_idx]]))
+      FS_t2_dz.append(tau_dz[tau_idx[l2_idx]])
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
   event_dictionary["FS_t1_pt"]  = np.array(FS_t1_pt)
@@ -347,11 +347,11 @@ def make_jet_cut(event_dictionary):
   event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
   event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
 
-  print(f"nEvents before and after 0  jet cuts = {nEvents_precut}, {len(np.array(pass_0j_cuts))}")
-  print(f"nEvents before and after 1  jet cuts = {nEvents_precut}, {len(np.array(pass_1j_cuts))}")
-  print(f"nEvents before and after 2  jet cuts = {nEvents_precut}, {len(np.array(pass_2j_cuts))}")
-  print(f"nEvents before and after 3  jet cuts = {nEvents_precut}, {len(np.array(pass_3j_cuts))}")
-  print(f"nEvents before and after ≥2 jet cuts = {nEvents_precut}, {len(np.array(pass_GTE2j_cuts))}")
+  print(f"nEvents with exactly 0 jets = {len(np.array(pass_0j_cuts))}")
+  print(f"nEvents with exactly 1 jets = {len(np.array(pass_1j_cuts))}")
+  print(f"nEvents with exactly 2 jets = {len(np.array(pass_2j_cuts))}")
+  print(f"nEvents with exactly 3 jets = {len(np.array(pass_3j_cuts))}")
+  print(f"nEvents with ≥2 jets        = {len(np.array(pass_GTE2j_cuts))}")
 
   return event_dictionary
 
@@ -405,7 +405,7 @@ def make_dimuon_cut(event_dictionary):
   to_check      = [range(len(event_dictionary["Lepton_pt"])), *unpack_dimuon]
   pass_cuts = []
   FS_m1_pt, FS_m1_eta, FS_m1_phi, FS_m1_iso, FS_m1_dxy, FS_m1_dz = [], [], [], [], [], []
-  FS_m2_pt, FS_m2_eta, FS_m2_phi, FS_m2_iso, FS_m1_dxy, FS_m1_dz = [], [], [], [], [], []
+  FS_m2_pt, FS_m2_eta, FS_m2_phi, FS_m2_iso, FS_m2_dxy, FS_m2_dz = [], [], [], [], [], []
   for i, pt, eta, phi, iso, muIdx, mu_dxy, mu_dz, mvis, dR, l1_idx, l2_idx in zip(*to_check):
     # removed (dR > 0.5) and changed (mvis > 20) cut. Our minimum dR is 0.3 from skim level
     passKinematics = (pt[l1_idx] > 26 and pt[l2_idx] > 20 and (70 < mvis < 130))
