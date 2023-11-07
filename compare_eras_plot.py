@@ -91,27 +91,9 @@ def set_FF_values(final_state_mode, jet_mode):
 
 if __name__ == "__main__":
   '''
-  Just read the code, it speaks for itself.
-  Kidding.
-
-  This is the main block, which calls a bunch of other functions from other files
-  and uses local variables and short algorithms to, by final state
-  1) load data from files
-  2) apply bespoke cuts to reject events
-  3) explicitly remove large objects after use
-  4) create a lovely plot
-
-  Ideally, if one wants to use this library to make another type of plot, they
-  would look at this script and use its format as a template.
-
-  This code sometimes loads very large files, and then makes very large arrays from the data.
-  Because of this, I do a bit of memory management, which is atypical of python programs.
-  This handling reduces the program burden on lxplus nodes, and subsequently leads to faster results.
-  Usually, calling the garbage collector manually like this reduces code efficiency, and if the program
-  runs very slowly in the future the memory consumption would be the first thing to check.
-  In the main loop below, gc.collect() tells python to remove unused objects and free up resources,
-  and del(large_object) in related functions lets python know we no longer need an object, and its resources can be
-  reacquired at the next gc.collect() call
+  This script is meant to compare different eras of data in the same plot. 
+  It uses the same basic structure and functions as the main plotting script,
+  with some additional handling for splitting up dictionaries and passing styles.
   '''
 
   import argparse 
@@ -138,11 +120,7 @@ if __name__ == "__main__":
   jet_mode         = args.jet_mode # default Inclusive [possible values 0j, 1j, 2j, GTE2j]
 
   #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
-  eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
-  # there's no place like home :)
-  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3PreEEFSSplitSamples/" + final_state_mode
-  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
-  using_directory = home_dir # TODO: add some auto handling for 'if not <<some env var specific to lxplus>>'
+  using_directory = "multiple_directories"
  
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode)
@@ -155,21 +133,28 @@ if __name__ == "__main__":
                    using_directory, plot_dir,
                    good_events, branches, vars_to_plot)
 
-  file_map = testing_file_map if testing else full_file_map
-  if final_state_mode == "dimuon": 
-    file_map = testing_dimuon_file_map if testing else dimuon_file_map
-
   file_map = compare_eras_file_map
   print(file_map)
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
   for process in file_map: 
-
+    print(f"starting process: {process}")
+    using_directory = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3Unskimmed/"
     gc.collect()
     if "Data" not in process: continue
 
-    if process=="DataMuonEraF": continue
+    # handling for files in different directories
+    if (process=="DataMuonEraF") or (process=="DataMuonEraGPrompt"):
+      using_directory = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/dimuon/DataPromptReco/"
+
+    if (process=="DataMuonEraE") or (process=="DataMuonEraG"):
+      using_directory = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/dimuon/DataReReco/"
+
+    if (process=="DataMuonEraC") or (process=="DataMuonEraD"):
+      using_directory = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3preEEFSSplitSamples/dimuon/"
+
+    print(using_directory)
 
     if   final_state_mode == "ditau"  and ("Muon" in process or "Electron" in process): continue
     elif final_state_mode == "mutau"  and ("Tau" in process  or "Electron" in process): continue
@@ -188,13 +173,15 @@ if __name__ == "__main__":
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
                                                                combined_process_dictionary)
 
-  # after loop, sort big dictionary into three smaller ones
+  # only data in this script
   data_dictionary = combined_process_dictionary
 
-  print(data_dictionary)
-
-  #data_dict_eraF = {"DataMuonEraF" : data_dictionary["DataMuonEraF"]}
+  data_dict_eraC = {"DataMuonEraC" : data_dictionary["DataMuonEraC"]}
+  data_dict_eraD = {"DataMuonEraD" : data_dictionary["DataMuonEraD"]}
+  data_dict_eraE = {"DataMuonEraE" : data_dictionary["DataMuonEraE"]}
+  data_dict_eraF = {"DataMuonEraF" : data_dictionary["DataMuonEraF"]}
   data_dict_eraG = {"DataMuonEraG" : data_dictionary["DataMuonEraG"]}
+  data_dict_eraGPrompt = {"DataMuonEraGPrompt" : data_dictionary["DataMuonEraGPrompt"]}
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting
@@ -205,26 +192,27 @@ if __name__ == "__main__":
     xbins = make_bins(var)
     hist_ax, hist_ratio = setup_ratio_plot()
 
-    #h_data_eraF = get_binned_data(data_dict_eraF, var, xbins, lumi)
+    h_data_eraC = get_binned_data(data_dict_eraC, var, xbins, lumi)
+    h_data_eraD = get_binned_data(data_dict_eraD, var, xbins, lumi)
+    h_data_eraE = get_binned_data(data_dict_eraE, var, xbins, lumi)
+    h_data_eraF = get_binned_data(data_dict_eraF, var, xbins, lumi)
     h_data_eraG = get_binned_data(data_dict_eraG, var, xbins, lumi)
+    h_data_eraGPrompt = get_binned_data(data_dict_eraGPrompt, var, xbins, lumi)
 
     # plot everything :)
-    #plot_data(hist_ax, xbins, h_data_eraF, lumi, label="2022 Era F")
-    plot_data(hist_ax, xbins, h_data_eraG, lumi, color="red", label="2022 Era G")
+    plot_data(hist_ax, xbins, h_data_eraC, lumi, color="green", label="2022 Era C")
+    plot_data(hist_ax, xbins, h_data_eraD, lumi, color="orange", label="2022 Era D")
+    plot_data(hist_ax, xbins, h_data_eraE, lumi, color="blue", label="2022 Era E")
+    plot_data(hist_ax, xbins, h_data_eraF, lumi, label="2022 Era F (Prompt)")
+    plot_data(hist_ax, xbins, h_data_eraG, lumi, color="red", label="2022 Era G", fillstyle="none")
+    plot_data(hist_ax, xbins, h_data_eraGPrompt, lumi, color="purple", label="2022 Era G (Prompt)", marker="x")
 
-    #make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
+    #make_ratio_plot(hist_ratio, xbins, h_data_eraC, h_data_eraD) # example
   
     spruce_up_plot(hist_ax, hist_ratio, var, lumi)
     spruce_up_legend(hist_ax, final_state_mode="skip_dimuon_handling")
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")
-
-    # calculate and print these quantities only once
-    #if (var == "HTT_m_vis"): 
-      #calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
-      #labels, yields = yields_for_CSV(hist_ax, desired_order=["Data", "TT", "WJ", "DY", "VV", "ST", "ggH", "VBF"])
-      #print(f"Reordered     Labels: {labels}")
-      #print(f"Corresponding Yields: {yields}")
 
   if hide_plots: pass
   else: plt.show()

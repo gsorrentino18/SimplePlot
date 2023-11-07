@@ -1,4 +1,5 @@
 import uproot
+import numpy as np
 
 from utility_functions import time_print, text_options
 from get_and_set_functions import set_good_events
@@ -64,8 +65,12 @@ testing_file_map = {
 }
 
 compare_eras_file_map = {
+  "DataMuonEraC" : "Data*/Muon*C*",
+  "DataMuonEraD" : "Data*/Muon*D*",
+  "DataMuonEraE" : "Data/Muon*E*",
   "DataMuonEraF" : "Data/Muon*F*",
   "DataMuonEraG" : "Data/Muon*G*",
+  "DataMuonEraGPrompt" : "Data/Muon*G*",
   "DataTauEraF" : "Data/Tau*F*",
   "DataTauEraG" : "Data/Tau*G*",
   "DataElectronEraF" : "Data/Electron*F*",
@@ -88,19 +93,14 @@ full_file_map = {
   "DataElectron" : "Data/EGamma*",
 
   "DYInc" : "DY/DY*part*",
-  "DYJetsToLL_M-50_1J" : "DY/DYJetsToLL_M-50_1J*",
-  "DYJetsToLL_M-50_2J" : "DY/DYJetsToLL_M-50_2J*",
-  "DYJetsToLL_M-50_3J" : "DY/DYJetsToLL_M-50_3J*",
-  "DYJetsToLL_M-50_4J" : "DY/DYJetsToLL_M-50_4J*",
+  #"DYJetsToLL_M-50_1J" : "DY/DYJetsToLL_M-50_1J*",
+  #"DYJetsToLL_M-50_2J" : "DY/DYJetsToLL_M-50_2J*",
+  #"DYJetsToLL_M-50_3J" : "DY/DYJetsToLL_M-50_3J*",
+  #"DYJetsToLL_M-50_4J" : "DY/DYJetsToLL_M-50_4J*",
 
   "TTTo2L2Nu"         : "TT/TTTo2L2Nu*",
   "TTToFullyHadronic" : "TT/TTToFullyHadronic*",
   "TTToSemiLeptonic"  : "TT/TTToSemiLeptonic*",
-
-  # No significant speed-up locally
-  #"TTTo2L2Nu"         : "TT_AdditionalSkim/TTTo2L2Nu*",
-  #"TTToFullyHadronic" : "TT_AdditionalSkim/TTToFullyHadronic*",
-  #"TTToSemiLeptonic"  : "TT_AdditionalSkim/TTToSemiLeptonic*",
 
   "ST_TWminus_2L2Nu"   : "ST/ST_TWminus_2L2Nu*",
   "ST_TbarWplus_2L2Nu" : "ST/ST_TbarWplus_2L2Nu*",
@@ -178,22 +178,37 @@ def sort_combined_processes(combined_processes_dictionary):
   return data_dictionary, background_dictionary, signal_dictionary
 
 
+# TODO : fix me
 def append_to_combined_processes(process, cut_events, vars_to_plot, combined_processes):
   protected_processes = ["DataTau", "DataMuon", "DataElectron", "ggH", "VBF",
-                         "DataTauEraF", "DataTauEraG",
-                         "DataMuonEraF", "DataMuonEraG",
-                         "DataElectronEraF", "DataElectronEraG"]
-  if process not in protected_processes:
-    combined_processes[process] = {"PlotEvents": {}, 
-                                   "Cuts": {},
-                                   "Generator_weight": cut_events["Generator_weight"],
-                                  }
-  elif process == "ggH" or process == "VBF":
-    combined_processes[process] = {"PlotEvents": {},
-                                   "Cuts": {},
-                                   "Generator_weight": cut_events["Generator_weight"],
-                                   "plot_scaling" : 100 if process == "ggH" else 500 if process == "VBF" else 50,
-                                  }
+                         "DataTauEraE", "DataTauEraF", "DataTauEraG",
+                         "DataMuonEraE", "DataMuonEraF", "DataMuonEraG",
+                         "DataElectronEraE", "DataElectronEraF", "DataElectronEraG"]
+  #if process not in protected_processes:
+  #if "Data" not in process and "ggH" not in process and "VBF" not in process:
+  if "Data" not in process:
+    print(f'gen weight length: {len(cut_events["Generator_weight"])}')
+    print(f'gen weight length: {len(cut_events["pass_0j_cuts"])}')
+    print(f'gen weight length: {len(cut_events["pass_1j_cuts"])}')
+    print(f'gen weight length: {len(cut_events["pass_2j_cuts"])}')
+    combined_processes[process] = {
+      "PlotEvents": {}, 
+      "Cuts": {},
+      # TODO: test different generator weights
+      "Generator_weight": cut_events["Generator_weight"],
+      "Generator_weight_0j": np.take(cut_events["Generator_weight"], cut_events["pass_0j_cuts"]),
+      "Generator_weight_1j": np.take(cut_events["Generator_weight"], cut_events["pass_1j_cuts"]),
+      "Generator_weight_2j": np.take(cut_events["Generator_weight"], cut_events["pass_2j_cuts"]),
+      "Generator_weight_3j": np.take(cut_events["Generator_weight"], cut_events["pass_3j_cuts"]),
+      "Generator_weight_GTE2j": np.take(cut_events["Generator_weight"], cut_events["pass_GTE2j_cuts"]),
+    }
+  #elif process == "ggH" or process == "VBF":
+  #  combined_processes[process] = {"PlotEvents": {},
+  #                                 "Cuts": {},
+  #                                 "Generator_weight": cut_events["Generator_weight"],
+  #                                 # TODO: remove this from here, it is clutter and can be set elsewhere
+  #                                 "plot_scaling" : 100 if process == "ggH" else 500 if process == "VBF" else 50,
+  #                                }
   elif "Data" in process:
     combined_processes[process] = { "PlotEvents": {},
                                     "Cuts": {},
