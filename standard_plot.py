@@ -8,6 +8,7 @@ import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
 from file_functions        import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map, luminosities
+from file_functions        import pre2022_file_map
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
 from cut_and_study_functions import set_branches, set_vars_to_plot # TODO set good events should be here
@@ -66,10 +67,12 @@ def set_FF_values(final_state_mode, jet_mode):
   '''
   # should have aiso/iso as well
   FF_values = {
+    # TODO : update with new values after bug fix
     "ditau" : {
-      "0j"  : [7.25594, -0.0289055],
-      "1j"  : [6.57284, -0.0214702],
-      "2j"  : [5.74548, -0.011847], # Not 2j, ≥2j. need to decide on the convention and propagate. GTE? ≥? two_or_more?
+      "0j"  : [2.92277, -0.00971578], #[7.25594, -0.0289055],
+      "1j"  : [2.86837, -0.0103204],  #[6.57284, -0.0214702],
+      "2j"  : [2.68, -0.00946944],    #[5.74548, -0.011847], 
+      # Not 2j, ≥2j, change to GTE and propagate
     },
     "mutau" : {
       "0j"  : [1.93213, 0.0160684],
@@ -168,7 +171,7 @@ if __name__ == "__main__":
     elif final_state_mode == "etau"   and (process=="DataTau"  or process=="DataMuon"):     continue
     elif final_state_mode == "dimuon" and not (process=="DataMuon" or "DY" in process): continue
 
-    new_process_dictionary = load_process_from_file(process, using_directory, 
+    new_process_dictionary = load_process_from_file(process, using_directory, file_map,
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
     if new_process_dictionary == None: continue # skip process if empty
