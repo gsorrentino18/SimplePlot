@@ -172,10 +172,10 @@ def get_trimmed_Generator_weight_copy(variable, single_background_dictionary, je
   elif ("_3" in variable) and ((jet_mode=="Inclusive") or (jet_mode=="GTE2j")):
     pass_jet_cut = Cuts["pass_3j_cuts"]
 
-    print("gen weight, pass jet cut, and temp weight shapes")
-    print(Gen_weight.shape, pass_jet_cut.shape)
+    print("gen weight, pass jet cut, and temp weight shapes") # DEBUG
+    print(Gen_weight.shape, pass_jet_cut.shape) # DEBUG
   temp_weight = np.take(Gen_weight, pass_jet_cut)
-  print(temp_weight.shape)
+  print(temp_weight.shape) # DEBUG
 
   return temp_weight
 
@@ -214,8 +214,6 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
       h_data_by_dataset[dataset] = {}
       h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
                                                                  xbins_, data_weights, lumi_)
-  print("h_data_by_dataset")
-  print(h_data_by_dataset)
   h_data = accumulate_datasets(h_data_by_dataset)
   return h_data, h_QCD
 
@@ -235,8 +233,8 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
       process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
     else:
       process_weights = background_dictionary[process]["Generator_weight"]
-    #print("process, variable, variable and weight shapes")
-    #print(process, variable, process_variable.shape, process_weights.shape)
+    #print("process, variable, variable and weight shapes") # DEBUG 
+    #print(process, variable, process_variable.shape, process_weights.shape) # DEBUG
     h_MC_by_process[process] = {}
     h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, 
                                                                xbins_, process_weights, lumi_)

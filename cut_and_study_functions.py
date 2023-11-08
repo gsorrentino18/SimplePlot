@@ -293,10 +293,10 @@ def set_FF_values(final_state_mode, jet_mode):
   FF_values = {
     # TODO : update with new values after bug fix
     # FS : { "jet_mode" : [intercept, slope] }  
-    "ditau" : {  # 2p5 # 2p1
+    "ditau" : {  # 2p1 # 2p5, assumed 2p5 is incorrect
       "0j"     : [0.389462, -0.00132913], #[0.389462, -0.00132913],
       "1j"     : [0.315032, -0.000800434], #[0.315032, -0.000800434],
-      "GTE2j"  : [0.241178, -0.000346852], #[0.241178, -0.000346852],
+      "GTE2j"  : [0.241178, -0.000346852], # [0.241178, -0.000346852],
       # Not 2j, ≥2j, change to GTE and propagate
     },
     "mutau" : {  # 2p5
@@ -321,13 +321,35 @@ def add_FF_weights(event_dictionary, jet_mode):
   unpack_FFVars = (event_dictionary.get(key) for key in unpack_FFVars)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_FFVars]
   FF_weights = []
-  ope_0j_map = [[50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300],
-            [0.997482, 0.998990, 0.999550, 0.999772, 0.999774, 0.999850, 0.999860, 0.999850, 0.999843,
-             0.999824, 0.999812, 0.999794, 0.999783, 0.999783, 0.999740, 0.999689, 0.999601, 0.999601]]
+  bins = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300]
+  ditau_DT2p5_0j_map = [bins,
+                       [0.997482, # < 50
+                        0.998990, 0.999550, 0.999772, 0.999774, 0.999850, 0.999860, 0.999850,
+                        0.999843, 0.999824, 0.999812, 0.999794, 0.999783, 0.999783, 0.999740, 
+                        0.999689, 0.999601, 0.999601]] # > 200
+  ditau_DT2p1_0j_map = [bins,
+                       [0.996758, # < 50
+                        0.997482, 0.998990, 0.999550, 0.999772, 0.999860, 0.999774, 0.999850, 
+                        0.999843, 0.999824, 0.999812, 0.999794, 0.999784, 0.999783, 0.999740, 
+                        0.999689, 0.999601, 0.999439]] # > 200
   
   intercept, slope = set_FF_values("ditau", jet_mode)
   for i, lep_pt, m_vis, l1_idx, l2_idx in zip(*to_check):
-    one_minus_MC_over_data_weight = 0.999 # figure out the right way to do this in a bit
+    if m_vis < bins[0]: # 50
+      one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][0] # first weight
+    elif m_vis > bins[-3]: # 200
+      if m_vis > bins[-1]: # 300
+        one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-1] # last weight
+      elif bins[-2] < m_vis < bins[-1]: # between 250 and 300
+        one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-2]
+      elif bins[-3] < m_vis < bins[-2]: # between 200 and 350
+        one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-3]
+    else: # mvis between 50 and 200
+      m_vis_idx = int(m_vis // 10) - 5 # makes 50 bin zero idx
+      m_vis_weight_idx = m_vis_idx + 1 # 0 in weights is < 50 weight
+      one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][m_vis_weight_idx]
+
+    #one_minus_MC_over_data_weight = 0.999 # figure out the right way to do this in a bit
     FF_weight = one_minus_MC_over_data_weight*(intercept + lep_pt[l1_idx] * slope)
     FF_weights.append(FF_weight)
   event_dictionary["FF_weight"] = np.array(FF_weights)
@@ -567,23 +589,23 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
     print("All events removed, sample will be deleted")
     delete_sample = True
  
-  #print(f"cut branch: {cut_branch}")
-  #print(f"protected branches: {protected_branches}")
+  #print(f"cut branch: {cut_branch}") # DEBUG
+  #print(f"protected branches: {protected_branches}") # DEBUG
   for branch in event_dictionary:
     if delete_sample:
       pass
 
-    # special handling, will need to be adjusted by hand for excatly 2j or 3j studies
-    # this only works for GTE2j, not Inclusive because the "apply_cut" method for jets is never called there
+    # special handling, will need to be adjusted by hand for excatly 2j or 3j studies # DEBUG
+    # this only works for GTE2j, not Inclusive because the "apply_cut" method for jets is never called there # DEBUG
     if (("pass_GTE2j_cuts" in event_dictionary) and
         (branch == "HTT_DiJet_dEta_fromHighestMjj" or branch == "HTT_DiJet_MassInv_fromHighestMjj")):
-      #print("very special GTE2j handling underway")
+      #print("very special GTE2j handling underway") # DEBUG
       event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary["pass_GTE2j_cuts"])
       #if (branch == "CleanJetGT30_pt_3" or branch == "CleanJetGT30_eta_3"):
       #  event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary["pass_3j_cuts"])
 
     elif ((branch != cut_branch) and (branch not in protected_branches)):
-      #print(f"going to cut {branch}, {len(event_dictionary[branch])}")
+      #print(f"going to cut {branch}, {len(event_dictionary[branch])}") # DEBUG
       event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
 
   return event_dictionary
@@ -709,7 +731,7 @@ def apply_cuts_to_process(process, process_dictionary, final_state_mode, jet_mod
   return cut_events
 
 
-def set_branches(final_state_mode, DeepTau_version="2p5"):
+def set_branches(final_state_mode, DeepTau_version):
   common_branches = [
     "run", "luminosityBlock", "event", "Generator_weight",
     "FSLeptons", "Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",

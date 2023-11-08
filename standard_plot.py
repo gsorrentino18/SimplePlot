@@ -128,13 +128,14 @@ if __name__ == "__main__":
   parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots",     action='store')
   parser.add_argument('--lumi',        dest='lumi',        default="2022 F&G",  action='store')
   parser.add_argument('--jet_mode',    dest='jet_mode',    default="Inclusive", action='store')
+  parser.add_argument('--DeepTau',     dest='DeepTau_version', default="2p5",   action='store')
 
   args = parser.parse_args() 
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
   lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
-  useDeepTauVersion = "2p5"
+  DeepTau_version = args.DeepTau_version # default is 2p5 [possible values 2p1 and 2p5]
 
   # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
@@ -148,13 +149,13 @@ if __name__ == "__main__":
   using_directory = home_dir # TODO: add some auto handling for 'if not <<some env var specific to lxplus>>'
  
   good_events  = set_good_events(final_state_mode)
-  branches     = set_branches(final_state_mode)
+  branches     = set_branches(final_state_mode, DeepTau_version)
   # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
   plot_dir = make_directory("FS_plots/"+args.plot_dir, args.final_state, testing=testing) # for output files of plots
 
   # show info to user
-  print_setup_info(final_state_mode, lumi, jet_mode, testing, useDeepTauVersion,
+  print_setup_info(final_state_mode, lumi, jet_mode, testing, DeepTau_version,
                    using_directory, plot_dir,
                    good_events, branches, vars_to_plot)
 
@@ -178,7 +179,7 @@ if __name__ == "__main__":
     if new_process_dictionary == None: continue # skip process if empty
 
     cut_events = apply_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
-                                       DeepTau_version=useDeepTauVersion)
+                                       DeepTau_version=DeepTau_version)
     if cut_events == None: continue
 
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
@@ -187,16 +188,12 @@ if __name__ == "__main__":
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
-  print(data_dictionary)
-  print(data_dictionary["DataTau"]["FF_weight"])
+  # append a copy of current dataset to the data_dictionary with the name "QCD"
+  # get_binned_data expects this format and now handles QCD similarly but separately from Data
   data_dictionary["QCD"] ={}
   data_dictionary["QCD"]["PlotEvents"] = data_dictionary["DataTau"]["PlotEvents"]
   data_dictionary["QCD"]["FF_weight"] = data_dictionary["DataTau"]["FF_weight"]
 
-  print(background_dictionary)
-
-  # add QCD to background dictionary
-  #background_dictionary["QCD"][]
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting
@@ -208,29 +205,13 @@ if __name__ == "__main__":
     hist_ax, hist_ratio = setup_ratio_plot()
 
     h_data, h_QCD = get_binned_data(data_dictionary, var, xbins, lumi)
-    print(f"h_QCD {h_QCD}")
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
-    # and now add that to backgrounds and h_summed_backgrounds
+    # manually add QCD to backgrounds and summed_backgrounds
+    # this keeps it separate from the "get_binned_backgrounds" function and avoids
+    # handling "Generator_weight" errors, since that branch exists in MC but not in Data (or QCD)
     h_backgrounds["QCD"] = h_QCD["QCD"]
     h_summed_backgrounds += h_backgrounds["QCD"]["BinnedEvents"]
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
-
-    if (var == "FS_tau_pt" and final_state_mode == "mutau") or (var=="FS_t1_pt" and final_state_mode == "ditau"): 
-      # TODO : these weights should come from different variable in different region
-      h_MC_frac = 1 - h_summed_backgrounds/h_data 
-      h_MC_frac[np.isnan(h_MC_frac)] = 0 # set NaNs, from division by zero above, to zero
-      # multiply each bin using the fit formula (TODO : for all plotted variables, only for taupt currently)
-      intercept, slope = set_FF_values(final_state_mode, jet_mode) # jet_mode
-      #h_QCD_FF   = [h_MC_frac[i]*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
-      h_QCD_FF   = [0.999*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
-      h_QCD_calc = h_data*h_QCD_FF
-
-      plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD_calc, h_MC_frac, h_QCD_FF)
-
-      h_QCD = np.array(h_QCD_calc)
-      h_backgrounds["QCD"] = {}
-      h_backgrounds["QCD"]["BinnedEvents"] = h_QCD # save by appending to background dictionary
-      h_summed_backgrounds += h_QCD # add to h_summed_backgrounds so it's acknowledged in ratio plot
 
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)
