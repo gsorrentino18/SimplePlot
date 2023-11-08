@@ -180,50 +180,27 @@ def sort_combined_processes(combined_processes_dictionary):
 
 # TODO : fix me
 def append_to_combined_processes(process, cut_events, vars_to_plot, combined_processes):
-  protected_processes = ["DataTau", "DataMuon", "DataElectron", "ggH", "VBF",
-                         "DataTauEraE", "DataTauEraF", "DataTauEraG",
-                         "DataMuonEraE", "DataMuonEraF", "DataMuonEraG",
-                         "DataElectronEraE", "DataElectronEraF", "DataElectronEraG"]
-  #if process not in protected_processes:
-  #if "Data" not in process and "ggH" not in process and "VBF" not in process:
   if "Data" not in process:
-    print(f'gen weight length: {len(cut_events["Generator_weight"])}')
-    print(f'gen weight length: {len(cut_events["pass_0j_cuts"])}')
-    print(f'gen weight length: {len(cut_events["pass_1j_cuts"])}')
-    print(f'gen weight length: {len(cut_events["pass_2j_cuts"])}')
     combined_processes[process] = {
       "PlotEvents": {}, 
       "Cuts": {},
-      # TODO: test different generator weights
       "Generator_weight": cut_events["Generator_weight"],
-      "Generator_weight_0j": np.take(cut_events["Generator_weight"], cut_events["pass_0j_cuts"]),
-      "Generator_weight_1j": np.take(cut_events["Generator_weight"], cut_events["pass_1j_cuts"]),
-      "Generator_weight_2j": np.take(cut_events["Generator_weight"], cut_events["pass_2j_cuts"]),
-      "Generator_weight_3j": np.take(cut_events["Generator_weight"], cut_events["pass_3j_cuts"]),
-      "Generator_weight_GTE2j": np.take(cut_events["Generator_weight"], cut_events["pass_GTE2j_cuts"]),
     }
-  #elif process == "ggH" or process == "VBF":
-  #  combined_processes[process] = {"PlotEvents": {},
-  #                                 "Cuts": {},
-  #                                 "Generator_weight": cut_events["Generator_weight"],
-  #                                 # TODO: remove this from here, it is clutter and can be set elsewhere
-  #                                 "plot_scaling" : 100 if process == "ggH" else 500 if process == "VBF" else 50,
-  #                                }
   elif "Data" in process:
-    combined_processes[process] = { "PlotEvents": {},
-                                    "Cuts": {},
-                                 }
+    combined_processes[process] = { 
+      "PlotEvents": {},
+      "Cuts": {},
+    }
   for var in vars_to_plot:
     if "CleanJet" in var:
-      #print(var) # TODO: remove debug print statement
-      #print(cut_events[var])
       pass
     combined_processes[process]["PlotEvents"][var] = cut_events[var]
 
   for cut in ["pass_cuts", 
               "pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts",
               "pass_GTE2j_cuts"]:
-    combined_processes[process]["Cuts"][cut] = cut_events[cut]
+    if cut in cut_events.keys():
+      combined_processes[process]["Cuts"][cut] = cut_events[cut]
 
   return combined_processes
 

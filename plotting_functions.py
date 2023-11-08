@@ -151,8 +151,10 @@ def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
                     color="black", marker="o", linestyle='none', markersize=2)
 
 
-def get_trimmed_Generator_weight_copy(variable, single_background_dictionary):
+def get_trimmed_Generator_weight_copy(variable, single_background_dictionary, jet_mode):
   '''
+  Only to be used with Inclusive jet mode
+
   When plotting inclusively, we would like to show j1_pt, j2_pt, j3_pt, etc.
   However, these branches are not available for every event, and to plot them we
   also need the Generator_weight branch. So, what we do is make copies of the Generator_weight
@@ -161,19 +163,19 @@ def get_trimmed_Generator_weight_copy(variable, single_background_dictionary):
   '''
   Gen_weight = single_background_dictionary["Generator_weight"]
   Cuts       = single_background_dictionary["Cuts"]
-  temp_weight = 0
-  if   "_1" in variable: #ahhhh, also need to know jet_mode
-  # solution is to make and append these weights to the generator dictionary
-  # instead of asking for and making them when i need them at plotting
+  if   ("_1" in variable) and (jet_mode=="Inclusive"):
     # events with ≥1 j
     pass_jet_cut = sorted(np.concatenate([Cuts["pass_1j_cuts"], Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
-  elif "_2" in variable:
+  elif (("_2" in variable) or ("fromHighestMjj" in variable)) and (jet_mode=="Inclusive"):
     # events with ≥2 j
     pass_jet_cut = sorted(np.concatenate([Cuts["pass_2j_cuts"], Cuts["pass_3j_cuts"]]))
-  elif "_3" in variable:
-    pass_jet_cut    = Cuts["pass_3j_cuts"]
+  elif ("_3" in variable) and ((jet_mode=="Inclusive") or (jet_mode=="GTE2j")):
+    pass_jet_cut = Cuts["pass_3j_cuts"]
 
+    print("gen weight, pass jet cut, and temp weight shapes")
+    print(Gen_weight.shape, pass_jet_cut.shape)
   temp_weight = np.take(Gen_weight, pass_jet_cut)
+  print(temp_weight.shape)
 
   return temp_weight
 
@@ -209,22 +211,23 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
   return h_data
 
 
-def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_):
+def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_mode):
   '''
   Treat each MC process, then group the output by family into flat dictionaries.
   Also, sum all backgrounds into h_summed_backgrounds to use in ratio plot.
   '''
   h_MC_by_process = {}
   for process in background_dictionary:
-    print(process, variable)
     process_variable = background_dictionary[process]["PlotEvents"][variable]
     if len(process_variable) == 0: continue
-    if "JetGT30_" in variable:
-      process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process])
+    if ( (("JetGT30_" in variable or "fromHighestMjj" in variable) and (jet_mode=="Inclusive")) or 
+         ((variable == "CleanJetGT30_pt_3" or variable == "CleanJetGT30_eta3") and (jet_mode=="GTE2j")) ):
+    #if ("JetGT30_" in variable) and (jet_mode=="Inclusive"):
+      process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
     else:
       process_weights = background_dictionary[process]["Generator_weight"]
-    print("shapes")
-    print(process_variable.shape, process_weights.shape)
+    print("process, variable, variable and weight shapes")
+    print(process, variable, process_variable.shape, process_weights.shape)
     h_MC_by_process[process] = {}
     h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, 
                                                                xbins_, process_weights, lumi_)
@@ -243,7 +246,7 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_):
   return h_backgrounds, h_summed_backgrounds
 
 
-def get_binned_signals(signal_dictionary, variable, xbins_, lumi_):
+def get_binned_signals(signal_dictionary, variable, xbins_, lumi_, jet_mode):
   '''
   Signal is put in a separate dictionary from MC, but they are processed very similarly
   '''
@@ -251,8 +254,11 @@ def get_binned_signals(signal_dictionary, variable, xbins_, lumi_):
   for signal in signal_dictionary:
     signal_variable = signal_dictionary[signal]["PlotEvents"][variable]
     if len(signal_variable) == 0: continue
-    if "JetGT30_" in variable:
-      signal_weights = get_trimmed_Generator_weight_copy(variable, signal_dictionary[signal])
+    #if ("JetGT30_" in variable or "fromHighestMjj" in variable) and (jet_mode=="Inclusive" or jet_mode=="GTE2j"):
+    if ( (("JetGT30_" in variable or "fromHighestMjj" in variable) and (jet_mode=="Inclusive")) or 
+         ((variable == "CleanJetGT30_pt_3" or variable == "CleanJetGT30_eta3") and (jet_mode=="GTE2j")) ):
+    #if ("JetGT30_" in variable) and (jet_mode=="Inclusive"):
+      signal_weights = get_trimmed_Generator_weight_copy(variable, signal_dictionary[signal], jet_mode)
     else:
       signal_weights = signal_dictionary[signal]["Generator_weight"]
     h_signals[signal] = {}

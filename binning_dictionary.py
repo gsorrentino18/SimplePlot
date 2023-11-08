@@ -76,6 +76,6 @@ binning_dictionary = {
   "HTT_DiJet_dEta_fromHighestMjj"    : (35, 0, 7),
   "HTT_H_pt_using_PUPPI_MET"         : (30, 0, 300),
   "HTT_dR"     : (60, 0, 6),
-  #"HTT_m_vis" : (30, 0, 300), # this is m_lep
-  "HTT_m_vis" : (80, 70, 110), # this binning is only for dimuon
+  "HTT_m_vis" : (30, 0, 300), # this is m_lep
+  #"HTT_m_vis" : (80, 70, 110), # this binning is only for dimuon
 }

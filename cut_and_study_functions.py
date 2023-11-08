@@ -286,7 +286,7 @@ def make_etau_cut(event_dictionary, DeepTau_version):
   return event_dictionary
 
 
-def make_jet_cut(event_dictionary):
+def make_jet_cut(event_dictionary, jet_mode):
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_jetVars = ["nCleanJet", "CleanJet_pt", "CleanJet_eta"]
   unpack_jetVars = (event_dictionary.get(key) for key in unpack_jetVars)
@@ -307,51 +307,90 @@ def make_jet_cut(event_dictionary):
     if passingJets == 0: 
       pass_0j_cuts.append(i)
 
-    if passingJets == 1: 
+    if (passingJets == 1) and (jet_mode == "Inclusive" or jet_mode == "1j"): 
+      # for GTE2j, fill this in block below
       pass_1j_cuts.append(i)
       CleanJetGT30_pt_1.append(passingJetsPt[0])
       CleanJetGT30_eta_1.append(passingJetsEta[0])
 
-    if passingJets >= 2: 
+    if (passingJets == 2) and (jet_mode == "Inclusive" or jet_mode == "2j"):
+      pass_2j_cuts.append(i)
+      CleanJetGT30_pt_1.append(passingJetsPt[0])
+      CleanJetGT30_pt_2.append(passingJetsPt[1])
+      CleanJetGT30_eta_1.append(passingJetsEta[0])
+      CleanJetGT30_eta_2.append(passingJetsEta[1])
+
+    if (passingJets >= 2) and (jet_mode == "GTE2j"): 
       pass_GTE2j_cuts.append(i)
-      if passingJets == 2: 
-        pass_2j_cuts.append(i)
-        CleanJetGT30_pt_1.append(passingJetsPt[0])
-        CleanJetGT30_pt_2.append(passingJetsPt[1])
-        CleanJetGT30_eta_1.append(passingJetsEta[0])
-        CleanJetGT30_eta_2.append(passingJetsEta[1])
-      elif passingJets > 2:
-        if passingJets == 3:
-          pass_3j_cuts.append(i)
-          CleanJetGT30_pt_1.append(passingJetsPt[0])
-          CleanJetGT30_pt_2.append(passingJetsPt[1])
-          CleanJetGT30_pt_3.append(passingJetsPt[2])
-          CleanJetGT30_eta_1.append(passingJetsEta[0])
-          CleanJetGT30_eta_2.append(passingJetsEta[1])
-          CleanJetGT30_eta_3.append(passingJetsEta[2])
-        elif passingJets > 3:
-          pass
-          #print("More than 3 FS jets")
+      CleanJetGT30_pt_1.append(passingJetsPt[0])
+      CleanJetGT30_pt_2.append(passingJetsPt[1])
+      CleanJetGT30_eta_1.append(passingJetsEta[0])
+      CleanJetGT30_eta_2.append(passingJetsEta[1])
+  #    elif passingJets >= 2 and (jet_mode == "GTE2j"):
+  #      pass_2j_cuts.append(i)
+  #      CleanJetGT30_pt_1.append(passingJetsPt[0])
+  #      CleanJetGT30_pt_2.append(passingJetsPt[1])
+  #      CleanJetGT30_eta_1.append(passingJetsEta[0])
+  #      CleanJetGT30_eta_2.append(passingJetsEta[1])
+  #      if passingJets == 3:
+  #        pass_3j_cuts.append(i)
+  #        CleanJetGT30_pt_3.append(passingJetsPt[2])
+  #        CleanJetGT30_eta_3.append(passingJetsEta[2])
+  #      elif passingJets > 3:
+  #        pass
+  #        #print("More than 3 FS jets")
 
   event_dictionary["nCleanJetGT30"]   = np.array(nCleanJetGT30)
-  event_dictionary["pass_0j_cuts"]    = np.array(pass_0j_cuts)
-  event_dictionary["pass_1j_cuts"]    = np.array(pass_1j_cuts)
-  event_dictionary["pass_2j_cuts"]    = np.array(pass_2j_cuts)
-  event_dictionary["pass_3j_cuts"]    = np.array(pass_3j_cuts)
-  event_dictionary["pass_GTE2j_cuts"] = np.array(pass_GTE2j_cuts)
 
-  event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
-  event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
-  event_dictionary["CleanJetGT30_pt_3"]  = np.array(CleanJetGT30_pt_3)
-  event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
-  event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
-  event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
+  if jet_mode == "Inclusive":
+    # fill branches like above
+    event_dictionary["pass_0j_cuts"]    = np.array(pass_0j_cuts)
+    event_dictionary["pass_1j_cuts"]    = np.array(pass_1j_cuts)
+    event_dictionary["pass_2j_cuts"]    = np.array(pass_2j_cuts)
+    event_dictionary["pass_3j_cuts"]    = np.array(pass_3j_cuts)
+    event_dictionary["pass_GTE2j_cuts"] = np.array(pass_GTE2j_cuts)
 
-  print(f"nEvents with exactly 0 jets = {len(np.array(pass_0j_cuts))}")
-  print(f"nEvents with exactly 1 jets = {len(np.array(pass_1j_cuts))}")
-  print(f"nEvents with exactly 2 jets = {len(np.array(pass_2j_cuts))}")
-  print(f"nEvents with exactly 3 jets = {len(np.array(pass_3j_cuts))}")
-  print(f"nEvents with ≥2 jets        = {len(np.array(pass_GTE2j_cuts))}")
+    event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
+    event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
+    event_dictionary["CleanJetGT30_pt_3"]  = np.array(CleanJetGT30_pt_3)
+    event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
+    event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
+    event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
+  
+  elif jet_mode == "0j":
+    # literally don't do any of the above
+    event_dictionary["pass_0j_cuts"]    = np.array(pass_0j_cuts)
+
+  elif jet_mode == "1j":
+    # only do the 1j things
+    event_dictionary["pass_1j_cuts"]    = np.array(pass_1j_cuts)
+    event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
+    event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
+
+  elif jet_mode == "2j":
+    # only do the 2j things
+    event_dictionary["pass_2j_cuts"]    = np.array(pass_2j_cuts)
+    event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
+    event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
+    event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
+    event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
+
+  elif jet_mode == "3j" or jet_mode == "GTE2j":
+    # importantly different from inclusive
+    #event_dictionary["pass_2j_cuts"]    = np.array(pass_2j_cuts)
+    #event_dictionary["pass_3j_cuts"]    = np.array(pass_3j_cuts)
+    event_dictionary["pass_GTE2j_cuts"]    = np.array(pass_GTE2j_cuts)
+    event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
+    event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
+    #event_dictionary["CleanJetGT30_pt_3"]  = np.array(CleanJetGT30_pt_3)
+    event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
+    event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
+    #event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
+
+  # can only do this if inclusive
+  print("nEvents with exactly 0,1,2,3 jets and ≥2 jets")
+  print(f"{len(np.array(pass_0j_cuts))}, {len(np.array(pass_1j_cuts))}, {len(np.array(pass_2j_cuts))},\
+          {len(np.array(pass_3j_cuts))}, {len(np.array(pass_GTE2j_cuts))}")
 
   return event_dictionary
 
@@ -461,6 +500,10 @@ def make_run_cut(event_dictionary, good_runs):
   return event_dictionary
 
 
+def make_FF_estimate():
+  pass
+
+
 def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
   '''
   Remove all entries in 'event_dictionary' not in 'cut_branch' using the numpy 'take' method.
@@ -473,14 +516,26 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
   '''
   delete_sample = False
   if len(event_dictionary[cut_branch]) == 0:
-    print("All events removed, sample deleted")
+    print("All events removed, sample will be deleted")
     delete_sample = True
  
+  print(f"cut branch: {cut_branch}")
+  print(f"protected branches: {protected_branches}")
   for branch in event_dictionary:
     if delete_sample:
       pass
+
+    # special handling, will need to be adjusted by hand for excatly 2j or 3j studies
+    # this only works for GTE2j, not Inclusive because the "apply_cut" method for jets is never called there
+    if (("pass_GTE2j_cuts" in event_dictionary) and
+        (branch == "HTT_DiJet_dEta_fromHighestMjj" or branch == "HTT_DiJet_MassInv_fromHighestMjj")):
+      print("very special GTE2j handling underway")
+      event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary["pass_GTE2j_cuts"])
+      #if (branch == "CleanJetGT30_pt_3" or branch == "CleanJetGT30_eta_3"):
+      #  event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary["pass_3j_cuts"])
+
     elif ((branch != cut_branch) and (branch not in protected_branches)):
-      print(f"cutting branch {branch}")
+      print(f"going to cut {branch}, {len(event_dictionary[branch])}")
       event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
 
   return event_dictionary
@@ -537,7 +592,10 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version):
   final cut. Importantly, the function that rejects events, 'apply_cut',
   is called elsewhere
   '''
-  protected_branches = set_protected_branches(final_state_mode=final_state_mode)
+  # setting inclusive in the jet_mode includes all jet branches in protected branches
+  # this is okay because in the current ordering (FS cut then jet cut), no jet branches
+  # are event created yet.
+  protected_branches = set_protected_branches(final_state_mode=final_state_mode, jet_mode="Inclusive")
   if final_state_mode == "ditau":
     event_dictionary = make_ditau_cut(event_dictionary, DeepTau_version)
     event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
@@ -557,14 +615,13 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version):
   return event_dictionary
 
 
-def apply_jet_cut(event_dictionary, jet_mode_key):
+def apply_jet_cut(event_dictionary, jet_mode):
   '''
   Organizational function to reduce event_dictionary to contain only
   events with jets passing certain criteria. Enables plotting of jet objects
-  jet_mode can be "Inclusive", "pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cut",
   jet_mode can be "Inclusive", "0j", "1j", "2j", "3j", "GTE2j",
   '''
-  jet_modes = {
+  jet_cut_branch = {
     "Inclusive" : "Inclusive",
     "0j" : "pass_0j_cuts",
     "1j" : "pass_1j_cuts",
@@ -572,18 +629,12 @@ def apply_jet_cut(event_dictionary, jet_mode_key):
     "3j" : "pass_3j_cuts",
     "GTE2j" : "pass_GTE2j_cuts",
   }
-  event_dictionary   = make_jet_cut(event_dictionary)
-  protected_branches = set_protected_branches(jet_mode=jet_modes[jet_mode_key])
-  if jet_mode_key == "Inclusive":
+  event_dictionary   = make_jet_cut(event_dictionary, jet_mode)
+  protected_branches = set_protected_branches(final_state_mode="none", jet_mode=jet_mode)
+  if jet_mode == "Inclusive":
     print("jet mode is Inclusive, no jet cut performed")
-    pass # do no cutting
   else:
-    print("defs made a jet cut")
-    print(protected_branches)
-    print(event_dictionary.keys())
-    event_dictionary = apply_cut(event_dictionary, jet_modes[jet_mode_key], protected_branches)
-    print(len(event_dictionary["HTT_m_vis"]))
-    # can check size here directly
+    event_dictionary = apply_cut(event_dictionary, jet_cut_branch[jet_mode], protected_branches)
   return event_dictionary
 
 
@@ -614,7 +665,7 @@ def set_branches(final_state_mode, DeepTau_version="2p5"):
     "FSLeptons", "Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",
     "nCleanJet", "CleanJet_pt", "CleanJet_eta",
     "HTT_m_vis", "HTT_dR",
-    "HTT_DiJet_dEta_fromHighestMjj", "HTT_DiJet_MassInv_fromHighestMjj",
+    #"HTT_DiJet_dEta_fromHighestMjj", "HTT_DiJet_MassInv_fromHighestMjj",
   ]
   branches = common_branches
   branches = add_final_state_branches(branches, final_state_mode)
@@ -678,32 +729,34 @@ def add_trigger_branches(branches_, final_state_mode):
   return branches_
 
 
-def set_vars_to_plot(final_state_mode, jet_mode="none"):
-  '''
-  Helper function to keep plotting variables organized
-  Shouldn't this be in  plotting functions?
-  '''
-  jet_plotting_vars = {
+# this is ugly and bad and i am only doing this out of desperation
+
+clean_jet_vars = {
     "Inclusive" : ["nCleanJetGT30",
-      "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
-      "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
-      "CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
+      #"CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
+      #"CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
+      #"CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
     ],
 
-    "0j" : [],
-    "1j" : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
-    "2j" : ["CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
-            "CleanJetGT30_pt_2", "CleanJetGT30_eta_2"],
-
-    "GTE2j" : [
-      "nCleanJetGT30", "HTT_DiJet_dEta_fromHighestMjj", "HTT_DiJet_MassInv_fromHighestMjj",
+    "0j" : ["nCleanJetGT30"],
+    "1j" : ["nCleanJetGT30", "CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
+    "2j" : ["nCleanJetGT30",
       "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
       "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
-      "CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
     ],
-  }
+    "3j" : ["nCleanJetGT30",
+      #"CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
+      #"CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
+      #"CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
+    ],
+    "GTE2j" : ["nCleanJetGT30",
+      "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
+      "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
+      #"CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
+    ],
+}
 
-  final_state_plotting_vars = {
+final_state_vars = {
     "none"   : [],
     "ditau"  : ["FS_t1_pt", "FS_t1_eta", "FS_t1_phi", "FS_t1_dxy", "FS_t1_dz",
                 "FS_t2_pt", "FS_t2_eta", "FS_t2_phi", "FS_t2_dxy", "FS_t2_dz"],
@@ -718,14 +771,21 @@ def set_vars_to_plot(final_state_mode, jet_mode="none"):
 
     "dimuon" : ["FS_m1_pt", "FS_m1_eta", "FS_m1_phi", "FS_m1_iso", "FS_m1_dxy", "FS_m1_dz",
                 "FS_m2_pt", "FS_m2_eta", "FS_m2_phi", "FS_m2_iso", "FS_m2_dxy", "FS_m2_dz"],
-  }
+}
 
+def set_vars_to_plot(final_state_mode, jet_mode="none"):
+  '''
+  Helper function to keep plotting variables organized
+  Shouldn't this be in  plotting functions?
+  '''
   vars_to_plot = ["HTT_m_vis", "HTT_dR"] # common to all final states
-  FS_vars_to_add = final_state_plotting_vars[final_state_mode]
+  FS_vars_to_add = final_state_vars[final_state_mode]
   for var in FS_vars_to_add:
     vars_to_plot.append(var)
 
-  jet_vars_to_add = jet_plotting_vars[jet_mode]
+  jet_vars_to_add = clean_jet_vars[jet_mode]
+  #if (jet_mode=="Inclusive") or (jet_mode=="GTE2j"):
+  #  jet_vars_to_add += ["HTT_DiJet_dEta_fromHighestMjj", "HTT_DiJet_MassInv_fromHighestMjj"]
   for jet_var in jet_vars_to_add:
     vars_to_plot.append(jet_var)
 
@@ -733,24 +793,53 @@ def set_vars_to_plot(final_state_mode, jet_mode="none"):
 
 # TODO fix this function and make it more straightforward
 # way too easy to get confused with it currently
-def set_protected_branches(final_state_mode="none", jet_mode="Inclusive", DeepTau_version="none"):
+def set_protected_branches(final_state_mode, jet_mode, DeepTau_version="none"):
   '''
   Set branches to be protected (i.e. not cut on) when using "apply_cut."
   Generally, you should protect any branches introduced by a cut.
+
+  protect all "FS" branches for FS cuts
+  protect all "pass_xj_cuts" and "JetGT30_" branches for jet cuts
   '''
-  if final_state_mode == "none": # no mode given, assume jet cut
-    print("in if of set_protected_branches")
-    protected_branches = ["pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cuts"]
-    protected_branches += set_vars_to_plot(final_state_mode="none", jet_mode="GTE2j")
-    protected_branches = [val for val in protected_branches if val != "HTT_m_vis"]
-    protected_branches = [val for val in protected_branches if val != "HTT_dR"]
+
+  if final_state_mode != "none": # not cutting FS branches
+    protected_branches = final_state_vars[final_state_mode]
+    # all "HTT_" branches automatically handled, just protecting "FS_" branches which were introduced by a cut
+  
+  elif final_state_mode == "none":
+    if jet_mode == "Inclusive": # cutting FS branches, but not the jet branches
+      protected_branches = ["pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cuts"]
+      # should fromHighestMjj branches be protected? it seems not
+      protected_branches += clean_jet_vars[jet_mode]
+      protected_branches = [var for var in protected_branches if var != "nCleanJetGT30"] # unprotect one branch
+
+    elif jet_mode == "0j": # cutting FS branches, protecting just one jet branch
+      protected_branches = ["pass_0j_cuts"]
+      protected_branches += clean_jet_vars[jet_mode]
+      protected_branches = [var for var in protected_branches if var != "nCleanJetGT30"] # unprotect one branch
+
+    elif jet_mode == "1j":
+      protected_branches = ["pass_0j_cuts", "pass_1j_cuts"]
+      protected_branches += clean_jet_vars[jet_mode]
+      protected_branches = [var for var in protected_branches if var != "nCleanJetGT30"] # unprotect one branch
+
+    elif jet_mode == "2j":
+      protected_branches = ["pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts"]
+      protected_branches += clean_jet_vars[jet_mode]
+      protected_branches = [var for var in protected_branches if var != "nCleanJetGT30"] # unprotect one branch
+
+    elif jet_mode == "3j":
+      protected_branches = ["pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts"]
+      protected_branches += clean_jet_vars[jet_mode]
+      protected_branches = [var for var in protected_branches if var != "nCleanJetGT30"] # unprotect one branch
+
+    elif jet_mode == "GTE2j":
+      protected_branches = ["pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cuts"]
+      protected_branches += clean_jet_vars[jet_mode]
+      protected_branches = [var for var in protected_branches if var != "nCleanJetGT30"] # unprotect one branch
 
   else:
-    print("in else of set_protected_branches")
-    initial_branches = set_branches(final_state_mode, DeepTau_version="2p5")
-    vars_to_trim     = set_vars_to_plot(final_state_mode, jet_mode)
-    protected_branches = [var for var in vars_to_trim if var not in initial_branches]
-    # should be any branch added by cuts or HTT_DiJet branches
+    print("final state mode must be specified as 'none' or a valid final state to properly protect your branches")
 
   return protected_branches
 

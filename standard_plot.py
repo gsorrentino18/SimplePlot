@@ -68,21 +68,22 @@ def set_FF_values(final_state_mode, jet_mode):
   # should have aiso/iso as well
   FF_values = {
     # TODO : update with new values after bug fix
-    "ditau" : {
-      "0j"  : [2.92277, -0.00971578], #[7.25594, -0.0289055],
-      "1j"  : [2.86837, -0.0103204],  #[6.57284, -0.0214702],
-      "2j"  : [2.68, -0.00946944],    #[5.74548, -0.011847], 
+    # FS : { "jet_mode" : [intercept, slope] } 
+    "ditau" : {  # 2p5 # 2p1
+      "0j"     : [0.389462, -0.00132913], #[0.389462, -0.00132913],
+      "1j"     : [0.315032, -0.000800434], #[0.315032, -0.000800434],
+      "GTE2j"  : [0.241178, -0.000346852], #[0.241178, -0.000346852],
       # Not 2j, ≥2j, change to GTE and propagate
     },
-    "mutau" : {
-      "0j"  : [1.93213, 0.0160684],
-      "1j"  : [1.87358, 0.0166869],
-      "2j"  : [2.06906, 0.00789786],
+    "mutau" : {  # 2p5
+      "0j"     : [0.037884, 0.000648851],
+      "1j"     : [0.0348384, 0.000630731],
+      "GTE2j"  : [0.0342287, 0.000358899],
     },
     "etau"  : {#Dummy values
-      "0j"  : [1, 1],
-      "1j"  : [1, 1],
-      "2j"  : [1, 1],
+      "0j"     : [1, 1],
+      "1j"     : [1, 1],
+      "GTE2j"  : [1, 1],
     },
   }
   intercept = FF_values[final_state_mode][jet_mode][0]
@@ -150,7 +151,7 @@ if __name__ == "__main__":
   branches     = set_branches(final_state_mode)
   # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
-  plot_dir = make_directory(args.plot_dir, args.final_state, testing=testing) # for output files of plots
+  plot_dir = make_directory("FS_plots/"+args.plot_dir, args.final_state, testing=testing) # for output files of plots
 
   # show info to user
   print_setup_info(final_state_mode, lumi, jet_mode, testing, useDeepTauVersion,
@@ -189,8 +190,6 @@ if __name__ == "__main__":
   time_print("Processing finished!")
   ## end processing loop, begin plotting
 
-  print(background_dictionary)
-
   for var in vars_to_plot:
     time_print(f"Plotting {var}")
 
@@ -198,17 +197,40 @@ if __name__ == "__main__":
     hist_ax, hist_ratio = setup_ratio_plot()
 
     h_data = get_binned_data(data_dictionary, var, xbins, lumi)
-    h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi)
-    h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi) 
+    h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
+    h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
 
-    if (var == "FS_tau_pt" and final_state_mode == "mutau"): 
+    if (var == "FS_tau_pt" and final_state_mode == "mutau") or (var=="FS_t1_pt" and final_state_mode == "ditau"): 
       # TODO : these weights should come from different variable in different region
       h_MC_frac = 1 - h_summed_backgrounds/h_data 
       h_MC_frac[np.isnan(h_MC_frac)] = 0 # set NaNs, from division by zero above, to zero
       # multiply each bin using the fit formula (TODO : for all plotted variables, only for taupt currently)
-      jet_mode = "0j"
-      intercept, slope = set_FF_values(final_state_mode, jet_mode)
-      h_QCD_FF   = [h_MC_frac[i]*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
+      intercept, slope = set_FF_values(final_state_mode, jet_mode) # jet_mode
+      '''
+      h_MC_frac = 
+      Prob_QCD_0j : 
+      (HTT_m_vis<50.000000?0.996758:1)
+    *((HTT_m_vis>=50.000000&&HTT_m_vis<60.000000)?0.997482:1)
+    *((HTT_m_vis>=60.000000&&HTT_m_vis<70.000000)?0.998990:1)
+    *((HTT_m_vis>=70.000000&&HTT_m_vis<80.000000)?0.999550:1)
+    *((HTT_m_vis>=80.000000&&HTT_m_vis<90.000000)?0.999772:1)
+    *((HTT_m_vis>=90.000000&&HTT_m_vis<100.000000)?0.999774:1)]
+    *((HTT_m_vis>=100.000000&&HTT_m_vis<110.000000)?0.999850:1)
+    *((HTT_m_vis>=110.000000&&HTT_m_vis<120.000000)?0.999860:1)
+    *((HTT_m_vis>=120.000000&&HTT_m_vis<130.000000)?0.999850:1)
+    *((HTT_m_vis>=130.000000&&HTT_m_vis<140.000000)?0.999843:1)
+    *((HTT_m_vis>=140.000000&&HTT_m_vis<150.000000)?0.999824:1)
+    *((HTT_m_vis>=150.000000&&HTT_m_vis<160.000000)?0.999812:1)
+    *((HTT_m_vis>=160.000000&&HTT_m_vis<170.000000)?0.999794:1)
+    *((HTT_m_vis>=170.000000&&HTT_m_vis<180.000000)?0.999784:1)
+    *((HTT_m_vis>=180.000000&&HTT_m_vis<190.000000)?0.999783:1)
+    *((HTT_m_vis>=190.000000&&HTT_m_vis<200.000000)?0.999740:1)
+    *((HTT_m_vis>=200.000000&&HTT_m_vis<250.000000)?0.999689:1)
+    *((HTT_m_vis>=250.000000&&HTT_m_vis<300.000000)?0.999601:1)
+    *(HTT_m_vis>=300.000000?0.999439:1)
+      '''
+      #h_QCD_FF   = [h_MC_frac[i]*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
+      h_QCD_FF   = [0.999*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
       h_QCD_calc = h_data*h_QCD_FF
 
       plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD_calc, h_MC_frac, h_QCD_FF)
