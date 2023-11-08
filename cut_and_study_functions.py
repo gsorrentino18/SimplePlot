@@ -286,6 +286,54 @@ def make_etau_cut(event_dictionary, DeepTau_version):
   return event_dictionary
 
 
+def set_FF_values(final_state_mode, jet_mode):
+  '''
+  '''
+  # should have aiso/iso as well
+  FF_values = {
+    # TODO : update with new values after bug fix
+    # FS : { "jet_mode" : [intercept, slope] }  
+    "ditau" : {  # 2p5 # 2p1
+      "0j"     : [0.389462, -0.00132913], #[0.389462, -0.00132913],
+      "1j"     : [0.315032, -0.000800434], #[0.315032, -0.000800434],
+      "GTE2j"  : [0.241178, -0.000346852], #[0.241178, -0.000346852],
+      # Not 2j, ≥2j, change to GTE and propagate
+    },
+    "mutau" : {  # 2p5
+      "0j"     : [0.037884, 0.000648851],
+      "1j"     : [0.0348384, 0.000630731],
+      "GTE2j"  : [0.0342287, 0.000358899],
+    },
+    "etau"  : {#Dummy values
+      "0j"     : [1, 1], 
+      "1j"     : [1, 1],
+      "GTE2j"  : [1, 1],
+    },
+  } 
+  intercept = FF_values[final_state_mode][jet_mode][0]
+  slope     = FF_values[final_state_mode][jet_mode][1]
+
+  return intercept, slope
+
+
+def add_FF_weights(event_dictionary, jet_mode):
+  unpack_FFVars = ["Lepton_pt", "HTT_m_vis", "l1_indices", "l2_indices"]
+  unpack_FFVars = (event_dictionary.get(key) for key in unpack_FFVars)
+  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_FFVars]
+  FF_weights = []
+  ope_0j_map = [[50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300],
+            [0.997482, 0.998990, 0.999550, 0.999772, 0.999774, 0.999850, 0.999860, 0.999850, 0.999843,
+             0.999824, 0.999812, 0.999794, 0.999783, 0.999783, 0.999740, 0.999689, 0.999601, 0.999601]]
+  
+  intercept, slope = set_FF_values("ditau", jet_mode)
+  for i, lep_pt, m_vis, l1_idx, l2_idx in zip(*to_check):
+    one_minus_MC_over_data_weight = 0.999 # figure out the right way to do this in a bit
+    FF_weight = one_minus_MC_over_data_weight*(intercept + lep_pt[l1_idx] * slope)
+    FF_weights.append(FF_weight)
+  event_dictionary["FF_weight"] = np.array(FF_weights)
+  return event_dictionary
+
+
 def make_jet_cut(event_dictionary, jet_mode):
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_jetVars = ["nCleanJet", "CleanJet_pt", "CleanJet_eta"]
@@ -388,9 +436,9 @@ def make_jet_cut(event_dictionary, jet_mode):
     #event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
 
   # can only do this if inclusive
-  print("nEvents with exactly 0,1,2,3 jets and ≥2 jets")
-  print(f"{len(np.array(pass_0j_cuts))}, {len(np.array(pass_1j_cuts))}, {len(np.array(pass_2j_cuts))},\
-          {len(np.array(pass_3j_cuts))}, {len(np.array(pass_GTE2j_cuts))}")
+  if jet_mode == "Inclusive":
+    print("nEvents with exactly 0,1,2,3 jets and ≥2 jets")
+    print(f"{len(np.array(pass_0j_cuts))}, {len(np.array(pass_1j_cuts))}, {len(np.array(pass_2j_cuts))}, {len(np.array(pass_3j_cuts))}, {len(np.array(pass_GTE2j_cuts))}")
 
   return event_dictionary
 
@@ -519,8 +567,8 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
     print("All events removed, sample will be deleted")
     delete_sample = True
  
-  print(f"cut branch: {cut_branch}")
-  print(f"protected branches: {protected_branches}")
+  #print(f"cut branch: {cut_branch}")
+  #print(f"protected branches: {protected_branches}")
   for branch in event_dictionary:
     if delete_sample:
       pass
@@ -529,13 +577,13 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
     # this only works for GTE2j, not Inclusive because the "apply_cut" method for jets is never called there
     if (("pass_GTE2j_cuts" in event_dictionary) and
         (branch == "HTT_DiJet_dEta_fromHighestMjj" or branch == "HTT_DiJet_MassInv_fromHighestMjj")):
-      print("very special GTE2j handling underway")
+      #print("very special GTE2j handling underway")
       event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary["pass_GTE2j_cuts"])
       #if (branch == "CleanJetGT30_pt_3" or branch == "CleanJetGT30_eta_3"):
       #  event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary["pass_3j_cuts"])
 
     elif ((branch != cut_branch) and (branch not in protected_branches)):
-      print(f"going to cut {branch}, {len(event_dictionary[branch])}")
+      #print(f"going to cut {branch}, {len(event_dictionary[branch])}")
       event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
 
   return event_dictionary
@@ -655,6 +703,8 @@ def apply_cuts_to_process(process, process_dictionary, final_state_mode, jet_mod
 
   cut_events = apply_jet_cut(FS_cut_events, jet_mode)
   if len(cut_events["run"])==0: return None
+
+  if "Data" in process: cut_events = add_FF_weights(cut_events, jet_mode) # for data only
 
   return cut_events
 

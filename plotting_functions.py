@@ -188,9 +188,12 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
   usage is only one dataset at a time. 
   '''
   h_data_by_dataset = {}
+  h_QCD = {}
   for dataset in data_dictionary:
     data_variable = data_dictionary[dataset]["PlotEvents"][variable]
     data_weights  = np.ones(np.shape(data_variable)) # weights of one for data
+    if dataset == "QCD":
+      data_weights = data_dictionary[dataset]["FF_weight"]
     # normalized to Era D, Era E for some reason is still larger than it should be
     if dataset == "DataMuonEraC":
       data_weights = (2.922/4.953)*data_weights
@@ -204,11 +207,17 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
       data_weights = (2.922/3.06)*data_weights
     #print(f"For {dataset} using weights:")
     #print(data_weights)
-    h_data_by_dataset[dataset] = {}
-    h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
+    if dataset == "QCD":
+      h_QCD["QCD"] = {}
+      h_QCD["QCD"]["BinnedEvents"] = get_binned_info(dataset, data_variable, xbins_, data_weights, lumi_)
+    else:
+      h_data_by_dataset[dataset] = {}
+      h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
                                                                  xbins_, data_weights, lumi_)
+  print("h_data_by_dataset")
+  print(h_data_by_dataset)
   h_data = accumulate_datasets(h_data_by_dataset)
-  return h_data
+  return h_data, h_QCD
 
 
 def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_mode):
@@ -226,8 +235,8 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
       process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
     else:
       process_weights = background_dictionary[process]["Generator_weight"]
-    print("process, variable, variable and weight shapes")
-    print(process, variable, process_variable.shape, process_weights.shape)
+    #print("process, variable, variable and weight shapes")
+    #print(process, variable, process_variable.shape, process_weights.shape)
     h_MC_by_process[process] = {}
     h_MC_by_process[process]["BinnedEvents"] = get_binned_info(process, process_variable, 
                                                                xbins_, process_weights, lumi_)

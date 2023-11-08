@@ -178,7 +178,6 @@ def sort_combined_processes(combined_processes_dictionary):
   return data_dictionary, background_dictionary, signal_dictionary
 
 
-# TODO : fix me
 def append_to_combined_processes(process, cut_events, vars_to_plot, combined_processes):
   if "Data" not in process:
     combined_processes[process] = {
@@ -190,6 +189,7 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
     combined_processes[process] = { 
       "PlotEvents": {},
       "Cuts": {},
+      "FF_weight": cut_events["FF_weight"],
     }
   for var in vars_to_plot:
     if "CleanJet" in var:

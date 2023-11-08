@@ -187,6 +187,17 @@ if __name__ == "__main__":
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
+  print(data_dictionary)
+  print(data_dictionary["DataTau"]["FF_weight"])
+  data_dictionary["QCD"] ={}
+  data_dictionary["QCD"]["PlotEvents"] = data_dictionary["DataTau"]["PlotEvents"]
+  data_dictionary["QCD"]["FF_weight"] = data_dictionary["DataTau"]["FF_weight"]
+
+  print(background_dictionary)
+
+  # add QCD to background dictionary
+  #background_dictionary["QCD"][]
+
   time_print("Processing finished!")
   ## end processing loop, begin plotting
 
@@ -196,8 +207,12 @@ if __name__ == "__main__":
     xbins = make_bins(var)
     hist_ax, hist_ratio = setup_ratio_plot()
 
-    h_data = get_binned_data(data_dictionary, var, xbins, lumi)
+    h_data, h_QCD = get_binned_data(data_dictionary, var, xbins, lumi)
+    print(f"h_QCD {h_QCD}")
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
+    # and now add that to backgrounds and h_summed_backgrounds
+    h_backgrounds["QCD"] = h_QCD["QCD"]
+    h_summed_backgrounds += h_backgrounds["QCD"]["BinnedEvents"]
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
 
     if (var == "FS_tau_pt" and final_state_mode == "mutau") or (var=="FS_t1_pt" and final_state_mode == "ditau"): 
@@ -206,29 +221,6 @@ if __name__ == "__main__":
       h_MC_frac[np.isnan(h_MC_frac)] = 0 # set NaNs, from division by zero above, to zero
       # multiply each bin using the fit formula (TODO : for all plotted variables, only for taupt currently)
       intercept, slope = set_FF_values(final_state_mode, jet_mode) # jet_mode
-      '''
-      h_MC_frac = 
-      Prob_QCD_0j : 
-      (HTT_m_vis<50.000000?0.996758:1)
-    *((HTT_m_vis>=50.000000&&HTT_m_vis<60.000000)?0.997482:1)
-    *((HTT_m_vis>=60.000000&&HTT_m_vis<70.000000)?0.998990:1)
-    *((HTT_m_vis>=70.000000&&HTT_m_vis<80.000000)?0.999550:1)
-    *((HTT_m_vis>=80.000000&&HTT_m_vis<90.000000)?0.999772:1)
-    *((HTT_m_vis>=90.000000&&HTT_m_vis<100.000000)?0.999774:1)]
-    *((HTT_m_vis>=100.000000&&HTT_m_vis<110.000000)?0.999850:1)
-    *((HTT_m_vis>=110.000000&&HTT_m_vis<120.000000)?0.999860:1)
-    *((HTT_m_vis>=120.000000&&HTT_m_vis<130.000000)?0.999850:1)
-    *((HTT_m_vis>=130.000000&&HTT_m_vis<140.000000)?0.999843:1)
-    *((HTT_m_vis>=140.000000&&HTT_m_vis<150.000000)?0.999824:1)
-    *((HTT_m_vis>=150.000000&&HTT_m_vis<160.000000)?0.999812:1)
-    *((HTT_m_vis>=160.000000&&HTT_m_vis<170.000000)?0.999794:1)
-    *((HTT_m_vis>=170.000000&&HTT_m_vis<180.000000)?0.999784:1)
-    *((HTT_m_vis>=180.000000&&HTT_m_vis<190.000000)?0.999783:1)
-    *((HTT_m_vis>=190.000000&&HTT_m_vis<200.000000)?0.999740:1)
-    *((HTT_m_vis>=200.000000&&HTT_m_vis<250.000000)?0.999689:1)
-    *((HTT_m_vis>=250.000000&&HTT_m_vis<300.000000)?0.999601:1)
-    *(HTT_m_vis>=300.000000?0.999439:1)
-      '''
       #h_QCD_FF   = [h_MC_frac[i]*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
       h_QCD_FF   = [0.999*(intercept + xbins[i] * slope) for i in range(len(h_MC_frac))]
       h_QCD_calc = h_data*h_QCD_FF
