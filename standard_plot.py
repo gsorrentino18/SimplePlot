@@ -12,7 +12,7 @@ from file_functions        import pre2022_file_map
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
 from cut_and_study_functions import set_branches, set_vars_to_plot # TODO set good events should be here
-from cut_and_study_functions import apply_cuts_to_process
+from cut_and_study_functions import apply_cuts_to_process, apply_AR_cut
 
 from plotting_functions    import get_binned_data, get_binned_backgrounds, get_binned_signals
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot, spruce_up_legend
@@ -163,6 +163,26 @@ if __name__ == "__main__":
   if final_state_mode == "dimuon": 
     file_map = testing_dimuon_file_map if testing else dimuon_file_map
 
+
+
+  # add FF weights :) # almost the same as SR, except SS and 1st tau fails iso (applied in AR_cuts)
+  AR_region = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
+  AR_process_dictionary = load_process_from_file("DataTau", using_directory, file_map,
+                                            branches, AR_region, final_state_mode,
+                                            data=True, testing=testing)
+
+  time_print(f"Processing ditau AR region!")
+  AR_events = AR_process_dictionary["DataTau"]["info"]
+  cut_events_AR = apply_AR_cut(AR_events, final_state_mode, jet_mode, DeepTau_version)
+  FF_dictionary = {}
+  FF_dictionary["QCD"] = {}
+  FF_dictionary["QCD"]["PlotEvents"] = {}
+  FF_dictionary["QCD"]["FF_weight"]  = cut_events_AR["FF_weight"]
+  for var in vars_to_plot:
+    FF_dictionary["QCD"]["PlotEvents"][var] = cut_events_AR[var]
+
+  print(FF_dictionary)
+
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
   for process in file_map: 
@@ -188,11 +208,14 @@ if __name__ == "__main__":
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
+
   # append a copy of current dataset to the data_dictionary with the name "QCD"
   # get_binned_data expects this format and now handles QCD similarly but separately from Data
-  data_dictionary["QCD"] ={}
-  data_dictionary["QCD"]["PlotEvents"] = data_dictionary["DataTau"]["PlotEvents"]
-  data_dictionary["QCD"]["FF_weight"] = data_dictionary["DataTau"]["FF_weight"]
+   
+  data_dictionary["QCD"] = FF_dictionary["QCD"]
+  print(data_dictionary)
+  #data_dictionary["QCD"]["PlotEvents"] = data_dictionary["DataTau"]["PlotEvents"]
+  #data_dictionary["QCD"]["FF_weight"] = data_dictionary["DataTau"]["FF_weight"]
 
 
   time_print("Processing finished!")

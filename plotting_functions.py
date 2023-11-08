@@ -111,6 +111,8 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   #title_string = "2022, Lumi Normalized to Era D" # to be used with compare_eras.py
   histogram_axis.set_title(title_string, loc='right')
   histogram_axis.set_ylabel("Events / Bin")
+  histogram_axis.tick_params(top=True, right=True)
+  histogram_axis.tick_params(direction="inout")
   histogram_axis.minorticks_on()
 
   yticks = histogram_axis.yaxis.get_major_ticks()
@@ -121,6 +123,8 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   ratio_plot_axis.set_xlabel(variable_name) # shared axis label
   ratio_plot_axis.set_ylabel("Obs. / Exp.")
   ratio_plot_axis.axhline(y=1, color='grey', linestyle='--')
+  ratio_plot_axis.tick_params(bottom=True, right=True)
+  ratio_plot_axis.tick_params(direction="inout")
 
 
 def spruce_up_legend(histogram_axis, final_state_mode):

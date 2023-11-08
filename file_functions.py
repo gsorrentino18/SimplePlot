@@ -189,10 +189,10 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
     combined_processes[process] = { 
       "PlotEvents": {},
       "Cuts": {},
-      "FF_weight": cut_events["FF_weight"],
+      #"FF_weight": cut_events["FF_weight"],
     }
   for var in vars_to_plot:
-    if "CleanJet" in var:
+    if "CleanJet" in var: # this does nothing, right?
       pass
     combined_processes[process]["PlotEvents"][var] = cut_events[var]
 

@@ -25,7 +25,7 @@ def append_lepton_indices(event_dictionary):
   return event_dictionary
 
 
-def make_ditau_cut(event_dictionary, DeepTau_version):
+def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=False):
   '''
   Use a minimal set of branches to define selection criteria and identify events which pass.
   A separate function uses the generated branch "pass_cuts" to remove the info from the
@@ -58,7 +58,7 @@ def make_ditau_cut(event_dictionary, DeepTau_version):
     # Medium v Jet, VLoose v Muon, VVVLoose v Ele
     t1passDT   = (vJet[tau_idx[l1_idx]] >= 5 and vMu[tau_idx[l1_idx]] >= 1 and vEle[tau_idx[l1_idx]] >= 1)
     t2passDT   = (vJet[tau_idx[l2_idx]] >= 5 and vMu[tau_idx[l2_idx]] >= 1 and vEle[tau_idx[l2_idx]] >= 1)
-    if (passKinems and t1passDT and t2passDT):
+    if (free_pass_AR or (passKinems and t1passDT and t2passDT) or (skip_DeepTau and passKinems and t2passDT)):
       pass_cuts.append(i)
       FS_t1_pt.append(lep_pt[l1_idx])
       FS_t1_eta.append(lep_eta[l1_idx])
@@ -316,6 +316,21 @@ def set_FF_values(final_state_mode, jet_mode):
   return intercept, slope
 
 
+def make_ditau_AR_cut(event_dictionary, DeepTau_version):
+  unpack_ditau_AR_vars = ["Lepton_tauIdx", "l1_indices", "l2_indices"]
+  unpack_ditau_AR_vars = add_DeepTau_branches(unpack_ditau_AR_vars, DeepTau_version)
+  unpack_ditau_AR_vars = (event_dictionary.get(key) for key in unpack_ditau_AR_vars)
+  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_ditau_AR_vars]
+  pass_AR_cuts = []
+  for i, tau_idx, l1_idx, l2_idx, vJet, _, _ in zip(*to_check):
+    # keep indices where first tau fails and 2nd passes
+    if (vJet[tau_idx[l1_idx]] < 5) and (vJet[tau_idx[l2_idx]] >= 5):
+      pass_AR_cuts.append(i)
+  
+  event_dictionary["pass_AR_cuts"] = np.array(pass_AR_cuts)
+  return event_dictionary
+
+
 def add_FF_weights(event_dictionary, jet_mode):
   unpack_FFVars = ["Lepton_pt", "HTT_m_vis", "l1_indices", "l2_indices"]
   unpack_FFVars = (event_dictionary.get(key) for key in unpack_FFVars)
@@ -349,7 +364,6 @@ def add_FF_weights(event_dictionary, jet_mode):
       m_vis_weight_idx = m_vis_idx + 1 # 0 in weights is < 50 weight
       one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][m_vis_weight_idx]
 
-    #one_minus_MC_over_data_weight = 0.999 # figure out the right way to do this in a bit
     FF_weight = one_minus_MC_over_data_weight*(intercept + lep_pt[l1_idx] * slope)
     FF_weights.append(FF_weight)
   event_dictionary["FF_weight"] = np.array(FF_weights)
@@ -570,10 +584,6 @@ def make_run_cut(event_dictionary, good_runs):
   return event_dictionary
 
 
-def make_FF_estimate():
-  pass
-
-
 def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
   '''
   Remove all entries in 'event_dictionary' not in 'cut_branch' using the numpy 'take' method.
@@ -685,6 +695,28 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version):
   return event_dictionary
 
 
+def apply_AR_cut(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
+  '''
+  Organizational function
+  added 'free_pass_AR' so that FS branches are populated without any selection applied
+  added 'skip_DeepTau' to apply a partial selection (all but leading tau deeptau reqs)
+  '''
+  protected_branches = ["None"]
+  event_dictionary = append_lepton_indices(event_dictionary)
+  # should check size here
+  if final_state_mode == "ditau":
+    event_dictionary = make_ditau_AR_cut(event_dictionary, DeepTau_version)
+    event_dictionary = apply_cut(event_dictionary, "pass_AR_cuts", protected_branches)
+    event_dictionary = apply_jet_cut(event_dictionary, jet_mode)
+    event_dictionary = make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=True)
+    protected_branches = set_protected_branches(final_state_mode="ditau", jet_mode="none")
+    event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
+    event_dictionary = add_FF_weights(event_dictionary, jet_mode)
+  else:
+    print(f"Unknown final state {final_state_mode}")
+  return event_dictionary
+
+
 def apply_jet_cut(event_dictionary, jet_mode):
   '''
   Organizational function to reduce event_dictionary to contain only
@@ -725,8 +757,6 @@ def apply_cuts_to_process(process, process_dictionary, final_state_mode, jet_mod
 
   cut_events = apply_jet_cut(FS_cut_events, jet_mode)
   if len(cut_events["run"])==0: return None
-
-  if "Data" in process: cut_events = add_FF_weights(cut_events, jet_mode) # for data only
 
   return cut_events
 
