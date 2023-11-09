@@ -61,37 +61,6 @@ def plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD, h_MC_frac, h_QC
   FF_before_after_ax.legend()
   FF_info_ax.legend()
 
-
-def set_FF_values(final_state_mode, jet_mode):
-  '''
-  '''
-  # should have aiso/iso as well
-  FF_values = {
-    # TODO : update with new values after bug fix
-    # FS : { "jet_mode" : [intercept, slope] } 
-    "ditau" : {  # 2p5 # 2p1
-      "0j"     : [0.389462, -0.00132913], #[0.389462, -0.00132913],
-      "1j"     : [0.315032, -0.000800434], #[0.315032, -0.000800434],
-      "GTE2j"  : [0.241178, -0.000346852], #[0.241178, -0.000346852],
-      # Not 2j, ≥2j, change to GTE and propagate
-    },
-    "mutau" : {  # 2p5
-      "0j"     : [0.037884, 0.000648851],
-      "1j"     : [0.0348384, 0.000630731],
-      "GTE2j"  : [0.0342287, 0.000358899],
-    },
-    "etau"  : {#Dummy values
-      "0j"     : [1, 1],
-      "1j"     : [1, 1],
-      "GTE2j"  : [1, 1],
-    },
-  }
-  intercept = FF_values[final_state_mode][jet_mode][0]
-  slope     = FF_values[final_state_mode][jet_mode][1]
-
-  return intercept, slope
- 
-
 if __name__ == "__main__":
   '''
   Just read the code, it speaks for itself.
@@ -142,17 +111,16 @@ if __name__ == "__main__":
   jet_mode         = args.jet_mode # default Inclusive [possible values 0j, 1j, 2j, GTE2j]
 
   #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
-  eos_user_dir    = "eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
+  eos_user_dir    = "/eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
   # there's no place like home :)
   home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3PreEEFSSplitSamples/" + final_state_mode
   home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
-  using_directory = home_dir # TODO: add some auto handling for 'if not <<some env var specific to lxplus>>'
+  using_directory = home_dir
  
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode, DeepTau_version)
-  # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
-  plot_dir = make_directory("FS_plots/"+args.plot_dir, args.final_state, testing=testing) # for output files of plots
+  plot_dir = make_directory("FS_plots/"+args.plot_dir, args.final_state, testing=testing)
 
   # show info to user
   print_setup_info(final_state_mode, lumi, jet_mode, testing, DeepTau_version,
@@ -180,8 +148,6 @@ if __name__ == "__main__":
   FF_dictionary["QCD"]["FF_weight"]  = cut_events_AR["FF_weight"]
   for var in vars_to_plot:
     FF_dictionary["QCD"]["PlotEvents"][var] = cut_events_AR[var]
-
-  print(FF_dictionary)
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -211,11 +177,7 @@ if __name__ == "__main__":
 
   # append a copy of current dataset to the data_dictionary with the name "QCD"
   # get_binned_data expects this format and now handles QCD similarly but separately from Data
-   
   data_dictionary["QCD"] = FF_dictionary["QCD"]
-  print(data_dictionary)
-  #data_dictionary["QCD"]["PlotEvents"] = data_dictionary["DataTau"]["PlotEvents"]
-  #data_dictionary["QCD"]["FF_weight"] = data_dictionary["DataTau"]["FF_weight"]
 
 
   time_print("Processing finished!")
