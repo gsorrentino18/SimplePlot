@@ -38,52 +38,9 @@ def match_objects_to_trigger_bit():
   # step 3 calculate dR and compare with 0.5
   dR_trig_offline = calculate_dR(trig_eta, trig_phi, off_eta, off_phi)
 
-def plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD, h_MC_frac, h_QCD_FF):
-  FF_before_after_ax, FF_info_ax = setup_ratio_plot()
-
-  FF_before_after_ax.set_title("QCD Preview")
-  FF_before_after_ax.set_ylabel("Events / Bin")
-  FF_before_after_ax.minorticks_on()
-
-  FF_before_after_ax.plot(xbins[0:-1], h_data, label="Data",
-                          color="black", marker="o", linestyle='none', markersize=3)
-  FF_before_after_ax.plot(xbins[0:-1], h_summed_backgrounds, label="MC",
-                          color="blue", marker="^", linestyle='none', markersize=3)
-  FF_before_after_ax.plot(xbins[0:-1], h_QCD, label="QCD", 
-                          color="orange", marker="v", linestyle='none', markersize=4)
-
-  FF_info_ax.plot(xbins[0:-1], h_MC_frac, label="1-MC/Data",
-                  color="red", marker="*", linestyle='none', markersize=3)
-  FF_info_ax.plot(xbins[0:-1], h_QCD_FF, label="FF from fit",
-                  color="green", marker="s", linestyle='none', markersize=3)
-  FF_info_ax.axhline(y=1, color='grey', linestyle='--')
-
-  FF_before_after_ax.legend()
-  FF_info_ax.legend()
-
 if __name__ == "__main__":
   '''
-  Just read the code, it speaks for itself.
-  Kidding.
-
-  This is the main block, which calls a bunch of other functions from other files
-  and uses local variables and short algorithms to, by final state
-  1) load data from files
-  2) apply bespoke cuts to reject events
-  3) explicitly remove large objects after use
-  4) create a lovely plot
-
-  Ideally, if one wants to use this library to make another type of plot, they
-  would look at this script and use its format as a template.
-
-  This code sometimes loads very large files, and then makes very large arrays from the data.
-  Because of this, I do a bit of memory management, which is atypical of python programs.
-  This handling reduces the program burden on lxplus nodes, and subsequently leads to faster results.
-  Usually, calling the garbage collector manually like this reduces code efficiency, and if the program
-  runs very slowly in the future the memory consumption would be the first thing to check.
-  In the main loop below, gc.collect() tells python to remove unused objects and free up resources,
-  and del(large_object) in related functions lets python know we no longer need an object, and its resources can be
-  reacquired at the next gc.collect() call
+  Dimuon plotting
   '''
 
   import argparse 
@@ -93,7 +50,7 @@ if __name__ == "__main__":
   parser.add_argument('--testing',     dest='testing',     default=False,       action='store_true')
   parser.add_argument('--hide_plots',  dest='hide_plots',  default=False,       action='store_true')
   parser.add_argument('--hide_yields', dest='hide_yields', default=False,       action='store_true')
-  parser.add_argument('--final_state', dest='final_state', default="mutau",     action='store')
+  parser.add_argument('--final_state', dest='final_state', default="dimuon",    action='store')
   parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots",     action='store')
   parser.add_argument('--lumi',        dest='lumi',        default="2022 F&G",  action='store')
   parser.add_argument('--jet_mode',    dest='jet_mode',    default="Inclusive", action='store')
@@ -110,12 +67,7 @@ if __name__ == "__main__":
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
   jet_mode         = args.jet_mode # default Inclusive [possible values 0j, 1j, 2j, GTE2j]
 
-  #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
-  eos_user_dir    = "/eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
-  # there's no place like home :)
-  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3PreEEFSSplitSamples/" + final_state_mode
-  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
-  using_directory = home_dir
+  using_directory = "/Volumes/IDrive/HTauTau_Data/2022postEE/"
  
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode, DeepTau_version)
@@ -127,37 +79,13 @@ if __name__ == "__main__":
                    using_directory, plot_dir,
                    good_events, branches, vars_to_plot)
 
-  file_map = testing_file_map if testing else full_file_map
-  if final_state_mode == "dimuon": 
-    file_map = testing_dimuon_file_map if testing else dimuon_file_map
-
-
-
-  # add FF weights :) # almost the same as SR, except SS and 1st tau fails iso (applied in AR_cuts)
-  AR_region = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
-  AR_process_dictionary = load_process_from_file("DataTau", using_directory, file_map,
-                                            branches, AR_region, final_state_mode,
-                                            data=True, testing=testing)
-
-  time_print(f"Processing ditau AR region!")
-  AR_events = AR_process_dictionary["DataTau"]["info"]
-  cut_events_AR = apply_AR_cut(AR_events, final_state_mode, jet_mode, DeepTau_version)
-  FF_dictionary = {}
-  FF_dictionary["QCD"] = {}
-  FF_dictionary["QCD"]["PlotEvents"] = {}
-  FF_dictionary["QCD"]["FF_weight"]  = cut_events_AR["FF_weight"]
-  for var in vars_to_plot:
-    FF_dictionary["QCD"]["PlotEvents"][var] = cut_events_AR[var]
+  file_map = testing_dimuon_file_map if testing else dimuon_file_map
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
   for process in file_map: 
 
     gc.collect()
-    if   final_state_mode == "ditau"  and (process=="DataMuon" or process=="DataElectron"): continue
-    elif final_state_mode == "mutau"  and (process=="DataTau"  or process=="DataElectron"): continue
-    elif final_state_mode == "etau"   and (process=="DataTau"  or process=="DataMuon"):     continue
-    elif final_state_mode == "dimuon" and not (process=="DataMuon" or "DY" in process): continue
 
     new_process_dictionary = load_process_from_file(process, using_directory, file_map,
                                               branches, good_events, final_state_mode,
@@ -174,12 +102,6 @@ if __name__ == "__main__":
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
-
-  # append a copy of current dataset to the data_dictionary with the name "QCD"
-  # get_binned_data expects this format and now handles QCD similarly but separately from Data
-  #data_dictionary["QCD"] = FF_dictionary["QCD"]
-
-
   time_print("Processing finished!")
   ## end processing loop, begin plotting
 
@@ -189,36 +111,19 @@ if __name__ == "__main__":
     xbins = make_bins(var)
     hist_ax, hist_ratio = setup_ratio_plot()
 
-    #h_data, h_QCD = get_binned_data(data_dictionary, var, xbins, lumi)
-    h_data, _ = get_binned_data(data_dictionary, var, xbins, lumi)
-    background_dictionary["QCD"] = FF_dictionary["QCD"]
+    h_data = get_binned_data(data_dictionary, var, xbins, lumi)
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
-    # manually add QCD to backgrounds and summed_backgrounds
-    # this keeps it separate from the "get_binned_backgrounds" function and avoids
-    # handling "Generator_weight" errors, since that branch exists in MC but not in Data (or QCD)
-
-    #h_backgrounds["QCD"] = h_QCD["QCD"]
-    #h_summed_backgrounds += h_backgrounds["QCD"]["BinnedEvents"]
-    h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
 
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)
     plot_MC(hist_ax, xbins, h_backgrounds, lumi)
-    plot_signal(hist_ax, xbins, h_signals, lumi)
 
     make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
   
     spruce_up_plot(hist_ax, hist_ratio, var, lumi)
-    spruce_up_legend(hist_ax, final_state_mode)
+    spruce_up_legend(hist_ax, final_state_mode="skip_dimuon_handling")
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")
-
-    # calculate and print these quantities only once
-    if (var == "HTT_m_vis"): 
-      calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
-      labels, yields = yields_for_CSV(hist_ax, desired_order=["Data", "TT", "WJ", "DY", "VV", "ST", "ggH", "VBF"])
-      print(f"Reordered     Labels: {labels}")
-      print(f"Corresponding Yields: {yields}")
 
   if hide_plots: pass
   else: plt.show()

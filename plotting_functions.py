@@ -2,6 +2,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# for plotting errors in MC
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Rectangle
+
 ### README
 # this file contains functions to setup plotting interfaces and draw the plots themselves
 
@@ -22,21 +26,15 @@ def plot_data(histogram_axis, xbins, data_info, luminosity,
   For data, since points and error bars are used, they are shifted to the center of the bins.
   TODO: The error calculation should be followed up and separated to another function. 
   '''
-  # TODO: understand errors for poisson statistics
-  # TODO: understand all of statistics
-  #stat_error = np.array([1000/np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) #wrong but scaled up...
-  #stat_error  = sum_of_data**2 * np.ones(np.shape(data_info)) #wrong
-  #data_info = data_dictionary["Data"]["BinnedEvents"]
   sum_of_data = np.sum(data_info)
-  stat_error  = np.array([np.sqrt(entry * (1 - entry/sum_of_data)) if entry > 0 else 0 for entry in data_info])
-  #stat_error = np.array([np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) # unsure if correct?
+  stat_error = np.array([np.sqrt(entry) if entry > 0 else 0 for entry in data_info]) #error = √N
   midpoints   = get_midpoints(xbins)
-  label = f"Data [{np.sum(data_info):>.0f}]" if label == "Data" else label
+  label = f"Data [{sum_of_data:>.0f}]" if label == "Data" else label
   histogram_axis.errorbar(midpoints, data_info, yerr=stat_error, 
                           color=color, marker=marker, fillstyle=fillstyle, label=label,
                           linestyle='none', markersize=3)
+  #below plots without error bars
   #histogram_axis.plot(midpoints, data_info, color="black", marker="o", linestyle='none', markersize=2, label="Data")
-  # above plots without error bars
 
 
 def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity):
@@ -51,15 +49,54 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity):
   adjusted each iteration of the loop such that it is the top of the previous histogram. 
   '''
   previous_histogram_tops = 0
+  weight_per_bin_squared = 0
   for MC_process in stack_dictionary:
     color, label, _ = set_MC_process_info(MC_process, luminosity)
     current_hist = stack_dictionary[MC_process]["BinnedEvents"]
     # TODO handle variable binning with list of differences
+    #print("weight per bin squared")
+    #print(weight_per_bin_squared)
+    #weight_per_bin_squared += np.array([entry*entry if entry > 0 else 0 for entry in current_hist])
     label += f" [{np.sum(current_hist):>.0f}]"
     bars = histogram_axis.bar(xbins[0:-1], current_hist, width=xbins[1]-xbins[0],
                             color=color, label=label, 
                             bottom=previous_histogram_tops, fill=True, align='edge')
+    #print("current_hist")
+    #print(current_hist)
+    #print("bars output")
+    #print(bars)
     previous_histogram_tops += current_hist # stack
+
+  summed_squared_weights = weight_per_bin_squared
+  #print("summed_squared_weights")
+  #print(summed_squared_weights)
+  # error = √sum(weights_i**2)
+  #stat_error = np.array([np.sqrt(squared_weight) if squared_weight > 0 else 0 for squared_weight in summed_squared_weights])
+  #print("stat_error")
+  #print(stat_error)
+  #histogram_axis.errorbar(xbins[0:-1], previous_histogram_tops, yerr=stat_error, fmt="o")
+  # error boxes not quite working yet
+  #histogram_axis.errorbar(xbins[0:-1], previous_histogram_tops, yerr=5, fmt="o", markersize=3) # faked
+  #_ = make_error_boxes(histogram_axis, xbins[0:-1], previous_histogram_tops, # fake
+  #                     abs(xbins[1:]-xbins[0:-1])/2, 10*np.ones(previous_histogram_tops.shape),
+  #                     facecolor='grey', edgecolor='none', alpha=0.1)
+
+#from https://matplotlib.org/stable/gallery/statistics/errorbars_and_boxes.html#sphx-glr-gallery-statistics-errorbars-and-boxes-py
+def make_error_boxes(ax, xdata, ydata, xerror, yerror, facecolor='r',
+                     edgecolor='none', alpha=0.5):
+    # Loop over data points; create box from errors at each point
+    #errorboxes = [Rectangle((x - xe, y - ye), xe.sum(), ye.sum())
+    errorboxes = [Rectangle((x, y), xe, ye)
+                  for x, y, xe, ye in zip(xdata, ydata, xerror, yerror)]
+    # Create patch collection with specified colour/alpha
+    pc = PatchCollection(errorboxes, facecolor=facecolor, alpha=alpha,
+                         edgecolor=edgecolor)
+    # Add collection to axes
+    ax.add_collection(pc)
+    # Plot errorbars
+    artists = ax.errorbar(xdata, ydata, xerr=xerror, yerr=yerror,
+                          fmt='none', ecolor='k')
+    return artists
   
 
 def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
@@ -72,6 +109,9 @@ def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
     current_hist = signal_dictionary[signal]["BinnedEvents"]
     label += f" [{np.sum(current_hist):>.0f}]"
     stairs = histogram_axis.stairs(current_hist, xbins, color=color, label=label, fill=False)
+  #histogram_axis.errorbar(xbins[0:-1], previous_histogram_tops, yerr=5, fmt="o", markersize=3) # faked
+  # actually, check if stairs has an error method
+  # Would it be easier to store errors when binning events? probably
 
 
 def setup_ratio_plot():
@@ -124,7 +164,6 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   ratio_plot_axis.set_ylabel("Obs. / Exp.")
   ratio_plot_axis.axhline(y=1, color='grey', linestyle='--')
   ratio_plot_axis.tick_params(bottom=True, right=True, direction="inout")
-  #ratio_plot_axis.tick_params(direction="inout")
 
 
 def spruce_up_legend(histogram_axis, final_state_mode):
@@ -192,12 +231,9 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
   usage is only one dataset at a time. 
   '''
   h_data_by_dataset = {}
-  h_QCD = {}
   for dataset in data_dictionary:
     data_variable = data_dictionary[dataset]["PlotEvents"][variable]
     data_weights  = np.ones(np.shape(data_variable)) # weights of one for data
-    if dataset == "QCD":
-      data_weights = data_dictionary[dataset]["FF_weight"]
     # normalized to Era D, Era E for some reason is still larger than it should be
     if dataset == "DataMuonEraC":
       data_weights = (2.922/4.953)*data_weights
@@ -211,15 +247,11 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
       data_weights = (2.922/3.06)*data_weights
     #print(f"For {dataset} using weights:")
     #print(data_weights)
-    if dataset == "QCD":
-      h_QCD["QCD"] = {}
-      h_QCD["QCD"]["BinnedEvents"] = get_binned_info(dataset, data_variable, xbins_, data_weights, lumi_)
-    else:
-      h_data_by_dataset[dataset] = {}
-      h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
+    h_data_by_dataset[dataset] = {}
+    h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
                                                                  xbins_, data_weights, lumi_)
   h_data = accumulate_datasets(h_data_by_dataset)
-  return h_data, h_QCD
+  return h_data
 
 
 def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_mode):
@@ -231,10 +263,12 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
   for process in background_dictionary:
     process_variable = background_dictionary[process]["PlotEvents"][variable]
     if len(process_variable) == 0: continue
-    if ( (("JetGT30_" in variable or "fromHighestMjj" in variable) and (jet_mode=="Inclusive")) or 
-         ((variable == "CleanJetGT30_pt_3" or variable == "CleanJetGT30_eta3") and (jet_mode=="GTE2j")) ):
-    #if ("JetGT30_" in variable) and (jet_mode=="Inclusive"):
-      process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
+    if process == "QCD":  
+      process_weights = background_dictionary[process]["FF_weight"]
+    #if ( (("JetGT30_" in variable or "fromHighestMjj" in variable) and (jet_mode=="Inclusive")) or 
+    #     ((variable == "CleanJetGT30_pt_3" or variable == "CleanJetGT30_eta3") and (jet_mode=="GTE2j")) ):
+    ##if ("JetGT30_" in variable) and (jet_mode=="Inclusive"):
+    #  process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
     else:
       process_weights = background_dictionary[process]["Generator_weight"]
     #print("process, variable, variable and weight shapes") # DEBUG 
@@ -248,6 +282,10 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
   for family in MC_families:
     h_MC_by_family[family] = {}
     h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
+  print("dimuon QCD hack, check me later")
+  if "QCD" in background_dictionary.keys():
+    h_MC_by_family["QCD"] = {}
+    h_MC_by_family["QCD"]["BinnedEvents"] = h_MC_by_process["QCD"]["BinnedEvents"]
   h_backgrounds = h_MC_by_family
   # used for ratio plot
   h_summed_backgrounds = 0

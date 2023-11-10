@@ -79,7 +79,7 @@ compare_eras_file_map = {
 
 dimuon_file_map = {
   "DataMuon" : "Data/Muon*",
-  "DYInc"    : "DY/DY*part*",
+  "DYInc"    : "DY/DYJets*part*",
 }
 
 testing_dimuon_file_map = {
