@@ -293,13 +293,16 @@ def set_FF_values(final_state_mode, jet_mode):
   FF_values = {
     # TODO : update with new values after bug fix
     # FS : { "jet_mode" : [intercept, slope] }  
-    "ditau" : {  # 2p1 # 2p5, assumed 2p5 is incorrect
-      "0j"     : [0.389462, -0.00132913], #[0.389462, -0.00132913],
-      "1j"     : [0.315032, -0.000800434], #[0.315032, -0.000800434],
-      "GTE2j"  : [0.241178, -0.000346852], # [0.241178, -0.000346852],
-      # Not 2j, ≥2j, change to GTE and propagate
+    "ditau" : {  # right 2p1 # wrong 2p1
+      #"0j"     : [0.33862, -0.000793651], #[0.389462, -0.00132913],
+      #"1j"     : [0.296794, -0.000753189], #[0.315032, -0.000800434],
+      #"GTE2j"  : [0.240927, -0.000494273], #[0.241178, -0.000346852],
+      #        right 2p5
+      "0j"     : [0.273773, -0.00086172],
+      "1j"     : [0.247095, -0.000902252],
+      "GTE2j"  : [0.206899, -0.000716128],
     },
-    "mutau" : {  # 2p5
+    "mutau" : {  # wrong 2p5
       "0j"     : [0.037884, 0.000648851],
       "1j"     : [0.0348384, 0.000630731],
       "GTE2j"  : [0.0342287, 0.000358899],
@@ -337,32 +340,63 @@ def add_FF_weights(event_dictionary, jet_mode):
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_FFVars]
   FF_weights = []
   bins = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300]
-  ditau_DT2p5_0j_map = [bins,
-                       [0.997482, # < 50
-                        0.998990, 0.999550, 0.999772, 0.999774, 0.999850, 0.999860, 0.999850,
-                        0.999843, 0.999824, 0.999812, 0.999794, 0.999783, 0.999783, 0.999740, 
-                        0.999689, 0.999601, 0.999601]] # > 200
-  ditau_DT2p1_0j_map = [bins,
-                       [0.996758, # < 50
-                        0.997482, 0.998990, 0.999550, 0.999772, 0.999860, 0.999774, 0.999850, 
-                        0.999843, 0.999824, 0.999812, 0.999794, 0.999784, 0.999783, 0.999740, 
-                        0.999689, 0.999601, 0.999439]] # > 200
+  ditau_DT2p5_weight_map = {
+    "0j" : [bins,
+           [0.999690, 
+           0.999665, 0.999903, 0.999958, 0.999961, 0.999967, 0.999976, 0.999975, 0.999974, 
+           0.999972, 0.999967, 0.999967, 0.999966, 0.999956, 0.999957, 0.999947, 
+           0.999949, 0.999926, 0.999901]],
+    "1j" : [bins,
+           [0.999870, 
+           0.999765, 0.999798, 0.999889, 0.999915, 0.999921, 0.999935, 0.999929, 0.999915, 
+           0.999906, 0.999907, 0.999899, 0.999895, 0.999880, 0.999881, 0.999880, 
+           0.999874, 0.999842, 0.999809]],
+    "GTE2j" : [bins,
+           [0.999645, 
+           0.999356, 0.999338, 0.999510, 0.999611, 0.999631, 0.999656, 0.999631, 0.999588, 
+           0.999570, 0.999537, 0.999532, 0.999516, 0.999514, 0.999488, 0.999457, 
+           0.999485, 0.999464, 0.999402]],
+  }
+  ditau_DT2p1_weight_map = {
+    "0j" : [bins,
+           [0.999632, # < 50
+           0.999546, 0.999845, 0.999950, 0.999952, 0.999950, 0.999977, 0.999981, 
+           0.999980, 0.999979, 0.999977, 0.999974, 0.999973, 0.999969, 0.999969, 0.999967, 
+           0.999965, 0.999955, 0.999940]], # > 200
+    "1j" : [bins,
+           [0.999829, 
+           0.999734, 0.999760, 0.999878, 0.999901, 0.999899, 0.999941, 0.999939, 
+           0.999936, 0.999926, 0.999935, 0.999920, 0.999919, 0.999910, 0.999914, 0.999913, 
+           0.999905, 0.999892, 0.999857]],
+    "GTE2j" : [bins,
+           [0.999595, 
+           0.999336, 0.999323, 0.999499, 0.999571, 0.999556, 0.999672, 0.999668, 
+           0.999647, 0.999626, 0.999617, 0.999610, 0.999606, 0.999588, 0.999589, 0.999585, 
+           0.999583, 0.999572, 0.999524]],
+  }
   
   intercept, slope = set_FF_values("ditau", jet_mode)
+  # TODO implement switch for DT mode mappings
+  # 
   for i, lep_pt, m_vis, l1_idx, l2_idx in zip(*to_check):
     if m_vis < bins[0]: # 50
-      one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][0] # first weight
+      #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][0] # first weight
+      one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][0] # first weight
     elif m_vis > bins[-3]: # 200
       if m_vis > bins[-1]: # 300
-        one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-1] # last weight
+        #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-1] # last weight
+        one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-1] # last weight
       elif bins[-2] < m_vis < bins[-1]: # between 250 and 300
-        one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-2]
+        #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-2]
+        one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-2]
       elif bins[-3] < m_vis < bins[-2]: # between 200 and 350
-        one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-3]
+        #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-3]
+        one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-3]
     else: # mvis between 50 and 200
       m_vis_idx = int(m_vis // 10) - 5 # makes 50 bin zero idx
       m_vis_weight_idx = m_vis_idx + 1 # 0 in weights is < 50 weight
-      one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][m_vis_weight_idx]
+      #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][m_vis_weight_idx]
+      one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][m_vis_weight_idx]
 
     FF_weight = one_minus_MC_over_data_weight*(intercept + lep_pt[l1_idx] * slope)
     FF_weights.append(FF_weight)

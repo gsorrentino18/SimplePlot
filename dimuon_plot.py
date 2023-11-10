@@ -102,6 +102,44 @@ if __name__ == "__main__":
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
+  # no accumulation until plotting
+  # man someone should really write these things down
+  time_print("Adding SFs!")
+
+  from correctionlib import _core
+  fname = "../2022EE_schemaV2.json"
+  evaluator = _core.CorrectionSet.from_file(fname)
+
+  m1_pt_arr  = background_dictionary["DYInc"]["PlotEvents"]["FS_m1_pt"] 
+  m1_eta_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_m1_eta"] 
+  m2_pt_arr  = background_dictionary["DYInc"]["PlotEvents"]["FS_m2_pt"] 
+  m2_eta_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_m2_eta"] 
+
+  sf_type = "nominal"
+  to_use = (range(len(m1_pt_arr)), m1_pt_arr, m1_eta_arr, m2_pt_arr, m2_eta_arr)
+  dimuon_SF_weights = []
+  for i, m1_pt, m1_eta, m2_pt, m2_eta in zip(*to_use): 
+    weight = 1
+    if (m1_pt < 15.0): continue
+    if (m2_pt < 15.0): continue
+    if (abs(m1_eta) > 2.4): continue
+    if (abs(m2_eta) > 2.4): continue
+    m1_pt = 199.9 if m1_pt >= 200 else m1_pt
+    m2_pt = 199.9 if m2_pt >= 200 else m2_pt
+    m1_pt, m1_eta = np.float64(m1_pt), np.float64(m1_eta) # wild hack, float32s just don't cut it
+    m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
+    weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    dimuon_SF_weights.append(weight)
+
+  background_dictionary["DYInc"]["SF_weight"] = np.array(dimuon_SF_weights)
+  gen_weights = background_dictionary["DYInc"]["Generator_weight"]
+  SF_weights = background_dictionary["DYInc"]["SF_weight"]
+  full_weights = gen_weights*SF_weights
+  print(full_weights)
+
   time_print("Processing finished!")
   ## end processing loop, begin plotting
 

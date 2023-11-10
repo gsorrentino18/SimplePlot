@@ -270,7 +270,9 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
     ##if ("JetGT30_" in variable) and (jet_mode=="Inclusive"):
     #  process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
     else:
-      process_weights = background_dictionary[process]["Generator_weight"]
+      process_weights_gen = background_dictionary[process]["Generator_weight"]
+      process_weights_SF  = background_dictionary[process]["SF_weight"]
+      process_weights = process_weights_gen*process_weights_SF
     #print("process, variable, variable and weight shapes") # DEBUG 
     #print(process, variable, process_variable.shape, process_weights.shape) # DEBUG
     h_MC_by_process[process] = {}
