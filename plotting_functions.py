@@ -146,8 +146,9 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   '''
   add_CMS_preliminary(histogram_axis)
   # reverse dictionary search to get correct era title from luminosity
-  title = [key for key in luminosities.items() if key[1] == luminosity][0][0]
-  title_string = f"{title}, {luminosity}" + r"$fb^{-1}$"
+  title_string = "2022 F&G 21.13" + r"$fb^{-1}$"
+  #title = [key for key in luminosities.items() if key[1] == luminosity][0][0]
+  #title_string = f"{title}, {luminosity}" + r"$fb^{-1}$"
   #title_string = "2022, Lumi Normalized to Era D" # to be used with compare_eras.py
   histogram_axis.set_title(title_string, loc='right')
   histogram_axis.set_ylabel("Events / Bin")

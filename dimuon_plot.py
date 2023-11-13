@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
-from file_functions        import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map, luminosities
+from file_functions        import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map
+from file_functions        import luminosities_w_normtag, luminosities
 from file_functions        import pre2022_file_map
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
@@ -60,14 +61,16 @@ if __name__ == "__main__":
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
-  lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
+  #lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
+  lumi = luminosities_w_normtag["2022 G"] if testing else luminosities_w_normtag[args.lumi]
   DeepTau_version = args.DeepTau_version # default is 2p5 [possible values 2p1 and 2p5]
 
   # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
   jet_mode         = args.jet_mode # default Inclusive [possible values 0j, 1j, 2j, GTE2j]
 
-  using_directory = "/Volumes/IDrive/HTauTau_Data/2022postEE/"
+  #using_directory = "/Volumes/IDrive/HTauTau_Data/2022postEE/" # full dataset
+  using_directory = "/Volumes/IDrive/HTauTau_Data/skims/dimuon_2022postEE/"
  
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode, DeepTau_version)
