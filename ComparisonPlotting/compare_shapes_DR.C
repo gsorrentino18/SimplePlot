@@ -10,7 +10,7 @@ void compare_shapes_DR() {
   //     open file, get hist, draw it, close file
   //   save canvas
   
-  string directory = "inputs";
+  string directory = "inputs_2p5";
   cout << " is " << directory << " the directory you want to be reading?" << endl;
   string channel = "ditau";
   cout << " is " << channel << " the channel you want to be using?" << endl;
