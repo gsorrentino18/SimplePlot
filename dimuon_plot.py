@@ -63,8 +63,7 @@ if __name__ == "__main__":
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
-  #lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
-  lumi = luminosities_w_normtag["2022 G"] if testing else luminosities_w_normtag[args.lumi]
+  lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
   DeepTau_version = args.DeepTau_version # default is 2p5 [possible values 2p1 and 2p5]
 
   # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
@@ -134,10 +133,13 @@ if __name__ == "__main__":
     m1_pt, m1_eta = np.float64(m1_pt), np.float64(m1_eta) # wild hack, float32s just don't cut it
     m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
     weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
     weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
     dimuon_SF_weights.append(weight)
+    # need to redo with the loose iso
 
   background_dictionary["DYInc"]["SF_weight"] = np.array(dimuon_SF_weights)
   gen_weights = background_dictionary["DYInc"]["Generator_weight"]
@@ -158,7 +160,7 @@ if __name__ == "__main__":
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
 
     # plot everything :)
-    plot_data(hist_ax, xbins, h_data, lumi, final_state_mode, jet_mode)
+    plot_data(hist_ax, xbins, h_data, lumi)
     plot_MC(hist_ax, xbins, h_backgrounds, lumi)
 
     make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
@@ -166,7 +168,7 @@ if __name__ == "__main__":
     # reversed dictionary search for era name based on lumi 
     title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]
     title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
-    spruce_up_plot(hist_ax, hist_ratio, var, title)
+    spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode)
     spruce_up_legend(hist_ax, final_state_mode="skip_dimuon_handling")
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")

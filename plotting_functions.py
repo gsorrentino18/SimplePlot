@@ -180,12 +180,15 @@ def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
   Errors are also calculated using the same matplotlib function as used in plot_data.
   '''
   # TODO fix error calculation, should be np.sqrt(entry / sum? )
-  numerator_statistical_error   = [1/np.sqrt(entry) if entry > 0 else 0 for entry in numerator_data]
-  denominator_statistical_error = [1/np.sqrt(entry) if entry > 0 else 0 for entry in denominator_data]
-  combined_statistical_error    = np.add(numerator_statistical_error, denominator_statistical_error)
+  #numerator_statistical_error   = [1/np.sqrt(entry) if entry > 0 else 0 for entry in numerator_data]
+  #denominator_statistical_error = [1/np.sqrt(entry) if entry > 0 else 0 for entry in denominator_data]
+  #combined_statistical_error    = np.add(numerator_statistical_error, denominator_statistical_error)
+  #statistical_error = combined_statistical_error
+  statistical_error = [1/np.sqrt(numerator_data[i] + denominator_data[i]) if entry > 0 else 0
+                         for i, entry in enumerate(denominator_data)] # numerator_data and denominator_data are same length
 
   midpoints = get_midpoints(xbins)
-  ratio_axis.errorbar(midpoints, numerator_data/denominator_data, yerr=combined_statistical_error,
+  ratio_axis.errorbar(midpoints, numerator_data/denominator_data, yerr=statistical_error,
                     color="black", marker="o", linestyle='none', markersize=2)
 
 
@@ -266,10 +269,10 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
     #  process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
     else:
       process_weights_gen = background_dictionary[process]["Generator_weight"]
-      process_weights = process_weights_gen
+      #process_weights = process_weights_gen
       print("re-enable for dimuon")
-      #process_weights_SF  = background_dictionary[process]["SF_weight"]
-      #process_weights = process_weights_gen*process_weights_SF
+      process_weights_SF  = background_dictionary[process]["SF_weight"]
+      process_weights = process_weights_gen*process_weights_SF
     #print("process, variable, variable and weight shapes") # DEBUG 
     #print(process, variable, process_variable.shape, process_weights.shape) # DEBUG
     h_MC_by_process[process] = {}
