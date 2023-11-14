@@ -7,9 +7,11 @@ import matplotlib.pyplot as plt
 import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
-from file_functions        import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map, luminosities
-from file_functions        import pre2022_file_map
+from file_map_dictionary   import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map
+from file_map_dictionary   import pre2022_file_map
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
+
+from luminosity_dictionary import luminosities_with_normtag as luminosities
 
 from cut_and_study_functions import set_branches, set_vars_to_plot # TODO set good events should be here
 from cut_and_study_functions import apply_cuts_to_process, apply_AR_cut
@@ -128,10 +130,6 @@ if __name__ == "__main__":
                    good_events, branches, vars_to_plot)
 
   file_map = testing_file_map if testing else full_file_map
-  if final_state_mode == "dimuon": 
-    file_map = testing_dimuon_file_map if testing else dimuon_file_map
-
-
 
   # add FF weights :) # almost the same as SR, except SS and 1st tau fails iso (applied in AR_cuts)
   AR_region = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
@@ -139,15 +137,16 @@ if __name__ == "__main__":
                                             branches, AR_region, final_state_mode,
                                             data=True, testing=testing)
 
-  time_print(f"Processing ditau AR region!")
-  AR_events = AR_process_dictionary["DataTau"]["info"]
-  cut_events_AR = apply_AR_cut(AR_events, final_state_mode, jet_mode, DeepTau_version)
-  FF_dictionary = {}
-  FF_dictionary["QCD"] = {}
-  FF_dictionary["QCD"]["PlotEvents"] = {}
-  FF_dictionary["QCD"]["FF_weight"]  = cut_events_AR["FF_weight"]
-  for var in vars_to_plot:
-    FF_dictionary["QCD"]["PlotEvents"][var] = cut_events_AR[var]
+  if final_state_mode == "ditau":
+    time_print(f"Processing ditau AR region!")
+    AR_events = AR_process_dictionary["DataTau"]["info"]
+    cut_events_AR = apply_AR_cut(AR_events, final_state_mode, jet_mode, DeepTau_version)
+    FF_dictionary = {}
+    FF_dictionary["QCD"] = {}
+    FF_dictionary["QCD"]["PlotEvents"] = {}
+    FF_dictionary["QCD"]["FF_weight"]  = cut_events_AR["FF_weight"]
+    for var in vars_to_plot:
+      FF_dictionary["QCD"]["PlotEvents"][var] = cut_events_AR[var]
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -175,11 +174,6 @@ if __name__ == "__main__":
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
 
-  # append a copy of current dataset to the data_dictionary with the name "QCD"
-  # get_binned_data expects this format and now handles QCD similarly but separately from Data
-  #data_dictionary["QCD"] = FF_dictionary["QCD"]
-
-
   time_print("Processing finished!")
   ## end processing loop, begin plotting
 
@@ -189,16 +183,10 @@ if __name__ == "__main__":
     xbins = make_bins(var)
     hist_ax, hist_ratio = setup_ratio_plot()
 
-    #h_data, h_QCD = get_binned_data(data_dictionary, var, xbins, lumi)
-    h_data, _ = get_binned_data(data_dictionary, var, xbins, lumi)
-    background_dictionary["QCD"] = FF_dictionary["QCD"]
+    h_data = get_binned_data(data_dictionary, var, xbins, lumi)
+    if final_state_mode == "ditau":
+      background_dictionary["QCD"] = FF_dictionary["QCD"] # manually include QCD as background
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
-    # manually add QCD to backgrounds and summed_backgrounds
-    # this keeps it separate from the "get_binned_backgrounds" function and avoids
-    # handling "Generator_weight" errors, since that branch exists in MC but not in Data (or QCD)
-
-    #h_backgrounds["QCD"] = h_QCD["QCD"]
-    #h_summed_backgrounds += h_backgrounds["QCD"]["BinnedEvents"]
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
 
     # plot everything :)
@@ -207,8 +195,11 @@ if __name__ == "__main__":
     plot_signal(hist_ax, xbins, h_signals, lumi)
 
     make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
-  
-    spruce_up_plot(hist_ax, hist_ratio, var, lumi)
+
+    # reversed dictionary search for era name based on lumi 
+    title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]
+    title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
+    spruce_up_plot(hist_ax, hist_ratio, var, title)
     spruce_up_legend(hist_ax, final_state_mode)
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")

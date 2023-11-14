@@ -7,9 +7,11 @@ import matplotlib.pyplot as plt
 import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
-from file_functions        import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map, luminosities
-from file_functions        import compare_eras_file_map
+from file_map_dictionary   import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map
+from file_map_dictionary   import compare_eras_file_map
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
+
+from luminosity_dictionary import luminosities_with_normtag as luminosities
 
 from cut_and_study_functions import set_branches, set_vars_to_plot # TODO set good events should be here
 from cut_and_study_functions import apply_cuts_to_process
@@ -208,8 +210,10 @@ if __name__ == "__main__":
     plot_data(hist_ax, xbins, h_data_eraGPrompt, lumi, color="purple", label="2022 Era G (Prompt)", marker="x")
 
     #make_ratio_plot(hist_ratio, xbins, h_data_eraC, h_data_eraD) # example
-  
-    spruce_up_plot(hist_ax, hist_ratio, var, lumi)
+    # reversed dictionary search for era name based on lumi 
+    title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]
+    title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
+    spruce_up_plot(hist_ax, hist_ratio, var, title)
     spruce_up_legend(hist_ax, final_state_mode="skip_dimuon_handling")
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")
