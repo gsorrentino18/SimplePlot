@@ -122,7 +122,7 @@ if __name__ == "__main__":
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode, DeepTau_version)
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
-  plot_dir = make_directory("FS_plots/"+args.plot_dir, args.final_state, testing=testing)
+  plot_dir = make_directory("FS_plots/"+args.plot_dir, final_state_mode+"_"+jet_mode, testing=testing)
 
   # show info to user
   print_setup_info(final_state_mode, lumi, jet_mode, testing, DeepTau_version,
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     # reversed dictionary search for era name based on lumi 
     title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]
     title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
-    spruce_up_plot(hist_ax, hist_ratio, var, title)
+    spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode)
     spruce_up_legend(hist_ax, final_state_mode)
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")

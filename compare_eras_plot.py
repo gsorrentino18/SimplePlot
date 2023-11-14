@@ -25,72 +25,6 @@ from get_and_set_functions import set_good_events, make_bins
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
 from utility_functions     import time_print, make_directory, print_setup_info
 
-def match_objects_to_trigger_bit():
-  '''
-  Current work in progress
-  Using the final state object kinematics, check if the filter bit of a used trigger is matched
-  '''
-  #FS ditau - two taus, match to ditau
-  #FS mutau - one tau, one muon
-  # - if not cross-trig, match muon to filter
-  # - if cross-trig, use cross-trig filters to match both
-  match = False
-  # step 1 check fired triggers
-  # step 2 ensure correct trigger bit is fired
-  # step 3 calculate dR and compare with 0.5
-  dR_trig_offline = calculate_dR(trig_eta, trig_phi, off_eta, off_phi)
-
-def plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD, h_MC_frac, h_QCD_FF):
-  FF_before_after_ax, FF_info_ax = setup_ratio_plot()
-
-  FF_before_after_ax.set_title("QCD Preview")
-  FF_before_after_ax.set_ylabel("Events / Bin")
-  FF_before_after_ax.minorticks_on()
-
-  FF_before_after_ax.plot(xbins[0:-1], h_data, label="Data",
-                          color="black", marker="o", linestyle='none', markersize=3)
-  FF_before_after_ax.plot(xbins[0:-1], h_summed_backgrounds, label="MC",
-                          color="blue", marker="^", linestyle='none', markersize=3)
-  FF_before_after_ax.plot(xbins[0:-1], h_QCD, label="QCD", 
-                          color="orange", marker="v", linestyle='none', markersize=4)
-
-  FF_info_ax.plot(xbins[0:-1], h_MC_frac, label="1-MC/Data",
-                  color="red", marker="*", linestyle='none', markersize=3)
-  FF_info_ax.plot(xbins[0:-1], h_QCD_FF, label="FF from fit",
-                  color="green", marker="s", linestyle='none', markersize=3)
-  FF_info_ax.axhline(y=1, color='grey', linestyle='--')
-
-  FF_before_after_ax.legend()
-  FF_info_ax.legend()
-
-
-def set_FF_values(final_state_mode, jet_mode):
-  '''
-  '''
-  # should have aiso/iso as well
-  FF_values = {
-    "ditau" : {
-      "0j"  : [7.25594, -0.0289055],
-      "1j"  : [6.57284, -0.0214702],
-      "2j"  : [5.74548, -0.011847], # Not 2j, ≥2j. need to decide on the convention and propagate. GTE? ≥? two_or_more?
-    },
-    "mutau" : {
-      "0j"  : [1.93213, 0.0160684],
-      "1j"  : [1.87358, 0.0166869],
-      "2j"  : [2.06906, 0.00789786],
-    },
-    "etau"  : {#Dummy values
-      "0j"  : [1, 1],
-      "1j"  : [1, 1],
-      "2j"  : [1, 1],
-    },
-  }
-  intercept = FF_values[final_state_mode][jet_mode][0]
-  slope     = FF_values[final_state_mode][jet_mode][1]
-
-  return intercept, slope
- 
-
 if __name__ == "__main__":
   '''
   This script is meant to compare different eras of data in the same plot. 
@@ -128,7 +62,7 @@ if __name__ == "__main__":
   branches     = set_branches(final_state_mode)
   # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
-  plot_dir = make_directory(args.plot_dir, args.final_state, testing=testing) # for output files of plots
+  plot_dir = make_directory(args.plot_dir, final_state_mode + "_" + jet_mode, testing=testing) # for output files of plots
 
   # show info to user
   print_setup_info(final_state_mode, lumi, jet_mode, testing, useDeepTauVersion,
@@ -213,7 +147,7 @@ if __name__ == "__main__":
     # reversed dictionary search for era name based on lumi 
     title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]
     title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
-    spruce_up_plot(hist_ax, hist_ratio, var, title)
+    spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode)
     spruce_up_legend(hist_ax, final_state_mode="skip_dimuon_handling")
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")

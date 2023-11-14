@@ -129,15 +129,14 @@ def add_CMS_preliminary(axis):
   https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines#Example_ROOT_macro_python
   '''
   CMS_text = "CMS"
-  #axis.text(0.01, 1.02, CMS_text, transform=hist_ax.transAxes, fontsize=16, weight='bold')
   axis.text(0.01, 1.02, CMS_text, transform=axis.transAxes, fontsize=16, weight='bold')
   preliminary_text = "Preliminary"
-  #axis.text(0.12, 1.02, preliminary_text, transform=hist_ax.transAxes, fontsize=16, style='italic')
   axis.text(0.12, 1.02, preliminary_text, transform=axis.transAxes, fontsize=16, style='italic')
 
+def add_final_state_and_jet_mode(axis, final_state_mode, jet_mode):
+  axis.text(0.09, 0.94, final_state_mode + "-" + jet_mode, transform=axis.transAxes, fontsize=12)
 
-# TODO: make title a variable here and eliminate the weird luminosity handling
-def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title):
+def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title, final_state_mode, jet_mode):
   '''
   Add title and axes labels
   Additionally:
@@ -145,16 +144,11 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title):
     - add a horizontal line at y=1 to the ratio plot
   '''
   add_CMS_preliminary(histogram_axis)
-  # reverse dictionary search to get correct era title from luminosity
-  title_string = "2022 F&G 21.13" + r"$fb^{-1}$"
-  #title = [key for key in luminosities.items() if key[1] == luminosity][0][0]
-  #title_string = f"{title}, {luminosity}" + r"$fb^{-1}$"
-  #title_string = "2022, Lumi Normalized to Era D" # to be used with compare_eras.py
+  add_final_state_and_jet_mode(histogram_axis, final_state_mode, jet_mode)
   histogram_axis.set_title(title, loc='right')
   histogram_axis.set_ylabel("Events / Bin")
   histogram_axis.minorticks_on()
   histogram_axis.tick_params(which="both", top=True, right=True, direction="inout")
-  #histogram_axis.tick_params(direction="inout")
 
   yticks = histogram_axis.yaxis.get_major_ticks()
   yticks[0].label1.set_visible(False) # hides a zero that overlaps with the upper plot

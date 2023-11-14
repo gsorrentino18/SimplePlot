@@ -77,7 +77,7 @@ if __name__ == "__main__":
   good_events  = set_good_events(final_state_mode)
   branches     = set_branches(final_state_mode, DeepTau_version)
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
-  plot_dir = make_directory("FS_plots/"+args.plot_dir, args.final_state, testing=testing)
+  plot_dir = make_directory("FS_plots/"+args.plot_dir, final_state_mode + "_" + jet_mode, testing=testing)
 
   # show info to user
   print_setup_info(final_state_mode, lumi, jet_mode, testing, DeepTau_version,
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
 
     # plot everything :)
-    plot_data(hist_ax, xbins, h_data, lumi)
+    plot_data(hist_ax, xbins, h_data, lumi, final_state_mode, jet_mode)
     plot_MC(hist_ax, xbins, h_backgrounds, lumi)
 
     make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
