@@ -60,6 +60,7 @@ def set_MC_process_info(process, luminosity, scaling=False, signal=False):
   # factor of 1000 comes from lumi and XSec units of fb^-1 = 10E15 b^-1 and pb = 10E-12 b respectively
     plot_scaling = MC_dictionary[process]["plot_scaling"] # 1 for all non-signal processes by default
     scaling = 1000. * plot_scaling * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
+    if "DY" in process: scaling = 1.12*scaling
     if process=="QCD": scaling = 1
   if signal:
     label += " x" + str(plot_scaling)
@@ -128,7 +129,7 @@ def get_parent_process(MC_process):
         "WZ"   in MC_process or 
         "ZZ"   in MC_process): parent_process = "VV"
   else:
-    print("No matching parent process for {MC_process}, continuing as individual process...")
+    print(f"No matching parent process for {MC_process}, continuing as individual process...")
   return parent_process
 
 

@@ -13,7 +13,6 @@ from matplotlib.patches import Rectangle
 from MC_dictionary        import MC_dictionary
 
 from get_and_set_functions import get_midpoints, set_MC_process_info
-from file_functions        import luminosities
 
 from get_and_set_functions import get_binned_info, accumulate_MC_subprocesses, accumulate_datasets
 
@@ -137,9 +136,10 @@ def add_CMS_preliminary(axis):
   axis.text(0.12, 1.02, preliminary_text, transform=axis.transAxes, fontsize=16, style='italic')
 
 
-def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
+# TODO: make title a variable here and eliminate the weird luminosity handling
+def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title):
   '''
-  Add title, axes labels, and data and luminosity info.
+  Add title and axes labels
   Additionally:
     - hide a zero that overlaps with the upper plot.
     - add a horizontal line at y=1 to the ratio plot
@@ -150,7 +150,7 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, luminosity):
   #title = [key for key in luminosities.items() if key[1] == luminosity][0][0]
   #title_string = f"{title}, {luminosity}" + r"$fb^{-1}$"
   #title_string = "2022, Lumi Normalized to Era D" # to be used with compare_eras.py
-  histogram_axis.set_title(title_string, loc='right')
+  histogram_axis.set_title(title, loc='right')
   histogram_axis.set_ylabel("Events / Bin")
   histogram_axis.minorticks_on()
   histogram_axis.tick_params(which="both", top=True, right=True, direction="inout")
@@ -272,8 +272,10 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
     #  process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
     else:
       process_weights_gen = background_dictionary[process]["Generator_weight"]
-      process_weights_SF  = background_dictionary[process]["SF_weight"]
-      process_weights = process_weights_gen*process_weights_SF
+      process_weights = process_weights_gen
+      print("re-enable for dimuon")
+      #process_weights_SF  = background_dictionary[process]["SF_weight"]
+      #process_weights = process_weights_gen*process_weights_SF
     #print("process, variable, variable and weight shapes") # DEBUG 
     #print(process, variable, process_variable.shape, process_weights.shape) # DEBUG
     h_MC_by_process[process] = {}

@@ -297,10 +297,14 @@ def set_FF_values(final_state_mode, jet_mode):
       #"0j"     : [0.33862, -0.000793651], #[0.389462, -0.00132913],
       #"1j"     : [0.296794, -0.000753189], #[0.315032, -0.000800434],
       #"GTE2j"  : [0.240927, -0.000494273], #[0.241178, -0.000346852],
-      #        right 2p5
-      "0j"     : [0.273773, -0.00086172],
-      "1j"     : [0.247095, -0.000902252],
-      "GTE2j"  : [0.206899, -0.000716128],
+      #        right 2p5, fit range 40-200
+      #"0j"     : [0.273773, -0.00086172],
+      #"1j"     : [0.247095, -0.000902252],
+      #"GTE2j"  : [0.206899, -0.000716128],
+      #        right 2p5, fit range 40-120
+      "0j"     : [0.282668, -0.00102895],
+      "1j"     : [0.264838, -0.00121517],
+      "GTE2j"  : [0.235061, -0.00117935],
     },
     "mutau" : {  # wrong 2p5
       "0j"     : [0.037884, 0.000648851],
@@ -377,25 +381,19 @@ def add_FF_weights(event_dictionary, jet_mode):
   
   intercept, slope = set_FF_values("ditau", jet_mode)
   # TODO implement switch for DT mode mappings
-  # 
   for i, lep_pt, m_vis, l1_idx, l2_idx in zip(*to_check):
     if m_vis < bins[0]: # 50
-      #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][0] # first weight
       one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][0] # first weight
-    elif m_vis > bins[-3]: # 200
-      if m_vis > bins[-1]: # 300
-        #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-1] # last weight
+    elif m_vis > bins[-3]: # > 200
+      if m_vis > bins[-1]: # > 300
         one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-1] # last weight
       elif bins[-2] < m_vis < bins[-1]: # between 250 and 300
-        #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-2]
         one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-2]
-      elif bins[-3] < m_vis < bins[-2]: # between 200 and 350
-        #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][-3]
+      elif bins[-3] < m_vis < bins[-2]: # between 200 and 250
         one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-3]
     else: # mvis between 50 and 200
       m_vis_idx = int(m_vis // 10) - 5 # makes 50 bin zero idx
       m_vis_weight_idx = m_vis_idx + 1 # 0 in weights is < 50 weight
-      #one_minus_MC_over_data_weight = ditau_DT2p1_0j_map[1][m_vis_weight_idx]
       one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][m_vis_weight_idx]
 
     FF_weight = one_minus_MC_over_data_weight*(intercept + lep_pt[l1_idx] * slope)
@@ -866,7 +864,6 @@ def add_trigger_branches(branches_, final_state_mode):
 
 
 # this is ugly and bad and i am only doing this out of desperation
-
 clean_jet_vars = {
     "Inclusive" : ["nCleanJetGT30",
       #"CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
@@ -899,7 +896,7 @@ final_state_vars = {
 
     "mutau"  : ["FS_mu_pt", "FS_mu_eta", "FS_mu_phi", "FS_mu_iso", "FS_mu_dxy", "FS_mu_dz",
                 "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz",
-                "FS_mt", "PuppiMET_pt"],
+                "FS_mt"],#, "PuppiMET_pt"],
 
     "etau"   : ["FS_el_pt", "FS_el_eta", "FS_el_phi", "FS_el_iso", "FS_el_dxy", "FS_el_dz",
                 "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz",
