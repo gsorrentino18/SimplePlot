@@ -63,6 +63,7 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
       "PlotEvents": {}, 
       "Cuts": {},
       "Generator_weight": cut_events["Generator_weight"],
+      "SF_weight": np.ones(cut_events["Generator_weight"].shape)
     }
   elif "Data" in process:
     combined_processes[process] = { 

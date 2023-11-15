@@ -129,7 +129,10 @@ def get_parent_process(MC_process):
         "WZ"   in MC_process or 
         "ZZ"   in MC_process): parent_process = "VV"
   else:
-    print(f"No matching parent process for {MC_process}, continuing as individual process...")
+    if MC_process == "QCD":
+      pass
+    else:
+      print(f"No matching parent process for {MC_process}, continuing as individual process...")
   return parent_process
 
 

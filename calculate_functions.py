@@ -15,7 +15,7 @@ def calculate_underoverflow(events, xbins, weights):
   values, bins = np.histogram(events, count_bin_values, weights=weights)
   underflow_value, overflow_value = values[0], values[-1]
   if (underflow_value > 1000) or (overflow_value > 1000):
-    print("large under/over flow values: {underflow_value}, {overflow_value}")
+    print(f"large under/over flow values: {underflow_value}, {overflow_value}")
   return underflow_value, overflow_value
 
 

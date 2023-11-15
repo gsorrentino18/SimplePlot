@@ -110,7 +110,9 @@ def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
     stairs = histogram_axis.stairs(current_hist, xbins, color=color, label=label, fill=False)
   #histogram_axis.errorbar(xbins[0:-1], previous_histogram_tops, yerr=5, fmt="o", markersize=3) # faked
   # actually, check if stairs has an error method
-  # Would it be easier to store errors when binning events? probably
+  # TODO : it would be easier to store errors when binning events? probably
+  # USE fill_between axis method for shaded errors
+  # https://stackoverflow.com/questions/60697625/error-bars-as-a-shaded-area-on-matplotlib-pyplot-step
 
 
 def setup_ratio_plot():
@@ -179,11 +181,7 @@ def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
   Uses provided numerator and denominator info to make a ratio to add to given plotting axis.
   Errors are also calculated using the same matplotlib function as used in plot_data.
   '''
-  # TODO fix error calculation, should be np.sqrt(entry / sum? )
-  #numerator_statistical_error   = [1/np.sqrt(entry) if entry > 0 else 0 for entry in numerator_data]
-  #denominator_statistical_error = [1/np.sqrt(entry) if entry > 0 else 0 for entry in denominator_data]
-  #combined_statistical_error    = np.add(numerator_statistical_error, denominator_statistical_error)
-  #statistical_error = combined_statistical_error
+  # TODO align error calculation with ROOT
   statistical_error = [1/np.sqrt(numerator_data[i] + denominator_data[i]) if entry > 0 else 0
                          for i, entry in enumerate(denominator_data)] # numerator_data and denominator_data are same length
 
@@ -269,8 +267,6 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
     #  process_weights = get_trimmed_Generator_weight_copy(variable, background_dictionary[process], jet_mode)
     else:
       process_weights_gen = background_dictionary[process]["Generator_weight"]
-      #process_weights = process_weights_gen
-      print("re-enable for dimuon")
       process_weights_SF  = background_dictionary[process]["SF_weight"]
       process_weights = process_weights_gen*process_weights_SF
     #print("process, variable, variable and weight shapes") # DEBUG 
@@ -284,7 +280,6 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
   for family in MC_families:
     h_MC_by_family[family] = {}
     h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
-  print("dimuon QCD hack, check me later")
   if "QCD" in background_dictionary.keys():
     h_MC_by_family["QCD"] = {}
     h_MC_by_family["QCD"]["BinnedEvents"] = h_MC_by_process["QCD"]["BinnedEvents"]
