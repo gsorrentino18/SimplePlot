@@ -116,7 +116,7 @@ if __name__ == "__main__":
   fname = "../2022EE_schemaV2.json"
   evaluator = _core.CorrectionSet.from_file(fname)
 
-  for DY in ["DYInc1", "DYInc2"]:
+  for DY in ["DYInc1", "DYInc2", "DYInc3"]:
     m1_pt_arr  = background_dictionary[DY]["PlotEvents"]["FS_m1_pt"] 
     m1_eta_arr = background_dictionary[DY]["PlotEvents"]["FS_m1_eta"] 
     m2_pt_arr  = background_dictionary[DY]["PlotEvents"]["FS_m2_pt"] 
@@ -136,11 +136,15 @@ if __name__ == "__main__":
       m1_pt, m1_eta = np.float64(m1_pt), np.float64(m1_eta) # wild hack, float32s just don't cut it
       m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
       weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
-      #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
-      weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
       weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
-      #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
-      weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+      if DY == "DYInc1":
+        weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+        weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+      if DY == "DYInc2":
+        weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+        weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+      if DY == "DYInc3":
+        weight *= 1 # do nothing :)
       dimuon_SF_weights.append(weight)
       # need to redo with the loose iso
   
@@ -148,6 +152,7 @@ if __name__ == "__main__":
 
   DY_dict_1 = {"DYInc" : background_dictionary["DYInc1"]}
   DY_dict_2 = {"DYInc" : background_dictionary["DYInc2"]}
+  DY_dict_3 = {"DYInc" : background_dictionary["DYInc3"]}
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting
@@ -160,10 +165,12 @@ if __name__ == "__main__":
 
     h_DY_1, _ = get_binned_backgrounds(DY_dict_1, var, xbins, lumi, jet_mode)
     h_DY_2, _ = get_binned_backgrounds(DY_dict_2, var, xbins, lumi, jet_mode)
+    h_DY_3, _ = get_binned_backgrounds(DY_dict_3, var, xbins, lumi, jet_mode)
 
     # plot everything :)
-    plot_MC(hist_ax, xbins, h_DY_1, lumi, custom=True, color="red", label="DYInc1", fill=False)
-    plot_MC(hist_ax, xbins, h_DY_2, lumi, custom=True, color="blue", label="DYInc2", fill=False)
+    plot_MC(hist_ax, xbins, h_DY_1, lumi, custom=True, color="red", label="PFIso", fill=False)
+    plot_MC(hist_ax, xbins, h_DY_2, lumi, custom=True, color="blue", label="MiniIso", fill=False)
+    plot_MC(hist_ax, xbins, h_DY_3, lumi, custom=True, color="green", label="NoIso", fill=False)
 
     # reversed dictionary search for era name based on lumi 
     title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]

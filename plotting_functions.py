@@ -52,7 +52,6 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
   weight_per_bin_squared = 0
   for MC_process in stack_dictionary:
     if custom == True:
-      print(color)
       pass
     else:
       color, label, _ = set_MC_process_info(MC_process, luminosity)

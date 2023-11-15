@@ -52,6 +52,7 @@ testing_dimuon_file_map = {
   #"DYInc"    : "DY/DYJets*part1",
   "DYInc1"    : "DY/DYJets*part1",
   "DYInc2"    : "DY/DYJets*part2",
+  "DYInc3"    : "DY/DYJets*part3",
 }
 
 full_file_map = {
