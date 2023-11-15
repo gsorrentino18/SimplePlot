@@ -5,6 +5,7 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import gc
+import copy
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
 from file_map_dictionary   import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map
@@ -116,17 +117,23 @@ if __name__ == "__main__":
   fname = "../2022EE_schemaV2.json"
   evaluator = _core.CorrectionSet.from_file(fname)
 
-  for DY in ["DYInc1", "DYInc2", "DYInc3"]:
-    m1_pt_arr  = background_dictionary[DY]["PlotEvents"]["FS_m1_pt"] 
-    m1_eta_arr = background_dictionary[DY]["PlotEvents"]["FS_m1_eta"] 
-    m2_pt_arr  = background_dictionary[DY]["PlotEvents"]["FS_m2_pt"] 
-    m2_eta_arr = background_dictionary[DY]["PlotEvents"]["FS_m2_eta"] 
+  #for DY in ["DYInc1", "DYInc2", "DYInc3"]:
+  treatment_dict = {}
+  for treatment in ["NoSF", "LoosePFIso", "TightPFIso", "MiniIso"]:
+    print(f"Treatment {treatment}!")
+    treatment_dict[treatment] = {}
+    m1_pt_arr  = background_dictionary["DYInc"]["PlotEvents"]["FS_m1_pt"] 
+    m1_eta_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_m1_eta"] 
+    m2_pt_arr  = background_dictionary["DYInc"]["PlotEvents"]["FS_m2_pt"] 
+    m2_eta_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_m2_eta"] 
+    background_dictionary["DYInc"]["SF_weight"] = np.ones(m1_pt_arr.shape)
   
     sf_type = "nominal"
     to_use = (range(len(m1_pt_arr)), m1_pt_arr, m1_eta_arr, m2_pt_arr, m2_eta_arr)
     dimuon_SF_weights = []
     for i, m1_pt, m1_eta, m2_pt, m2_eta in zip(*to_use): 
       weight = 1
+      #if (i>5): continue
       if (m1_pt < 15.0): continue
       if (m2_pt < 15.0): continue
       if (abs(m1_eta) > 2.4): continue
@@ -137,22 +144,34 @@ if __name__ == "__main__":
       m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
       weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
       weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
-      if DY == "DYInc1":
+      if treatment == "NoSF":
+        weight = 1 # unset previous weight 
+      if treatment == "LoosePFIso":
+        weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+        weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+      if treatment == "TightPFIso":
         weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
         weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
-      if DY == "DYInc2":
+      if treatment == "MinIso":
         weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
         weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
-      if DY == "DYInc3":
-        weight *= 1 # do nothing :)
       dimuon_SF_weights.append(weight)
-      # need to redo with the loose iso
-  
-    background_dictionary[DY]["SF_weight"] = np.array(dimuon_SF_weights)
+ 
+    # how are those SF_weights being updated? can i manually un-update them?  
+    #print(dimuon_SF_weights) 
+    #print("original dictionary")
+    #print(background_dictionary["DYInc"])
+    #print(background_dictionary["DYInc"]["SF_weight"])
+    #print(f"before \n {treatment_dict}")
+    treatment_dict[treatment] = copy.deepcopy(background_dictionary["DYInc"])
+    treatment_dict[treatment]["SF_weight"] = np.array(dimuon_SF_weights)
+    print(f"after \n {treatment_dict}")
 
-  DY_dict_1 = {"DYInc" : background_dictionary["DYInc1"]}
-  DY_dict_2 = {"DYInc" : background_dictionary["DYInc2"]}
-  DY_dict_3 = {"DYInc" : background_dictionary["DYInc3"]}
+  print(treatment_dict)
+  DY_dict_1 = {"DYInc" : treatment_dict["NoSF"]}
+  DY_dict_2 = {"DYInc" : treatment_dict["LoosePFIso"]}
+  DY_dict_3 = {"DYInc" : treatment_dict["TightPFIso"]}
+  DY_dict_4 = {"DYInc" : treatment_dict["MiniIso"]}
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting
@@ -166,11 +185,13 @@ if __name__ == "__main__":
     h_DY_1, _ = get_binned_backgrounds(DY_dict_1, var, xbins, lumi, jet_mode)
     h_DY_2, _ = get_binned_backgrounds(DY_dict_2, var, xbins, lumi, jet_mode)
     h_DY_3, _ = get_binned_backgrounds(DY_dict_3, var, xbins, lumi, jet_mode)
+    h_DY_4, _ = get_binned_backgrounds(DY_dict_4, var, xbins, lumi, jet_mode)
 
     # plot everything :)
-    plot_MC(hist_ax, xbins, h_DY_1, lumi, custom=True, color="red", label="PFIso", fill=False)
-    plot_MC(hist_ax, xbins, h_DY_2, lumi, custom=True, color="blue", label="MiniIso", fill=False)
-    plot_MC(hist_ax, xbins, h_DY_3, lumi, custom=True, color="green", label="NoIso", fill=False)
+    plot_MC(hist_ax, xbins, h_DY_1, lumi, custom=True, color="black", label="NoSF", fill=False)
+    plot_MC(hist_ax, xbins, h_DY_2, lumi, custom=True, color="red", label="LoosePFIso", fill=False)
+    plot_MC(hist_ax, xbins, h_DY_3, lumi, custom=True, color="blue", label="TightPFIso", fill=False)
+    plot_MC(hist_ax, xbins, h_DY_4, lumi, custom=True, color="green", label="MiniIso", fill=False)
 
     # reversed dictionary search for era name based on lumi 
     title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]

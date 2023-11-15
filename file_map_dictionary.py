@@ -49,10 +49,7 @@ dimuon_file_map = {
 
 testing_dimuon_file_map = {
   "DataMuon" : "Data/Muon*G*",
-  #"DYInc"    : "DY/DYJets*part1",
-  "DYInc1"    : "DY/DYJets*part1",
-  "DYInc2"    : "DY/DYJets*part2",
-  "DYInc3"    : "DY/DYJets*part3",
+  "DYInc"    : "DY/DYJets*part1",
 }
 
 full_file_map = {

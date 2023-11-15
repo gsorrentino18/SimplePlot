@@ -91,9 +91,6 @@ if __name__ == "__main__":
 
     gc.collect()
 
-    if testing:
-      if "Data" in process: continue # skip data files
-
     new_process_dictionary = load_process_from_file(process, using_directory, file_map,
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
@@ -136,11 +133,13 @@ if __name__ == "__main__":
     m1_pt, m1_eta = np.float64(m1_pt), np.float64(m1_eta) # wild hack, float32s just don't cut it
     m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
     weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    #weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    #weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
     weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    #weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    #weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
     dimuon_SF_weights.append(weight)
     # need to redo with the loose iso
 
