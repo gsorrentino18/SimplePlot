@@ -135,8 +135,10 @@ def add_CMS_preliminary(axis):
   preliminary_text = "Preliminary"
   axis.text(0.12, 1.02, preliminary_text, transform=axis.transAxes, fontsize=16, style='italic')
 
+
 def add_final_state_and_jet_mode(axis, final_state_mode, jet_mode):
   axis.text(0.09, 0.94, final_state_mode + "-" + jet_mode, transform=axis.transAxes, fontsize=12)
+
 
 def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title, final_state_mode, jet_mode):
   '''
@@ -181,12 +183,15 @@ def make_ratio_plot(ratio_axis, xbins, numerator_data, denominator_data):
   Uses provided numerator and denominator info to make a ratio to add to given plotting axis.
   Errors are also calculated using the same matplotlib function as used in plot_data.
   '''
-  # TODO align error calculation with ROOT
-  statistical_error = [1/np.sqrt(numerator_data[i] + denominator_data[i]) if entry > 0 else 0
-                         for i, entry in enumerate(denominator_data)] # numerator_data and denominator_data are same length
+  ratio = numerator_data/denominator_data
+  ratio[np.isnan(ratio)] = 0 # numpy idiom to set "nan" values to 0
+  # TODO : technically errors from stack should be individually calculated, not one stack
+  statistical_error = [ ratio[i] * np.sqrt( (np.sqrt(numerator_data[i])   / numerator_data[i]) ** 2 +
+                                            (np.sqrt(denominator_data[i]) / denominator_data[i]) ** 2 )
+                      for i,_ in enumerate(denominator_data)]
 
   midpoints = get_midpoints(xbins)
-  ratio_axis.errorbar(midpoints, numerator_data/denominator_data, yerr=statistical_error,
+  ratio_axis.errorbar(midpoints, ratio, yerr=statistical_error,
                     color="black", marker="o", linestyle='none', markersize=2)
 
 
