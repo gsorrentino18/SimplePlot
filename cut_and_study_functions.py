@@ -739,17 +739,18 @@ def apply_AR_cut(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
   '''
   protected_branches = ["None"]
   event_dictionary = append_lepton_indices(event_dictionary)
-  # should check size here
-  if final_state_mode == "ditau":
+  if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
     event_dictionary = make_ditau_AR_cut(event_dictionary, DeepTau_version)
     event_dictionary = apply_cut(event_dictionary, "pass_AR_cuts", protected_branches)
     event_dictionary = apply_jet_cut(event_dictionary, jet_mode)
-    event_dictionary = make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=True)
+    # non-standard FS cut
+    event_dictionary   = make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=True)
     protected_branches = set_protected_branches(final_state_mode="ditau", jet_mode="none")
-    event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
+    event_dictionary   = apply_cut(event_dictionary, "pass_cuts", protected_branches)
+    #
     event_dictionary = add_FF_weights(event_dictionary, jet_mode, DeepTau_version)
   else:
-    print(f"Unknown final state {final_state_mode}")
+    print(f"{final_state_mode} : {jet_mode} not possible. Continuing without AR or FF method applied.")
   return event_dictionary
 
 

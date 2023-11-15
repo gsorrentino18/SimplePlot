@@ -137,7 +137,7 @@ if __name__ == "__main__":
                                             branches, AR_region, final_state_mode,
                                             data=True, testing=testing)
 
-  if final_state_mode == "ditau":
+  if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
     time_print(f"Processing ditau AR region!")
     AR_events = AR_process_dictionary["DataTau"]["info"]
     cut_events_AR = apply_AR_cut(AR_events, final_state_mode, jet_mode, DeepTau_version)
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     hist_ax, hist_ratio = setup_ratio_plot()
 
     h_data = get_binned_data(data_dictionary, var, xbins, lumi)
-    if final_state_mode == "ditau":
+    if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
       background_dictionary["QCD"] = FF_dictionary["QCD"] # manually include QCD as background
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
