@@ -291,7 +291,6 @@ def set_FF_values(final_state_mode, jet_mode):
   '''
   # should have aiso/iso as well
   FF_values = {
-    # TODO : update with new values after bug fix
     # FS : { "jet_mode" : [intercept, slope] }  
     "ditau" : {  # right 2p1 # wrong 2p1
       #"0j"     : [0.33862, -0.000793651], #[0.389462, -0.00132913],
@@ -341,32 +340,15 @@ def make_ditau_AR_cut(event_dictionary, DeepTau_version):
   return event_dictionary
 
 
-def add_FF_weights(event_dictionary, jet_mode):
+def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
   unpack_FFVars = ["Lepton_pt", "HTT_m_vis", "l1_indices", "l2_indices"]
   unpack_FFVars = (event_dictionary.get(key) for key in unpack_FFVars)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_FFVars]
   FF_weights = []
   bins = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300]
   ditau_DT2p5_weight_map = {
-    '''
     "0j" : [bins,
-           [0.999690, 
-           0.999665, 0.999903, 0.999958, 0.999961, 0.999967, 0.999976, 0.999975, 0.999974, 
-           0.999972, 0.999967, 0.999967, 0.999966, 0.999956, 0.999957, 0.999947, 
-           0.999949, 0.999926, 0.999901]],
-    "1j" : [bins,
-           [0.999870, 
-           0.999765, 0.999798, 0.999889, 0.999915, 0.999921, 0.999935, 0.999929, 0.999915, 
-           0.999906, 0.999907, 0.999899, 0.999895, 0.999880, 0.999881, 0.999880, 
-           0.999874, 0.999842, 0.999809]],
-    "GTE2j" : [bins,
-           [0.999645, 
-           0.999356, 0.999338, 0.999510, 0.999611, 0.999631, 0.999656, 0.999631, 0.999588, 
-           0.999570, 0.999537, 0.999532, 0.999516, 0.999514, 0.999488, 0.999457, 
-           0.999485, 0.999464, 0.999402]],
-    '''
-    "0j" : [bins,
-           [0.998869, 
+          [0.998869, 
            0.999233, 0.999735, 0.999866, 0.999873, 0.999901, 0.999944, 0.999944, 0.999939, 
            0.999930, 0.999924, 0.999921, 0.999913, 0.999900, 0.999899, 0.999885, 
            0.999871, 0.999826, 0.999691]],
@@ -399,22 +381,22 @@ def add_FF_weights(event_dictionary, jet_mode):
            0.999583, 0.999572, 0.999524]],
   }
   
+  ditau_weight_map = ditau_DT2p5_weight_map if DeepTau_version=="2p5" else ditau_DT2p1_weight_map
   intercept, slope = set_FF_values("ditau", jet_mode)
-  # TODO implement switch for DT mode mappings
   for i, lep_pt, m_vis, l1_idx, l2_idx in zip(*to_check):
     if m_vis < bins[0]: # 50
-      one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][0] # first weight
+      one_minus_MC_over_data_weight = ditau_weight_map[jet_mode][1][0] # first weight
     elif m_vis > bins[-3]: # > 200
       if m_vis > bins[-1]: # > 300
-        one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-1] # last weight
+        one_minus_MC_over_data_weight = ditau_weight_map[jet_mode][1][-1] # last weight
       elif bins[-2] < m_vis < bins[-1]: # between 250 and 300
-        one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-2]
+        one_minus_MC_over_data_weight = ditau_weight_map[jet_mode][1][-2]
       elif bins[-3] < m_vis < bins[-2]: # between 200 and 250
-        one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][-3]
+        one_minus_MC_over_data_weight = ditau_weight_map[jet_mode][1][-3]
     else: # mvis between 50 and 200
       m_vis_idx = int(m_vis // 10) - 5 # makes 50 bin zero idx
       m_vis_weight_idx = m_vis_idx + 1 # 0 in weights is < 50 weight
-      one_minus_MC_over_data_weight = ditau_DT2p5_weight_map[jet_mode][1][m_vis_weight_idx]
+      one_minus_MC_over_data_weight = ditau_weight_map[jet_mode][1][m_vis_weight_idx]
 
     FF_weight = one_minus_MC_over_data_weight*(intercept + lep_pt[l1_idx] * slope)
     if (lep_pt[l1_idx] > 120.0):
@@ -765,7 +747,7 @@ def apply_AR_cut(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
     event_dictionary = make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=True)
     protected_branches = set_protected_branches(final_state_mode="ditau", jet_mode="none")
     event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
-    event_dictionary = add_FF_weights(event_dictionary, jet_mode)
+    event_dictionary = add_FF_weights(event_dictionary, jet_mode, DeepTau_version)
   else:
     print(f"Unknown final state {final_state_mode}")
   return event_dictionary
