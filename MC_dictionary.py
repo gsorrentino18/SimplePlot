@@ -53,7 +53,7 @@ MC_dictionary = {
   #"DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 1925298812420.0,
   "DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 3222224508811.3296,
              "label": "DY", "color": color_dictionary["DY"],
-             "plot_scaling" : 1},
+             "plot_scaling" : 1.12}, # k-factor to NNLO, set to 1 for dimuon? 
 
   "TTTo2L2Nu"         : {"XSec": XSec["TTTo2L2Nu"], "NWevents": 6750783685.336004,
                          "label": "TT", "color": color_dictionary["TT"],
