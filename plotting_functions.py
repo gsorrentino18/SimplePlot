@@ -36,7 +36,8 @@ def plot_data(histogram_axis, xbins, data_info, luminosity,
   #histogram_axis.plot(midpoints, data_info, color="black", marker="o", linestyle='none', markersize=2, label="Data")
 
 
-def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity):
+def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
+            custom=False, color="default", label="MC", fill=True):
   '''
   Add background MC histograms to the existing histogram axis. The input 'stack_dictionary'
   contains a list of backgrounds (which should be pre-grouped, normally), the name of which
@@ -50,7 +51,11 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity):
   previous_histogram_tops = 0
   weight_per_bin_squared = 0
   for MC_process in stack_dictionary:
-    color, label, _ = set_MC_process_info(MC_process, luminosity)
+    if custom == True:
+      print(color)
+      pass
+    else:
+      color, label, _ = set_MC_process_info(MC_process, luminosity)
     current_hist = stack_dictionary[MC_process]["BinnedEvents"]
     # TODO handle variable binning with list of differences
     #print("weight per bin squared")
@@ -58,8 +63,8 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity):
     #weight_per_bin_squared += np.array([entry*entry if entry > 0 else 0 for entry in current_hist])
     label += f" [{np.sum(current_hist):>.0f}]"
     bars = histogram_axis.bar(xbins[0:-1], current_hist, width=xbins[1]-xbins[0],
-                            color=color, label=label, 
-                            bottom=previous_histogram_tops, fill=True, align='edge')
+                            color=color, label=label, edgecolor=color if custom else None,
+                            bottom=previous_histogram_tops, fill=fill, align='edge')
     #print("current_hist")
     #print(current_hist)
     #print("bars output")
@@ -281,8 +286,16 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
                                                                xbins_, process_weights, lumi_)
   # add together subprocesses of each MC family
   h_MC_by_family = {}
-  MC_families = ["DY", "TT", "ST", "WJ", "VV"]
-  for family in MC_families:
+  # see what processes exist in the dictionary
+  all_MC_families  = ["DY", "TT", "ST", "WJ", "VV"]
+  used_MC_families = []
+  for process in h_MC_by_process:
+    for family in all_MC_families:
+      if (("WW" in process) or ("WZ" in process) or ("ZZ" in process)) and ("VV" not in used_MC_families):
+        used_MC_families.append("VV")
+      elif (family in process) and (family not in used_MC_families):
+        used_MC_families.append(family)
+  for family in used_MC_families:
     h_MC_by_family[family] = {}
     h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
   if "QCD" in background_dictionary.keys():
