@@ -91,8 +91,7 @@ if __name__ == "__main__":
 
     gc.collect()
 
-    if testing:
-      if "Data" in process: continue # skip data files
+    if "Data" in process: continue # skip data files
 
     new_process_dictionary = load_process_from_file(process, using_directory, file_map,
                                               branches, good_events, final_state_mode,
@@ -117,38 +116,38 @@ if __name__ == "__main__":
   fname = "../2022EE_schemaV2.json"
   evaluator = _core.CorrectionSet.from_file(fname)
 
-  m1_pt_arr  = background_dictionary["DYInc"]["PlotEvents"]["FS_m1_pt"] 
-  m1_eta_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_m1_eta"] 
-  m2_pt_arr  = background_dictionary["DYInc"]["PlotEvents"]["FS_m2_pt"] 
-  m2_eta_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_m2_eta"] 
+  for DY in ["DYInc1", "DYInc2"]:
+    m1_pt_arr  = background_dictionary[DY]["PlotEvents"]["FS_m1_pt"] 
+    m1_eta_arr = background_dictionary[DY]["PlotEvents"]["FS_m1_eta"] 
+    m2_pt_arr  = background_dictionary[DY]["PlotEvents"]["FS_m2_pt"] 
+    m2_eta_arr = background_dictionary[DY]["PlotEvents"]["FS_m2_eta"] 
+  
+    sf_type = "nominal"
+    to_use = (range(len(m1_pt_arr)), m1_pt_arr, m1_eta_arr, m2_pt_arr, m2_eta_arr)
+    dimuon_SF_weights = []
+    for i, m1_pt, m1_eta, m2_pt, m2_eta in zip(*to_use): 
+      weight = 1
+      if (m1_pt < 15.0): continue
+      if (m2_pt < 15.0): continue
+      if (abs(m1_eta) > 2.4): continue
+      if (abs(m2_eta) > 2.4): continue
+      m1_pt = 199.9 if m1_pt >= 200 else m1_pt
+      m2_pt = 199.9 if m2_pt >= 200 else m2_pt
+      m1_pt, m1_eta = np.float64(m1_pt), np.float64(m1_eta) # wild hack, float32s just don't cut it
+      m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
+      weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
+      #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+      weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+      weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
+      #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+      weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+      dimuon_SF_weights.append(weight)
+      # need to redo with the loose iso
+  
+    background_dictionary[DY]["SF_weight"] = np.array(dimuon_SF_weights)
 
-  sf_type = "nominal"
-  to_use = (range(len(m1_pt_arr)), m1_pt_arr, m1_eta_arr, m2_pt_arr, m2_eta_arr)
-  dimuon_SF_weights = []
-  for i, m1_pt, m1_eta, m2_pt, m2_eta in zip(*to_use): 
-    weight = 1
-    if (m1_pt < 15.0): continue
-    if (m2_pt < 15.0): continue
-    if (abs(m1_eta) > 2.4): continue
-    if (abs(m2_eta) > 2.4): continue
-    m1_pt = 199.9 if m1_pt >= 200 else m1_pt
-    m2_pt = 199.9 if m2_pt >= 200 else m2_pt
-    m1_pt, m1_eta = np.float64(m1_pt), np.float64(m1_eta) # wild hack, float32s just don't cut it
-    m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
-    weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    dimuon_SF_weights.append(weight)
-    # need to redo with the loose iso
-
-  background_dictionary["DYInc"]["SF_weight"] = np.array(dimuon_SF_weights)
-  gen_weights = background_dictionary["DYInc"]["Generator_weight"]
-  SF_weights = background_dictionary["DYInc"]["SF_weight"]
-  full_weights = gen_weights*SF_weights
-  print(full_weights)
+  DY_dict_1 = {"DYInc" : background_dictionary["DYInc1"]}
+  DY_dict_2 = {"DYInc" : background_dictionary["DYInc2"]}
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting
@@ -159,15 +158,13 @@ if __name__ == "__main__":
     xbins = make_bins(var)
     hist_ax, hist_ratio = setup_ratio_plot()
 
-    h_data = get_binned_data(data_dictionary, var, xbins, lumi)
-    h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
+    h_DY_1, _ = get_binned_backgrounds(DY_dict_1, var, xbins, lumi, jet_mode)
+    h_DY_2, _ = get_binned_backgrounds(DY_dict_2, var, xbins, lumi, jet_mode)
 
     # plot everything :)
-    plot_data(hist_ax, xbins, h_data, lumi)
-    plot_MC(hist_ax, xbins, h_backgrounds, lumi)
+    plot_MC(hist_ax, xbins, h_DY_1, lumi, custom=True, color="red", label="DYInc1", fill=False)
+    plot_MC(hist_ax, xbins, h_DY_2, lumi, custom=True, color="blue", label="DYInc2", fill=False)
 
-    make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
-  
     # reversed dictionary search for era name based on lumi 
     title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]
     title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
