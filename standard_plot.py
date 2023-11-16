@@ -18,9 +18,9 @@ from cut_and_study_functions import apply_cuts_to_process, apply_AR_cut
 
 from plotting_functions    import get_binned_data, get_binned_backgrounds, get_binned_signals
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot, spruce_up_legend
-from plotting_functions    import plot_data, plot_MC, plot_signal
+from plotting_functions    import plot_data, plot_MC, plot_signal, make_bins
 
-from get_and_set_functions import set_good_events, make_bins
+from get_and_set_functions import set_good_events
 
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
 from utility_functions     import time_print, make_directory, print_setup_info
@@ -115,8 +115,8 @@ if __name__ == "__main__":
   #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
   eos_user_dir    = "/eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
   # there's no place like home :)
-  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3PreEEFSSplitSamples/" + final_state_mode
-  home_dir        = "/Users/ballmond/LocalDesktop/trigger_gain_plotting/Run3FSSplitSamples/" + final_state_mode
+  home_dir        = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3PreEEFSSplitSamples/" + final_state_mode
+  home_dir        = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3FSSplitSamples/" + final_state_mode
   using_directory = home_dir
  
   good_events  = set_good_events(final_state_mode)

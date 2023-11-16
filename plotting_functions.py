@@ -9,14 +9,8 @@ from matplotlib.patches import Rectangle
 ### README
 # this file contains functions to setup plotting interfaces and draw the plots themselves
 
-# user files
 from MC_dictionary        import MC_dictionary
-
-from get_and_set_functions import get_midpoints, set_MC_process_info
-
-from get_and_set_functions import get_binned_info, accumulate_MC_subprocesses, accumulate_datasets
-
-from calculate_functions import yields_for_CSV
+from calculate_functions  import yields_for_CSV
 
 def plot_data(histogram_axis, xbins, data_info, luminosity, 
               color="black", label="Data", marker="o", fillstyle="full"):
@@ -117,6 +111,23 @@ def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
   # TODO : it would be easier to store errors when binning events? probably
   # USE fill_between axis method for shaded errors
   # https://stackoverflow.com/questions/60697625/error-bars-as-a-shaded-area-on-matplotlib-pyplot-step
+
+
+def set_MC_process_info(process, luminosity, scaling=False, signal=False):
+  '''
+  Obtain process-specific styling and scaling information.
+  MC_dictionary is maintained in a separate file.
+  '''
+  color = MC_dictionary[process]["color"]
+  label = MC_dictionary[process]["label"]
+  if scaling:
+  # factor of 1000 comes from lumi and XSec units of fb^-1 = 10E15 b^-1 and pb = 10E-12 b respectively
+    plot_scaling = MC_dictionary[process]["plot_scaling"] # 1 for all non-signal processes by default
+    scaling = 1000. * plot_scaling * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
+    if process=="QCD": scaling = 1
+  if signal:
+    label += " x" + str(plot_scaling)
+  return (color, label, scaling)
 
 
 def setup_ratio_plot():
@@ -228,6 +239,56 @@ def get_trimmed_Generator_weight_copy(variable, single_background_dictionary, je
   return temp_weight
 
 
+def make_bins(variable_name):
+  '''
+  Create a linear numpy array to use for histogram binning.
+  Information for binning is referenced from a python dictionary in a separate file.
+  A check is made on bin edges to see if they end in 1 or 0.1, which generally 
+  result in better plots with edges that align with axes tickmarks.
+  
+  This method returns only linearly spaced bins
+  '''
+  nbins, xmin, xmax = binning_dictionary[variable_name]
+  check_uniformity = (xmax-xmin)/nbins
+  if (check_uniformity % 1 != 0 and 
+      check_uniformity % 0.1 != 0 and 
+      check_uniformity % 0.01 != 0 and
+      check_uniformity % 0.001 != 0):
+    print(f"nbins, xmin, xmax : {nbins}, {xmin}, {xmax}")
+    print(f"(xmax-xmin)/nbins = {check_uniformity}, results in bad bin edges and centers")
+  xbins = np.linspace(xmin, xmax, nbins+1)
+  return xbins
+
+
+def get_midpoints(input_bins):
+  '''
+  From an input array of increasing values, return the values halfway between each value.
+  The input array is size N, and the output array is size N-1
+  '''
+  midpoints = []
+  for i, ibin in enumerate(input_bins):
+    if (i+1 != len(input_bins)):
+      midpoints.append( ibin + (input_bins[i+1] - ibin)/2 )
+  midpoints = np.array(midpoints)
+  return midpoints
+
+
+def get_binned_info(process_name, process_variable, xbins, process_weights, luminosity):
+  '''
+  Take in a list of events and produce a histogram (values binned in a numpy array).
+  'scaling' is either set to 1 for data (no scaling) or retrieved from the MC_dictionary.
+  Underflows and overflows are included in the first and final bins of the output histogram by default.
+  Note: 'process_variable' is a list of events
+  '''
+  scaling = 1 if "Data" in process_name else set_MC_process_info(process_name, luminosity, scaling=True)[2]
+  weights = scaling*process_weights
+  underflow, overflow = calculate_underoverflow(process_variable, xbins, weights)
+  binned_values, _    = np.histogram(process_variable, xbins, weights=weights)
+  binned_values[0]   += underflow
+  binned_values[-1]  += overflow
+  return binned_values
+
+
 def get_binned_data(data_dictionary, variable, xbins_, lumi_):
   '''
   Standard loop to get only the plotted variable from a dictionary containing data.
@@ -257,6 +318,59 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
                                                                  xbins_, data_weights, lumi_)
   h_data = accumulate_datasets(h_data_by_dataset)
   return h_data
+
+
+def accumulate_datasets(dataset_dictionary):
+  '''
+  Very similar to accumulate_MC_subproceses
+  Written to add datasets (Muon, Tau, EGamma, MuonEG) together
+  '''
+  accumulated_values = 0
+  for dataset in dataset_dictionary:
+    accumulated_values += dataset_dictionary[dataset]["BinnedEvents"]
+
+  return accumulated_values
+
+
+def accumulate_MC_subprocesses(parent_process, process_dictionary):
+  '''
+  Add up separate MC histograms for processes belonging to the same family.
+  For example, with three given inputs of the same family, the output is the final line:
+    WWToLNu2Q = [0.0, 1.0, 5.5, 0.5]
+    WZTo2L2Nu = [0.0, 2.0, 7.5, 0.2]
+    ZZTo4L    = [0.0, 3.0, 4.5, 0.1]
+    --------------------------------
+    VV        = [0.0, 6.0, 17.5, 0.8]
+  Inputs not belonging to the specified 'parent_process' are ignored,
+  therefore, this function is called once for each parent process
+  '''
+  accumulated_values = 0
+  for MC_process in process_dictionary:
+    if get_parent_process(MC_process) == parent_process:
+      accumulated_values += process_dictionary[MC_process]["BinnedEvents"]
+  return accumulated_values
+
+
+def get_parent_process(MC_process):
+  '''
+  Given some process, return a corresponding parent_process, effectively grouping
+  related processes (i.e. DYInclusive, DY1, DY2, DY3, and DY4 all belong to DY).
+  TODO: simplify this code, it is currently written in a brain-dead way
+  '''
+  parent_process = ""
+  if   "DY"    in MC_process:  parent_process = "DY"
+  elif "WJets" in MC_process:  parent_process = "WJ"
+  elif "TT"    in MC_process:  parent_process = "TT"
+  elif "ST"    in MC_process:  parent_process = "ST"
+  elif ("WW"   in MC_process or 
+        "WZ"   in MC_process or 
+        "ZZ"   in MC_process): parent_process = "VV"
+  else:
+    if MC_process == "QCD":
+      pass
+    else:
+      print(f"No matching parent process for {MC_process}, continuing as individual process...")
+  return parent_process
 
 
 def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_mode):
