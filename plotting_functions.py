@@ -10,7 +10,11 @@ from matplotlib.patches import Rectangle
 # this file contains functions to setup plotting interfaces and draw the plots themselves
 
 from MC_dictionary        import MC_dictionary
-from calculate_functions  import yields_for_CSV
+from binning_dictionary   import binning_dictionary
+from triggers_dictionary  import triggers_dictionary
+
+from calculate_functions  import yields_for_CSV, calculate_underoverflow
+
 
 def plot_data(histogram_axis, xbins, data_info, luminosity, 
               color="black", label="Data", marker="o", fillstyle="full"):
