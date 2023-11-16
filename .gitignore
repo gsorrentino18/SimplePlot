@@ -2,3 +2,4 @@
 *.pdf
 *.root
 XSec.py
+root_format_to_array.py 
