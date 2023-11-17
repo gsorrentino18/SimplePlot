@@ -2,6 +2,18 @@
 # This file contains mappings of process names (shared with XSec.py) to wildcards for related samples.
 # The :testing" file maps are subsets of full filelists for faster processing times.
 
+# This file is sort of a hellscape
+
+compare_new_old_dimuon_file_map = {
+  "DataOldDimuon" : "Muon_Run2022G_HTauTau_2022postEE_step2*",
+  "DataNewDimuon" : "Muon_Run2022G_HTauTau_2022postEE_Mini_step2*",
+}
+
+new_dimuon_file_map = {
+  "DataDimuon" : "MuonMiniIso/Muon_Run2022G_HTauTau_2022postEE_Mini_step2*",
+  "DYInc"      : "DYMiniIso/DYJetsToLL_M-50_LO_HTauTau_2022postEE_Mini_step2_part*",
+}
+
 pre2022_file_map = {
   "DataMuon" : "Data/Muon*",
   "DYInc"    : "DY/DYJets*",
@@ -40,6 +52,16 @@ compare_eras_file_map = {
   "DataTauEraG" : "Data/Tau*G*",
   "DataElectronEraF" : "Data/Electron*F*",
   "DataElectronEraG" : "Data/Electron*G*",
+}
+
+testing_tag_and_probe_file_map = {
+  "DataMuon" : "Data/MuonG*",
+  "DYInc"    : "DY/DYJets*part1*",
+}
+
+tag_and_probe_full_file_map = {
+  "DataMuon" : "Data/Muon*",
+  "DYInc"    : "DY/DYJets*part*",
 }
 
 dimuon_file_map = {

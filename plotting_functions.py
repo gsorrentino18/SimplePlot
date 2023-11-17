@@ -129,6 +129,7 @@ def set_MC_process_info(process, luminosity, scaling=False, signal=False):
     plot_scaling = MC_dictionary[process]["plot_scaling"] # 1 for all non-signal processes by default
     scaling = 1000. * plot_scaling * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
     if process=="QCD": scaling = 1
+    #if process=="DYInc": scaling *=6.482345 # scale up factor for New Dimuon DY
   if signal:
     label += " x" + str(plot_scaling)
   return (color, label, scaling)
@@ -185,6 +186,8 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title, final_
 
 
 def spruce_up_legend(histogram_axis, final_state_mode):
+  # this post has good advice about moving the legend off the plot
+  # https://stackoverflow.com/questions/4700614/how-to-put-the-legend-outside-the-plot
   histogram_axis.legend()
   if final_state_mode == "dimuon":
     handles, original_labels = histogram_axis.get_legend_handles_labels()

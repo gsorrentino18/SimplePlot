@@ -51,9 +51,10 @@ MC_dictionary = {
 
   #TODO: This is for 2022 pre EE dimuon! Somehow store this info and make it switchable!
   #"DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 1925298812420.0,
-  "DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 3222224508811.3296,
+  #"DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 6534910623420.0, # new DYInc MC from Dennis (???)
+  "DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWevents": 3222224508811.3296, # old August samples
              "label": "DY", "color": color_dictionary["DY"],
-             "plot_scaling" : 1.12}, # k-factor to NNLO, set to 1 for dimuon? 
+             "plot_scaling" : 1.12}, # k-factor to NNLO
 
   "TTTo2L2Nu"         : {"XSec": XSec["TTTo2L2Nu"], "NWevents": 6750783685.336004,
                          "label": "TT", "color": color_dictionary["TT"],

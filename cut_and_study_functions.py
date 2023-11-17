@@ -25,6 +25,15 @@ def append_lepton_indices(event_dictionary):
   return event_dictionary
 
 
+def make_TnP_cut(event_dictionary, DeepTau_version, numerator=False):
+  '''
+  '''
+  nEvents_precut = len(event_dictionary["Lepton_pt"])
+  unpack_TnP = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_tauIdx",
+                "l1_indices", "l2_indices"]
+  return event_dictionary
+
+
 def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=False):
   '''
   Use a minimal set of branches to define selection criteria and identify events which pass.
@@ -542,7 +551,7 @@ def manual_dimuon_lepton_veto(event_dictionary):
   return event_dictionary
 
 
-def make_dimuon_cut(event_dictionary):
+def make_dimuon_cut(event_dictionary, useMiniIso=False):
   '''
   Works similarly to 'make_ditau_cut'. 
   '''
@@ -557,8 +566,12 @@ def make_dimuon_cut(event_dictionary):
   FS_m2_pt, FS_m2_eta, FS_m2_phi, FS_m2_iso, FS_m2_dxy, FS_m2_dz = [], [], [], [], [], []
   for i, pt, eta, phi, iso, muIdx, mu_dxy, mu_dz, mvis, dR, l1_idx, l2_idx in zip(*to_check):
     # removed (dR > 0.5) and changed (mvis > 20) cut. Our minimum dR is 0.3 from skim level
+    #passKinematics = (pt[l1_idx] > 26 and pt[l2_idx] > 20 and (mvis > 20) and (dR > 0.5)
     passKinematics = (pt[l1_idx] > 26 and pt[l2_idx] > 20 and (70 < mvis < 130))
-    passIso        = (iso[l1_idx] < 0.15 and iso[l2_idx] < 0.15)
+    if (useMiniIso == False):
+      passIso      = (iso[l1_idx] < 0.25 and iso[l2_idx] < 0.25) # for PFRelIso, Loose 25, Medium 20, Tight 15
+    if (useMiniIso == True):
+      passIso      = (iso[l1_idx] < 0.40 and iso[l2_idx] < 0.40) # for MiniIso, Loose 40, Medium 20, Tight 10
     if (passKinematics and passIso):
       pass_cuts.append(i)
       FS_m1_pt.append(pt[l1_idx])
@@ -692,7 +705,7 @@ def study_triggers():
   print(f"Run3 OR/AND: {Run3OR}\t{Run3AND}")
 
 
-def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version):
+def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version, useMiniIso=False):
   '''
   Organizational function that generalizes call to a (set of) cuts based on the
   final cut. Importantly, the function that rejects events, 'apply_cut',
@@ -712,10 +725,16 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version):
     event_dictionary = make_etau_cut(event_dictionary, DeepTau_version)
     event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
   elif final_state_mode == "dimuon":
-    event_dictionary = manual_dimuon_lepton_veto(event_dictionary)
-    event_dictionary = apply_cut(event_dictionary, "pass_manual_lepton_veto")
-    event_dictionary = make_dimuon_cut(event_dictionary)
-    event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
+    # old samples need manual lepton veto
+    if (useMiniIso == False):
+      event_dictionary = manual_dimuon_lepton_veto(event_dictionary)
+      event_dictionary = apply_cut(event_dictionary, "pass_manual_lepton_veto")
+      event_dictionary = make_dimuon_cut(event_dictionary)
+      event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
+    # new samples don't and they use a different iso
+    if (useMiniIso == True):
+      event_dictionary = make_dimuon_cut(event_dictionary, useMiniIso==True)
+      event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
   else:
     print(f"No cuts to apply for {final_state_mode} final state.")
   return event_dictionary
@@ -767,7 +786,9 @@ def apply_jet_cut(event_dictionary, jet_mode):
   return event_dictionary
 
 
-def apply_cuts_to_process(process, process_dictionary, final_state_mode, jet_mode="Inclusive", DeepTau_version="2p5"):
+def apply_HTT_FS_cuts_to_process(process, process_dictionary, 
+                                 final_state_mode, jet_mode="Inclusive", 
+                                 DeepTau_version="2p5", useMiniIso=False):
   '''
   Organizational function to hold two function calls and empty list handling that
   is performed for all loaded datasets in our framework.
@@ -779,7 +800,7 @@ def apply_cuts_to_process(process, process_dictionary, final_state_mode, jet_mod
   if len(process_events["run"])==0: return None
 
   process_events = append_lepton_indices(process_events)
-  FS_cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version)
+  FS_cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version, useMiniIso=useMiniIso)
   if len(FS_cut_events["run"])==0: return None 
 
   cut_events = apply_jet_cut(FS_cut_events, jet_mode)
@@ -788,7 +809,7 @@ def apply_cuts_to_process(process, process_dictionary, final_state_mode, jet_mod
   return cut_events
 
 
-def set_good_events(final_state_mode, disable_triggers=False):
+def set_good_events(final_state_mode, disable_triggers=False, useMiniIso=False):
   '''
   Return a string defining a 'good_events' flag used by uproot to preskim input events
   to only those passing these simple requirements. 'good_events' changes based on
@@ -827,7 +848,10 @@ def set_good_events(final_state_mode, disable_triggers=False):
 
   elif final_state_mode == "dimuon":
     # lepton veto must be applied manually for this final state
-    good_events = "(METfilters) & (HTT_pdgId==-13*13) & (HLT_IsoMu24)"
+    if (useMiniIso == False):
+      good_events = "(METfilters) & (HTT_pdgId==-13*13) & (HLT_IsoMu24)"
+    if (useMiniIso == True):
+      good_events = "(METfilters) & (LeptonVeto==0) & (HTT_pdgId==-13*13) & (HLT_IsoMu24)"
     if disable_triggers: good_events = good_events.replace(" & (HLT_IsoMu24)", "")
 
   return good_events
