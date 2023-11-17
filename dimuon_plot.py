@@ -8,14 +8,14 @@ import gc
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
 from file_map_dictionary   import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map
-from file_map_dictionary   import pre2022_file_map
+from file_map_dictionary   import pre2022_file_map, new_dimuon_file_map
 
 from file_functions        import load_process_from_file, append_to_combined_processes, sort_combined_processes
 
 from luminosity_dictionary import luminosities_with_normtag as luminosities
 
 from cut_and_study_functions import set_branches, set_vars_to_plot, set_good_events
-from cut_and_study_functions import apply_cuts_to_process, apply_AR_cut
+from cut_and_study_functions import apply_HTT_FS_cuts_to_process, apply_AR_cut
 
 from plotting_functions    import get_binned_data, get_binned_backgrounds, get_binned_signals
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot, spruce_up_legend
@@ -69,9 +69,12 @@ if __name__ == "__main__":
   jet_mode         = args.jet_mode # default Inclusive [possible values 0j, 1j, 2j, GTE2j]
 
   #using_directory = "/Volumes/IDrive/HTauTau_Data/2022postEE/" # full dataset
-  using_directory = "/Volumes/IDrive/HTauTau_Data/skims/dimuon_2022postEE/"
+  #using_directory = "/Volumes/IDrive/HTauTau_Data/skims/dimuon_2022postEE/" # skim
+  using_directory = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3Unskimmed/" #MiniIso sample
+  useMiniIso = True
+  print(f"You are using MiniIso : {useMiniIso}")
  
-  good_events  = set_good_events(final_state_mode)
+  good_events  = set_good_events(final_state_mode, useMiniIso==useMiniIso)
   branches     = set_branches(final_state_mode, DeepTau_version)
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
   plot_dir = make_directory("FS_plots/"+args.plot_dir, final_state_mode + "_" + jet_mode, testing=testing)
@@ -81,7 +84,8 @@ if __name__ == "__main__":
                    using_directory, plot_dir,
                    good_events, branches, vars_to_plot)
 
-  file_map = testing_dimuon_file_map if testing else dimuon_file_map
+  #file_map = testing_dimuon_file_map if testing else dimuon_file_map
+  file_map = new_dimuon_file_map
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -94,8 +98,8 @@ if __name__ == "__main__":
                                               data=("Data" in process), testing=testing)
     if new_process_dictionary == None: continue # skip process if empty
 
-    cut_events = apply_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
-                                       DeepTau_version=DeepTau_version)
+    cut_events = apply_HTT_FS_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
+                                       DeepTau_version=DeepTau_version, useMiniIso=useMiniIso)
     if cut_events == None: continue
 
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
@@ -130,22 +134,22 @@ if __name__ == "__main__":
     m2_pt = 199.9 if m2_pt >= 200 else m2_pt
     m1_pt, m1_eta = np.float64(m1_pt), np.float64(m1_eta) # wild hack, float32s just don't cut it
     m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
+
     weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
     #weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
     #weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    weight *= evaluator["NUM_LooseMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+
     weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
     #weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
     #weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    weight *= evaluator["NUM_LooseMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+
     dimuon_SF_weights.append(weight)
-    # need to redo with the loose iso
 
   background_dictionary["DYInc"]["SF_weight"] = np.array(dimuon_SF_weights)
-  gen_weights = background_dictionary["DYInc"]["Generator_weight"]
-  SF_weights = background_dictionary["DYInc"]["SF_weight"]
-  full_weights = gen_weights*SF_weights
-  print(full_weights)
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting

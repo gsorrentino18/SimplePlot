@@ -14,7 +14,7 @@ from file_functions        import load_process_from_file, append_to_combined_pro
 from luminosity_dictionary import luminosities_with_normtag as luminosities
 
 from cut_and_study_functions import set_branches, set_vars_to_plot, set_good_events
-from cut_and_study_functions import apply_cuts_to_process, apply_AR_cut
+from cut_and_study_functions import apply_HTT_FS_cuts_to_process, apply_AR_cut
 
 from plotting_functions    import get_binned_data, get_binned_backgrounds, get_binned_signals
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot, spruce_up_legend
@@ -161,7 +161,7 @@ if __name__ == "__main__":
                                               data=("Data" in process), testing=testing)
     if new_process_dictionary == None: continue # skip process if empty
 
-    cut_events = apply_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
+    cut_events = apply_HTT_FS_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
                                        DeepTau_version=DeepTau_version)
     if cut_events == None: continue
 

@@ -14,7 +14,7 @@ from file_functions        import load_process_from_file, append_to_combined_pro
 from luminosity_dictionary import luminosities_with_normtag as luminosities
 
 from cut_and_study_functions import set_branches, set_vars_to_plot, set_good_events
-from cut_and_study_functions import apply_cuts_to_process
+from cut_and_study_functions import apply_HTT_FS_cuts_to_process
 
 from plotting_functions    import get_binned_data, get_binned_backgrounds, get_binned_signals
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot, spruce_up_legend
@@ -41,13 +41,14 @@ if __name__ == "__main__":
   parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots",     action='store')
   parser.add_argument('--lumi',        dest='lumi',        default="2022 F&G",  action='store')
   parser.add_argument('--jet_mode',    dest='jet_mode',    default="Inclusive", action='store')
+  parser.add_argument('--DeepTau',     dest='DeepTau_version', default="2p5",   action='store')
 
   args = parser.parse_args() 
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
   lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
-  useDeepTauVersion = "2p5"
+  DeepTau_version = args.DeepTau_version # default is 2p5 [possible values 2p1 and 2p5]
 
   # final_state_mode affects many things automatically, including good_events, datasets, plotting vars, etc.
   final_state_mode = args.final_state # default mutau [possible values ditau, mutau, etau, dimuon]
@@ -57,13 +58,13 @@ if __name__ == "__main__":
   using_directory = "multiple_directories"
  
   good_events  = set_good_events(final_state_mode)
-  branches     = set_branches(final_state_mode)
+  branches     = set_branches(final_state_mode, DeepTau_version)
   # jet category define at run time as 0, 1, 2, inclusive (≥0), ≥1, or ≥2
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
   plot_dir = make_directory(args.plot_dir, final_state_mode + "_" + jet_mode, testing=testing) # for output files of plots
 
   # show info to user
-  print_setup_info(final_state_mode, lumi, jet_mode, testing, useDeepTauVersion,
+  print_setup_info(final_state_mode, lumi, jet_mode, testing, DeepTau_version,
                    using_directory, plot_dir,
                    good_events, branches, vars_to_plot)
 
@@ -100,8 +101,8 @@ if __name__ == "__main__":
                                               data=("Data" in process), testing=testing)
     if new_process_dictionary == None: continue # skip process if empty
 
-    cut_events = apply_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
-                                       DeepTau_version=useDeepTauVersion)
+    cut_events = apply_HTT_FS_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
+                                       DeepTau_version=DeepTau_version)
     if cut_events == None: continue
 
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
