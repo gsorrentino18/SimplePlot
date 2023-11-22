@@ -4,8 +4,10 @@ import numpy as np
 # this file contains functions to perform cuts and self-contained studies
 
 from calculate_functions import calculate_mt
-from triggers_dictionary import triggers_dictionary
 from utility_functions   import time_print
+
+from cut_ditau_functions import make_ditau_cut # is this something where using import * is justified?
+from branch_functions    import add_trigger_branches, add_DeepTau_branches
 
 
 def append_lepton_indices(event_dictionary):
@@ -31,68 +33,6 @@ def make_TnP_cut(event_dictionary, DeepTau_version, numerator=False):
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_TnP = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_tauIdx",
                 "l1_indices", "l2_indices"]
-  return event_dictionary
-
-
-def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=False):
-  '''
-  Use a minimal set of branches to define selection criteria and identify events which pass.
-  A separate function uses the generated branch "pass_cuts" to remove the info from the
-  loaded samples.
-  Note: the zip method in python is a row-scanner, so the for loop below looks like this
-  Events | pt | eta | tau_idx
-  ###########################
-       1 | 27 | 0.5 | 1
-       2 | 35 | 1.5 | 0
-       3 | 40 | 2.1 | 0
-  i.e. we see variables of events sequentially.
-  With this info, we make a simple check and store relevant variables.
-  Note: stored variable branches are appended to other functions so that cutting
-  events works properly
-  '''
-  nEvents_precut = len(event_dictionary["Lepton_pt"])
-  unpack_ditau = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_tauIdx", 
-                  "Tau_dxy", "Tau_dz", "l1_indices", "l2_indices"]
-  unpack_ditau = add_DeepTau_branches(unpack_ditau, DeepTau_version)
-  unpack_ditau = (event_dictionary.get(key) for key in unpack_ditau)
-  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_ditau] # "*" unpacks a tuple
-  pass_cuts = []
-  FS_t1_pt, FS_t1_eta, FS_t1_phi, FS_t1_dxy, FS_t1_dz = [], [], [], [], []
-  FS_t2_pt, FS_t2_eta, FS_t2_phi, FS_t2_dxy, FS_t2_dz = [], [], [], [], []
-  # note these are in the same order as the variables in the first line of this function :)
-  # TODO: double-check counts with/without trigger :)
-  for i, lep_pt, lep_eta, lep_phi, tau_idx,\
-      tau_dxy, tau_dz, l1_idx, l2_idx, vJet, vMu, vEle in zip(*to_check):
-    passKinems = (lep_pt[l1_idx] >= 40.0 and lep_pt[l2_idx] >= 40.0)
-    # Medium v Jet, VLoose v Muon, VVVLoose v Ele
-    t1passDT   = (vJet[tau_idx[l1_idx]] >= 5 and vMu[tau_idx[l1_idx]] >= 1 and vEle[tau_idx[l1_idx]] >= 1)
-    t2passDT   = (vJet[tau_idx[l2_idx]] >= 5 and vMu[tau_idx[l2_idx]] >= 1 and vEle[tau_idx[l2_idx]] >= 1)
-    if (free_pass_AR or (passKinems and t1passDT and t2passDT) or (skip_DeepTau and passKinems and t2passDT)):
-      pass_cuts.append(i)
-      FS_t1_pt.append(lep_pt[l1_idx])
-      FS_t1_eta.append(lep_eta[l1_idx])
-      FS_t1_phi.append(lep_phi[l1_idx])
-      FS_t1_dxy.append(abs(tau_dxy[tau_idx[l1_idx]]))
-      FS_t1_dz.append(tau_dz[tau_idx[l1_idx]])
-      FS_t2_pt.append(lep_pt[l2_idx])
-      FS_t2_eta.append(lep_eta[l2_idx])
-      FS_t2_phi.append(lep_phi[l2_idx])
-      FS_t2_dxy.append(abs(tau_dxy[tau_idx[l2_idx]]))
-      FS_t2_dz.append(tau_dz[tau_idx[l2_idx]])
-
-  event_dictionary["pass_cuts"] = np.array(pass_cuts)
-  event_dictionary["FS_t1_pt"]  = np.array(FS_t1_pt)
-  event_dictionary["FS_t1_eta"] = np.array(FS_t1_eta)
-  event_dictionary["FS_t1_phi"] = np.array(FS_t1_phi)
-  event_dictionary["FS_t1_dxy"] = np.array(FS_t1_dxy)
-  event_dictionary["FS_t1_dz"]  = np.array(FS_t1_dz)
-  event_dictionary["FS_t2_pt"]  = np.array(FS_t2_pt)
-  event_dictionary["FS_t2_eta"] = np.array(FS_t2_eta)
-  event_dictionary["FS_t2_phi"] = np.array(FS_t2_phi)
-  event_dictionary["FS_t2_dxy"] = np.array(FS_t2_dxy)
-  event_dictionary["FS_t2_dz"]  = np.array(FS_t2_dz)
-  nEvents_postcut = len(np.array(pass_cuts))
-  print(f"nEvents before and after ditau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
 
 
@@ -665,6 +605,7 @@ def Era_F_trigger_study(data_events, final_state_mode):
   Compact function for 2022 era F trigger study, where ChargedIsoTau
   triggers were briefly enabled for Run2-Run3 Tau trigger studies. 
   '''
+  from triggers_dictionary import triggers_dictionary
   FS_triggers = triggers_dictionary[final_state_mode]
   for trigger in FS_triggers:
     print(f" {trigger} has {np.sum(data_events[trigger])} events")
@@ -800,13 +741,19 @@ def apply_HTT_FS_cuts_to_process(process, process_dictionary,
   if len(process_events["run"])==0: return None
 
   process_events = append_lepton_indices(process_events)
+
   FS_cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version, useMiniIso=useMiniIso)
   if len(FS_cut_events["run"])==0: return None 
-
   cut_events = apply_jet_cut(FS_cut_events, jet_mode)
   if len(cut_events["run"])==0: return None
 
-  return cut_events
+  # TODO : want to move to this
+  #jet_cut_events = apply_jet_cut(process_events, jet_mode)
+  #if len(jet_cut_events["run"])==0: return None
+  #FS_cut_events = apply_final_state_cut(jet_cut_events, final_state_mode, DeepTau_version, useMiniIso=useMiniIso)
+  #if len(FS_cut_events["run"])==0: return None  
+
+  return FS_cut_events
 
 
 def set_good_events(final_state_mode, disable_triggers=False, useMiniIso=False):
@@ -835,7 +782,14 @@ def set_good_events(final_state_mode, disable_triggers=False, useMiniIso=False):
   
   # apply FS cut separately so it can be used with reject_duplicate_events
   if final_state_mode == "ditau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
+    #good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
+    triggers = "(HLT_DoubleMediumDeepTauPFTauHPS35_L2NN_eta2p1\
+               | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet60\
+               | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet75\
+               | HLT_VBF_DoubleMediumDeepTauPFTauHPS20_eta2p1\
+               | HLT_DoublePFJets40_Mass500_MediumDeepTauPFTauHPS45_L2NN_MediumDeepTauPFTauHPS20_eta2p1)"
+
+    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & " + triggers
     if disable_triggers: good_events = good_events.replace(" & (Trigger_ditau)", "")
 
   elif final_state_mode == "mutau":
@@ -899,32 +853,6 @@ def add_final_state_branches(branches_, final_state_mode):
   
   return branches_
 
-
-def add_DeepTau_branches(branches_, DeepTauVersion):
-  '''
-  Helper function to add DeepTauID branches
-  '''
-  if DeepTauVersion == "2p1":
-    for DeepTau_v2p1_branch in ["Tau_idDeepTau2017v2p1VSjet", "Tau_idDeepTau2017v2p1VSmu", "Tau_idDeepTau2017v2p1VSe"]:
-      branches_.append(DeepTau_v2p1_branch)
-
-  elif DeepTauVersion == "2p5":
-    for DeepTau_v2p5_branch in ["Tau_idDeepTau2018v2p5VSjet", "Tau_idDeepTau2018v2p5VSmu", "Tau_idDeepTau2018v2p5VSe"]:
-      branches_.append(DeepTau_v2p5_branch)
-
-  else:
-    print(f"no branches added with argument {DeepTauVersion}. Try 2p1 or 2p5.")
-
-  return branches_
-
-
-def add_trigger_branches(branches_, final_state_mode):
-  '''
-  Helper function to add HLT branches used by a given final state
-  '''
-  for trigger in triggers_dictionary[final_state_mode]:
-    branches_.append(trigger)
-  return branches_
 
 
 # this is ugly and bad and i am only doing this out of desperation
