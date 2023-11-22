@@ -129,7 +129,8 @@ def set_MC_process_info(process, luminosity, scaling=False, signal=False):
     plot_scaling = MC_dictionary[process]["plot_scaling"] # 1 for all non-signal processes by default
     scaling = 1000. * plot_scaling * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
     if process=="QCD": scaling = 1
-    #if process=="DYInc": scaling *=6.482345 # scale up factor for New Dimuon DY
+    #if process=="DYInc": scaling *=6.482345 # scale-up factor for v12 Dimuon DY in MiniIso
+    #if process=="DYInc": scaling *= 3.3695 # scale-up factor for v11 Dimuon DY in PFRelIso
   if signal:
     label += " x" + str(plot_scaling)
   return (color, label, scaling)
@@ -407,7 +408,10 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
   # add together subprocesses of each MC family
   h_MC_by_family = {}
   # see what processes exist in the dictionary
-  all_MC_families  = ["DY", "TT", "ST", "WJ", "VV"]
+  if "QCD" in background_dictionary.keys(): # QCD is on bottom of stack since it is first called
+    h_MC_by_family["QCD"] = {}
+    h_MC_by_family["QCD"]["BinnedEvents"] = h_MC_by_process["QCD"]["BinnedEvents"]
+  all_MC_families  = ["DY", "TT", "ST", "WJ", "VV"] # determines stack order, far left is bottom
   used_MC_families = []
   for process in h_MC_by_process:
     for family in all_MC_families:
@@ -418,9 +422,6 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
   for family in used_MC_families:
     h_MC_by_family[family] = {}
     h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
-  if "QCD" in background_dictionary.keys():
-    h_MC_by_family["QCD"] = {}
-    h_MC_by_family["QCD"]["BinnedEvents"] = h_MC_by_process["QCD"]["BinnedEvents"]
   h_backgrounds = h_MC_by_family
   # used for ratio plot
   h_summed_backgrounds = 0
