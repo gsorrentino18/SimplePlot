@@ -69,10 +69,12 @@ if __name__ == "__main__":
   jet_mode         = args.jet_mode # default Inclusive [possible values 0j, 1j, 2j, GTE2j]
 
   #using_directory = "/Volumes/IDrive/HTauTau_Data/2022postEE/" # full dataset
-  #using_directory = "/Volumes/IDrive/HTauTau_Data/skims/dimuon_2022postEE/" # skim
-  using_directory = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3Unskimmed/" #MiniIso sample
-  useMiniIso = True
-  print(f"You are using MiniIso : {useMiniIso}")
+  using_directory = "/Volumes/IDrive/HTauTau_Data/skims/dimuon_2022postEE/" # skim
+  #using_directory = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3Unskimmed/" #MiniIso sample
+  useMiniIso = False
+  mini_iso_status = f"You are using MiniIso : {useMiniIso}"
+  from utility_functions import attention
+  attention(mini_iso_status)
  
   good_events  = set_good_events(final_state_mode, useMiniIso==useMiniIso)
   branches     = set_branches(final_state_mode, DeepTau_version)
@@ -84,8 +86,8 @@ if __name__ == "__main__":
                    using_directory, plot_dir,
                    good_events, branches, vars_to_plot)
 
-  #file_map = testing_dimuon_file_map if testing else dimuon_file_map
-  file_map = new_dimuon_file_map
+  file_map = testing_dimuon_file_map if testing else dimuon_file_map
+  #file_map = new_dimuon_file_map # for MiniIso
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -136,16 +138,16 @@ if __name__ == "__main__":
     m2_pt, m2_eta = np.float64(m2_pt), np.float64(m2_eta) 
 
     weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    #weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
     #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
     #weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
-    weight *= evaluator["NUM_LooseMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
+    #weight *= evaluator["NUM_LooseMiniIso_DEN_MediumID"].evaluate(abs(m1_eta), m1_pt, sf_type)
 
     weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    #weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    weight *= evaluator["NUM_LoosePFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
     #weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
     #weight *= evaluator["NUM_TightMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
-    weight *= evaluator["NUM_LooseMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
+    #weight *= evaluator["NUM_LooseMiniIso_DEN_MediumID"].evaluate(abs(m2_eta), m2_pt, sf_type)
 
     dimuon_SF_weights.append(weight)
 
