@@ -55,6 +55,7 @@ binning_dictionary = {
   "FS_m2_iso"  : (25, 0, 1),
   "FS_m2_dxy"  : (50, 0, 0.05),
   "FS_m2_dz"   : (50, 0, 0.25),
+  "FS_m_vis_tight" : (80, 70, 110), # TODO add this
 
 # common, calculated on the fly
   "FS_mt"         : (20, 0, 200),
@@ -77,5 +78,4 @@ binning_dictionary = {
   "HTT_H_pt_using_PUPPI_MET"         : (30, 0, 300),
   "HTT_dR"     : (60, 0, 6),
   "HTT_m_vis" : (30, 0, 300), # this is m_lep
-  #"HTT_m_vis" : (80, 70, 110), # this binning is only for dimuon
 }
