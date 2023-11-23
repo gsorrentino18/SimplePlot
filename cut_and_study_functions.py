@@ -242,12 +242,16 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
   FF_values = {
     # FS : { "jet_mode" : [intercept, slope] }  
     "ditau" : { 
-      "0j_2p1"     : [0.409537, -0.00166789],
-      "1j_2p1"     : [0.338192, -0.00114901],
-      "GTE2j_2p1"  : [0.274382, -0.000810031],
+      "0j_2p1"      : [0.409537, -0.00166789],
+      "1j_2p1"      : [0.338192, -0.00114901],
+      "GTE2j_2p1"   : [0.274382, -0.000810031],
+      "Closure_2p1" : [1, -0.001], # dummy values
+      "OSSS_Bias_2p1" : [1, -0.001], # dummy values
       "0j_2p5"      : [0.277831, -0.000975272],
       "1j_2p5"      : [0.264218, -0.00121849],
       "GTE2j_2p5"   : [0.2398, -0.00124643],
+      "Closure_2p5" : [1.0459, -0.00102224],
+      "OSSS_Bias_2p5" : [1, 0], # dummy values
     },
     "mutau" : {  # wrong 2p5
       "0j_2p5"     : [0.037884, 0.000648851],
@@ -322,6 +326,8 @@ def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
   
   FF_key = jet_mode + "_" + DeepTau_version
   intercept, slope = set_FF_values("ditau", FF_key)
+  closure_intercept, closure_slope = set_FF_values("ditau", "Closure_" + DeepTau_version)
+  OSSS_bias_intercept, OSSS_bias_slope = set_FF_values("ditau", "OSSS_Bias_" + DeepTau_version)
   for i, lep_pt, m_vis, l1_idx, l2_idx in zip(*to_check):
     if m_vis < bins[0]: # 50
       one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][0] # first weight
@@ -337,9 +343,14 @@ def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
       m_vis_weight_idx = m_vis_idx + 1 # 0 in weights is < 50 weight
       one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][m_vis_weight_idx]
 
-    FF_weight = one_minus_MC_over_data_weight*(intercept + lep_pt[l1_idx] * slope)
-    if (lep_pt[l1_idx] > 120.0):
-      FF_weight = one_minus_MC_over_data_weight*(intercept + 120.0 * slope)
+    l1_pt = lep_pt[l1_idx] if lep_pt[l1_idx] < 120.0 else 120.0
+    FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope)
+    #FF_weight = one_minus_MC_over_data_weight*(intercept + lep_pt[l1_idx] * slope)
+    #if (lep_pt[l1_idx] > 120.0):
+    #  FF_weight = one_minus_MC_over_data_weight*(intercept + 120.0 * slope)
+    FF_weight *= (closure_intercept + lep_pt[l2_idx] * closure_slope)
+    FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope)
+
     FF_weights.append(FF_weight)
   event_dictionary["FF_weight"] = np.array(FF_weights)
   return event_dictionary
