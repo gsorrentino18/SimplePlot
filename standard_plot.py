@@ -172,58 +172,6 @@ if __name__ == "__main__":
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
-  #new_sample_dict = {}
-  '''
-  print("sample, genuine, jet fake, lep fake")
-  for sample in background_dictionary.keys():
-    t1_gen_flav_arr = background_dictionary[sample]["PlotEvents"]["FS_t1_flav"]
-    t2_gen_flav_arr = background_dictionary[sample]["PlotEvents"]["FS_t2_flav"]
-    to_use  = (range(len(t1_gen_flav_arr)), t1_gen_flav_arr, t2_gen_flav_arr)
-    genuine, jet_fakes, lep_fakes = [], [], []
-    for i, t1_flav, t2_flav in zip(*to_use):
-      if (t1_flav == 5) and (t2_flav == 5):
-        # genuine tau
-        genuine.append(i)
-      elif (t1_flav == 0) or (t2_flav == 0):
-        # one tau is faked by jet
-        # jet fake
-        jet_fakes.append(i)
-      elif (t1_flav < 5 and t1_flav > 0) or (t2_flav < 5 and t1_flav > 0):
-        # one tau is faked by lepton
-        # lep fake (jet fakes enter category above first due to ordering)
-        # implies also the case where both are faked but one is faked by lepton 
-        # is added to jet fakes, which i think is fine
-        lep_fakes.append(i)
-
-    print(sample, len(genuine), len(jet_fakes), len(lep_fakes), sep=', ')
-    sample_genuine = sample + "Genuine"
-    sample_jetfake = sample + "JetFakes"
-    sample_lepfake = sample + "LepFakes"
-  '''
-    #new_sample_dict[sample_genuine]  = {}
-    #new_sample_dict[sample_jetfake]  = {}
-    #new_sample_dict[sample_lepfake]  = {}
-    #new_sample_dict[sample_genuine]["PlotEvents"]  = {}
-    #new_sample_dict[sample_jetfake]["PlotEvents"]  = {}
-    #new_sample_dict[sample_lepfake]["PlotEvents"]  = {}
-
-    #for var in vars_to_plot:
-    #  new_sample_dict[sample_genuine]["PlotEvents"][var]   = background_dictionary[sample]["PlotEvents"][var][genuine]
-    #  new_sample_dict[sample_jetfake]["PlotEvents"][var]   = background_dictionary[sample]["PlotEvents"][var][jet_fakes]
-    #  new_sample_dict[sample_lepfake]["PlotEvents"][var]   = background_dictionary[sample]["PlotEvents"][var][lep_fakes]
-
-    #new_sample_dict[sample_genuine]["Generator_weight"] = background_dictionary[sample]["Generator_weight"][genuine]
-    #new_sample_dict[sample_jetfake]["Generator_weight"] = background_dictionary[sample]["Generator_weight"][jet_fakes]
-    #new_sample_dict[sample_lepfake]["Generator_weight"] = background_dictionary[sample]["Generator_weight"][lep_fakes]
-    #new_sample_dict[sample_genuine]["SF_weight"] = background_dictionary[sample]["SF_weight"][genuine]
-    #new_sample_dict[sample_jetfake]["SF_weight"] = background_dictionary[sample]["SF_weight"][jet_fakes]
-    #new_sample_dict[sample_lepfake]["SF_weight"] = background_dictionary[sample]["SF_weight"][lep_fakes]
-    #background_dictionary.pop(sample)
-    #background_dictionary[sample_genuine] = new_sample_dict[sample_genuine]
-    #background_dictionary[sample_jetfake] = new_sample_dict[sample_jetfake]
-    #background_dictionary[sample_lepfake] = new_sample_dict[sample_lepfake]
-
-
   t1_gen_flav_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_t1_flav"]
   t2_gen_flav_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_t2_flav"]
 
