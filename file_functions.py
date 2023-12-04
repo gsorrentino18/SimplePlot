@@ -32,6 +32,7 @@ def load_process_from_file(process, file_directory, file_map, branches, good_eve
   file_string = file_directory + "/" + file_map[process] + ".root:Events"
   if data: 
     branches = [branch for branch in branches if branch != "Generator_weight"]
+    branches = [branch for branch in branches if branch != "Tau_genPartFlav"]
   try:
     processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
   except FileNotFoundError:
@@ -71,6 +72,7 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
       "Cuts": {},
     }
   for var in vars_to_plot:
+    if ("Data" in process) and ("flav" in var): continue
     combined_processes[process]["PlotEvents"][var] = cut_events[var]
 
   for cut in ["pass_cuts", 
