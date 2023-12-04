@@ -78,4 +78,6 @@ binning_dictionary = {
   "HTT_H_pt_using_PUPPI_MET"         : (30, 0, 300),
   "HTT_dR"     : (60, 0, 6),
   "HTT_m_vis" : (30, 0, 300), # this is m_lep
+  "FS_t1_flav" : (11, 0, 11),
+  "FS_t2_flav" : (11, 0, 11),
 }
