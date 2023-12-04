@@ -3,6 +3,8 @@ import numpy as np
 #from cut_and_study_functions import add_DeepTau_branches, add_trigger_branches
 from branch_functions import add_trigger_branches, add_DeepTau_branches
 
+
+
 def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=False):
   '''
   Use a minimal set of branches to define selection criteria and identify events which pass.
@@ -39,7 +41,7 @@ def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_D
     t1_pt  = lep_pt[l1_idx]
     t2_pt  = lep_pt[l2_idx]
     t1_eta = lep_eta[l1_idx]
-    t2_eta = lep_eta[l1_idx]
+    t2_eta = lep_eta[l2_idx]
     # need nCleanJets variable to know what to fill
     # also, can happen that trigger with jets fires but nCleanJets says those are bad jets
     # would be good info to log/study/dump to terminal one time
@@ -81,6 +83,7 @@ def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_D
   event_dictionary["FS_t2_phi"] = np.array(FS_t2_phi)
   event_dictionary["FS_t2_dxy"] = np.array(FS_t2_dxy)
   event_dictionary["FS_t2_dz"]  = np.array(FS_t2_dz)
+
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after ditau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
