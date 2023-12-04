@@ -54,6 +54,7 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
     else:
       color, label, _ = set_MC_process_info(MC_process, luminosity)
     current_hist = stack_dictionary[MC_process]["BinnedEvents"]
+    #print(MC_process) # DEBUG
     # TODO handle variable binning with list of differences
     #print("weight per bin squared")
     #print(weight_per_bin_squared)
@@ -116,6 +117,63 @@ def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
   # USE fill_between axis method for shaded errors
   # https://stackoverflow.com/questions/60697625/error-bars-as-a-shaded-area-on-matplotlib-pyplot-step
 
+'''
+def set_MC_process_info(process, luminosity, scaling=False, signal=False):
+  #Obtain process-specific styling and scaling information.
+  #MC_dictionary is maintained in a separate file.
+  print("New process")
+  scaling_val = 1
+  plot_scaling = 1
+  full_process = process
+  for word in ["Genuine", "JetFakes", "LepFakes"]:
+    print(f"process {process}")
+    if word in process:
+      full_process = process.replace(word, "")
+      print(f"full process {full_process}")
+      print(f"process {process}")
+      MC_dictionary[process] = {}
+      #plot_scaling = MC_dictionary[full_process]["plot_scaling"] # 1 for all non-signal processes by default
+      MC_dictionary[process]["plot_scaling"] = 1
+      #scaling = 1000. * plot_scaling * luminosity * MC_dictionary[full_process]["XSec"] / MC_dictionary[full_process]["NWevents"]
+      #scaling = 1000. * luminosity * MC_dictionary[full_process]["XSec"] / MC_dictionary[full_process]["NWevents"]
+      scaling_val = 1000. * luminosity * MC_dictionary[full_process]["XSec"] / MC_dictionary[full_process]["NWevents"]
+     
+      if "Genuine" in process:
+        MC_dictionary[process]["color"] = MC_dictionary[full_process]["color"] # original color
+        MC_dictionary[process]["label"] = MC_dictionary[full_process]["label"] # original label
+      elif "JetFakes" in process:
+        color_hash_string = MC_dictionary[full_process]["color"].replace("#", "0x")
+        print(color_hash_string, type(color_hash_string))
+        #original_color = int(MC_dictionary[full_process]["color"], 16)
+        original_color = int(color_hash_string, 16)
+        updated_color  = str(original_color + 0x000999).replace("0x", "#")
+        MC_dictionary[process]["color"] = updated_color
+        MC_dictionary[process]["label"] = process
+      elif "LepFakes" in process:
+        color_hash_string = MC_dictionary[full_process]["color"].replace("#", "0x")
+        #original_color = int(MC_dictionary[full_process]["color"], 16)
+        original_color = int(color_hash_string, 16)
+        updated_color  = str(original_color - 0x000999).replace("0x", "#")
+        MC_dictionary[process]["color"] = updated_color
+        MC_dictionary[process]["label"] = process
+
+  color = MC_dictionary[process]["color"]
+  label = MC_dictionary[process]["label"]
+  if scaling_val == 1 and scaling==True:
+    scaling = 1000. * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
+ 
+  ##if (scaling) and (type(scaling) != int):
+  # factor of 1000 comes from lumi and XSec units of fb^-1 = 10E15 b^-1 and pb = 10E-12 b respectively
+  ##  plot_scaling = MC_dictionary[process]["plot_scaling"] # 1 for all non-signal processes by default
+  ##  scaling = 1000. * plot_scaling * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
+  ##  if process=="QCD": scaling = 1
+    #if process=="DYInc": scaling *=6.482345 # scale-up factor for v12 Dimuon DY in MiniIso
+    #if process=="DYInc": scaling *= 3.3695 # scale-up factor for v11 Dimuon DY in PFRelIso
+  if signal:
+    label += " x" + str(plot_scaling)
+  return (color, label, scaling_val)
+'''
+
 
 def set_MC_process_info(process, luminosity, scaling=False, signal=False):
   '''
@@ -129,8 +187,7 @@ def set_MC_process_info(process, luminosity, scaling=False, signal=False):
     plot_scaling = MC_dictionary[process]["plot_scaling"] # 1 for all non-signal processes by default
     scaling = 1000. * plot_scaling * luminosity * MC_dictionary[process]["XSec"] / MC_dictionary[process]["NWevents"]
     if process=="QCD": scaling = 1
-    #if process=="DYInc": scaling *=6.482345 # scale-up factor for v12 Dimuon DY in MiniIso
-    #if process=="DYInc": scaling *= 3.3695 # scale-up factor for v11 Dimuon DY in PFRelIso
+    #if process=="DYInc": scaling *=6.482345 # scale up factor for New Dimuon DY
   if signal:
     label += " x" + str(plot_scaling)
   return (color, label, scaling)
@@ -366,7 +423,10 @@ def get_parent_process(MC_process):
   TODO: simplify this code, it is currently written in a brain-dead way
   '''
   parent_process = ""
-  if   "DY"    in MC_process:  parent_process = "DY"
+  #if   "JetFakes" in MC_process:  parent_process = "DYJetFakes" # DEBUG
+  #elif "LepFakes" in MC_process:  parent_process = "DYLepFakes" # DEBUG
+  #elif "Genuine"  in MC_process:  parent_process = "DY" # DEBUG
+  if "DY" in MC_process: parent_process = "DY"
   elif "WJets" in MC_process:  parent_process = "WJ"
   elif "TT"    in MC_process:  parent_process = "TT"
   elif "ST"    in MC_process:  parent_process = "ST"
@@ -411,6 +471,7 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
   if "QCD" in background_dictionary.keys(): # QCD is on bottom of stack since it is first called
     h_MC_by_family["QCD"] = {}
     h_MC_by_family["QCD"]["BinnedEvents"] = h_MC_by_process["QCD"]["BinnedEvents"]
+  #all_MC_families  = ["JetFakes", "LepFakes", "DY", "TT", "ST", "WJ", "VV"] # determines stack order, far left is bottom
   all_MC_families  = ["DY", "TT", "ST", "WJ", "VV"] # determines stack order, far left is bottom
   used_MC_families = []
   for process in h_MC_by_process:
