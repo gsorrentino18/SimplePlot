@@ -27,7 +27,7 @@ def append_lepton_indices(event_dictionary):
   return event_dictionary
 
 
-def append_flavor_indices(event_dictionary):
+def append_flavor_indices(event_dictionary, final_state_mode):
   unpack_flav = ["l1_indices", "l2_indices", "Lepton_tauIdx", "Tau_genPartFlav"]
   unpack_flav = (event_dictionary.get(key) for key in unpack_flav)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_flav]
@@ -35,24 +35,42 @@ def append_flavor_indices(event_dictionary):
   pass_gen_cuts, genuine_events, jet_fake_events, lep_fake_events = [], [], [], []
   for i, l1_idx, l2_idx, tau_idx, tau_flav in zip(*to_check):
     genuine, lep_fake, jet_fake = False, False, False
-    t1_flav = tau_flav[tau_idx[l1_idx]]
-    t2_flav = tau_flav[tau_idx[l2_idx]]
-    if (t1_flav == 5) and (t2_flav == 5):
-      # genuine tau --> both taus are taus at gen level
-      genuine = True
-      genuine_events.append(i)
-    elif (t1_flav == 0) or (t2_flav == 0):
-      # jet fake --> one tau is faked by jet
-      jet_fake = True
-      jet_fake_events.append(i)
-    elif (t1_flav < 5 and t1_flav > 0) or (t2_flav < 5 and t1_flav > 0):
-      # lep fake --> both taus are faked by lepton
-      # event with one tau faking jet enters category above first due to ordering
-      # implies also the case where both are faked but one is faked by lepton 
-      # is added to jet fakes, which i think is fine
-      lep_fake = True
-      lep_fake_events.append(i)
+    t1_flav = -1
+    t2_flav = -1
+    if final_state_mode == "ditau":
+      t1_flav = tau_flav[tau_idx[l1_idx]]
+      t2_flav = tau_flav[tau_idx[l2_idx]]
+      if (t1_flav == 5) and (t2_flav == 5):
+        # genuine tau --> both taus are taus at gen level
+        genuine = True
+        genuine_events.append(i)
+      elif (t1_flav == 0) or (t2_flav == 0):
+        # jet fake --> one tau is faked by jet
+        jet_fake = True
+        jet_fake_events.append(i)
+      elif (t1_flav < 5 and t1_flav > 0) or (t2_flav < 5 and t1_flav > 0):
+        # lep fake --> both taus are faked by lepton
+        # event with one tau faking jet enters category above first due to ordering
+        # implies also the case where both are faked but one is faked by lepton 
+        # is added to jet fakes, which i think is fine
+        lep_fake = True
+        lep_fake_events.append(i)
+    elif ((final_state_mode == "mutau") or (final_state_mode == "etau")):
+      t1_flav = tau_flav[tau_idx[l1_idx] + tau_idx[l2_idx] + 1] # update with NanoAODv12 samples
+      if (t1_flav == 5):
+        genuine = True
+        genuine_events.append(i)
+      elif (t1_flav == 0):
+        jet_fake = True
+        jet_fake_events.append(i)
+      elif (t1_flav < 5 and t1_flav > 0):
+        lep_fake = True
+        lep_fake_events.append(i)
 
+    else:
+      print(f"No gen matching for that final state ({final_state_mode}), crashing...")
+      return None
+  
     if (genuine) or (lep_fake):
       # save genuine background events and lep_fakes, remove jet fakes with gen matching
       FS_t1_flav.append(t1_flav)
@@ -217,13 +235,13 @@ def make_etau_cut(event_dictionary, DeepTau_version):
     elEtaVal   = lep_eta[elFSLoc]
     elPhiVal   = lep_phi[elFSLoc]
     elIsoVal   = lep_iso[elFSLoc]
-    elDxyVal   = abs(lep_dxy[elFSLoc])
-    elDzVal    = lep_dz[elFSLoc]
+    elDxyVal   = abs(el_dxy[elBranchLoc])
+    elDzVal    = el_dz[elBranchLoc]
     tauPtVal   = lep_pt[tauFSLoc] 
     tauEtaVal  = lep_eta[tauFSLoc]
     tauPhiVal  = lep_phi[tauFSLoc]
-    tauDxyVal  = abs(lep_dxy[tauFSLoc])
-    tauDzVal   = lep_dz[tauFSLoc]
+    tauDxyVal  = abs(tau_dxy[tauBranchLoc])
+    tauDzVal   = tau_dz[tauBranchLoc]
     mtVal      = calculate_mt(elPtVal, elPhiVal, MET_pt, MET_phi)
     passMT     = (mtVal < 50.0)
     #ROOTmtVal  = calculate_mt_pyROOT(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
@@ -280,6 +298,10 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
   FF_values = {
     # FS : { "jet_mode" : [intercept, slope] }  
     "ditau" : { 
+      "custom_0j_2p5_FF" : [0.273506, -0.000930995], # quick check with cutoff
+      "custom_1j_2p5_FF" : [0.222382, -0.000994264],
+      "custom_GTE2j_2p5_FF" : [0.230973, -0.000759698],
+
       "custom_0j_2p5_check_FF"   : [0.315051, -0.00227768, 1.12693e-05],
       "custom_0j_2p5_check_Clos" : [1.90974, -0.0257612, 0.000156502],
       "custom_0j_2p5_check_CH"   : [1.15254, -0.00342661, 2.08671e-05],
@@ -316,9 +338,10 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
   } 
   intercept = FF_values[final_state_mode][jet_mode_and_DeepTau_version][0]
   slope     = FF_values[final_state_mode][jet_mode_and_DeepTau_version][1]
-  slope2    = FF_values[final_state_mode][jet_mode_and_DeepTau_version][2]
+  #slope2    = FF_values[final_state_mode][jet_mode_and_DeepTau_version][2]
 
-  return intercept, slope, slope2
+  #return intercept, slope, slope2
+  return intercept, slope
 
 
 def make_ditau_AR_cut(event_dictionary, DeepTau_version):
@@ -376,13 +399,16 @@ def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
   }
   
   FF_key = jet_mode + "_" + DeepTau_version
+
+  intercept, slope = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_FF")
+
   #intercept, slope = set_FF_values("ditau", FF_key)
   #closure_intercept, closure_slope = set_FF_values("ditau", "Closure_" + DeepTau_version)
   #OSSS_bias_intercept, OSSS_bias_slope = set_FF_values("ditau", "OSSS_Bias_" + DeepTau_version)
 
-  intercept, slope, slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_FF")
-  closure_intercept, closure_slope, closure_slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_Clos")
-  OSSS_bias_intercept, OSSS_bias_slope, OSSS_bias_slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_CH")
+  #intercept, slope, slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_FF")
+  #closure_intercept, closure_slope, closure_slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_Clos")
+  #OSSS_bias_intercept, OSSS_bias_slope, OSSS_bias_slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_CH")
 
   for i, lep_pt, m_vis, l1_idx, l2_idx in zip(*to_check):
     if m_vis < bins[0]: # 50
@@ -401,13 +427,13 @@ def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
 
     l1_pt = lep_pt[l1_idx] if lep_pt[l1_idx] < 120.0 else 120.0
     l2_pt = lep_pt[l2_idx] if lep_pt[l2_idx] < 140.0 else 140.0
-    #FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope)
+    FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope)
     #FF_weight *= (closure_intercept + lep_pt[l2_idx] * closure_slope)
     #FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope)
 
-    FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope + l1_pt*l1_pt*slope2)
-    FF_weight *= (closure_intercept + l2_pt * closure_slope + l2_pt*l2_pt*closure_slope2)
-    FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope + m_vis*m_vis*OSSS_bias_slope2)
+    #FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope + l1_pt*l1_pt*slope2)
+    #FF_weight *= (closure_intercept + l2_pt * closure_slope + l2_pt*l2_pt*closure_slope2)
+    #FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope + m_vis*m_vis*OSSS_bias_slope2)
 
     FF_weights.append(FF_weight)
   event_dictionary["FF_weight"] = np.array(FF_weights)
@@ -812,12 +838,12 @@ def apply_HTT_FS_cuts_to_process(process, process_dictionary,
 
   process_events = append_lepton_indices(process_events)
   if "Data" not in process:
-    process_events = append_flavor_indices(process_events)
+    process_events = append_flavor_indices(process_events, final_state_mode)
     process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts"])
     if (process_events==None or len(process_events["run"])==0): return None
 
   FS_cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version, useMiniIso=useMiniIso)
-  if len(FS_cut_events["run"])==0: return None 
+  if (FS_cut_events==None or len(FS_cut_events["run"])==0): return None 
   cut_events = apply_jet_cut(FS_cut_events, jet_mode)
   if (cut_events==None or len(cut_events["run"])==0): return None
 
@@ -964,11 +990,11 @@ final_state_vars = {
 
     "mutau"  : ["FS_mu_pt", "FS_mu_eta", "FS_mu_phi", "FS_mu_iso", "FS_mu_dxy", "FS_mu_dz",
                 "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz",
-                "FS_mt"],#, "PuppiMET_pt"],
+                "FS_mt", "FS_t1_flav", "FS_t2_flav"], #"PuppiMET_pt"],
 
     "etau"   : ["FS_el_pt", "FS_el_eta", "FS_el_phi", "FS_el_iso", "FS_el_dxy", "FS_el_dz",
                 "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz",
-                "FS_mt", "PuppiMET_pt"],
+                "FS_mt", "FS_t1_flav", "FS_t2_flav"], #"PuppiMET_pt"],
 
     "dimuon" : ["FS_m1_pt", "FS_m1_eta", "FS_m1_phi", "FS_m1_iso", "FS_m1_dxy", "FS_m1_dz",
                 "FS_m2_pt", "FS_m2_eta", "FS_m2_phi", "FS_m2_iso", "FS_m2_dxy", "FS_m2_dz"],

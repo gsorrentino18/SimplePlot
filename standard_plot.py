@@ -131,12 +131,11 @@ if __name__ == "__main__":
 
   # add FF weights :) # almost the same as SR, except SS and 1st tau fails iso (applied in AR_cuts)
   AR_region = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
-  AR_process_dictionary = load_process_from_file("DataTau", using_directory, file_map,
-                                            branches, AR_region, final_state_mode,
-                                            data=True, testing=testing)
-
   if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
     time_print(f"Processing ditau AR region!")
+    AR_process_dictionary = load_process_from_file("DataTau", using_directory, file_map,
+                                            branches, AR_region, final_state_mode,
+                                            data=True, testing=testing)
     AR_events = AR_process_dictionary["DataTau"]["info"]
     cut_events_AR = apply_AR_cut(AR_events, final_state_mode, jet_mode, DeepTau_version)
     FF_dictionary = {}
@@ -146,6 +145,40 @@ if __name__ == "__main__":
     for var in vars_to_plot:
       if ("flav" in var): continue
       FF_dictionary["QCD"]["PlotEvents"][var] = cut_events_AR[var]
+
+  if (final_state_mode == "ditau") and (jet_mode == "Inclusive"):
+    temp_FF_dictionary = {}
+    for internal_jet_mode in ["0j", "1j", "GTE2j"]:
+      time_print(f"Processing ditau AR region! {internal_jet_mode}")
+
+      # reload AR dictionary here because it is cut in the next steps
+      AR_process_dictionary = load_process_from_file("DataTau", using_directory, file_map,
+                                            branches, AR_region, final_state_mode,
+                                            data=True, testing=testing)
+
+      AR_events = AR_process_dictionary["DataTau"]["info"]
+      cut_events_AR = apply_AR_cut(AR_events, final_state_mode, internal_jet_mode, DeepTau_version)
+      temp_FF_dictionary[internal_jet_mode] = {}
+      temp_FF_dictionary[internal_jet_mode]["QCD"] = {}
+      temp_FF_dictionary[internal_jet_mode]["QCD"]["PlotEvents"] = {}
+      temp_FF_dictionary[internal_jet_mode]["QCD"]["FF_weight"]  = cut_events_AR["FF_weight"]
+      for var in vars_to_plot:
+        if ("flav" in var): continue
+        temp_FF_dictionary[internal_jet_mode]["QCD"]["PlotEvents"][var] = cut_events_AR[var]
+
+    temp_dict = {}
+    temp_dict["QCD"] = {}
+    temp_dict["QCD"]["PlotEvents"] = {}
+    temp_dict["QCD"]["FF_weight"]  = np.concatenate((temp_FF_dictionary["0j"]["QCD"]["FF_weight"], 
+                                                   temp_FF_dictionary["1j"]["QCD"]["FF_weight"],
+                                                   temp_FF_dictionary["GTE2j"]["QCD"]["FF_weight"]))
+    for var in vars_to_plot:
+      if ("flav" in var): continue
+      temp_dict["QCD"]["PlotEvents"][var] = np.concatenate((temp_FF_dictionary["0j"]["QCD"]["PlotEvents"][var],
+                                                            temp_FF_dictionary["1j"]["QCD"]["PlotEvents"][var],
+                                                            temp_FF_dictionary["GTE2j"]["QCD"]["PlotEvents"][var]))
+
+    FF_dictionary = temp_dict
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
@@ -172,6 +205,7 @@ if __name__ == "__main__":
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
+  '''
   t1_gen_flav_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_t1_flav"]
   t2_gen_flav_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_t2_flav"]
 
@@ -201,6 +235,7 @@ if __name__ == "__main__":
   new_DY_dict["DYGenuine"]["PlotEvents"]  = {}
   new_DY_dict["DYJetFakes"]["PlotEvents"] = {}
   new_DY_dict["DYLepFakes"]["PlotEvents"] = {}
+  '''
   #for var in vars_to_plot:
   #  new_DY_dict["DYGenuine"]["PlotEvents"][var]   = background_dictionary["DYInc"]["PlotEvents"][var][genuine]
   #  new_DY_dict["DYJetFakes"]["PlotEvents"][var]  = background_dictionary["DYInc"]["PlotEvents"][var][jet_fakes]
@@ -230,7 +265,8 @@ if __name__ == "__main__":
     hist_ax, hist_ratio = setup_ratio_plot()
 
     h_data = get_binned_data(data_dictionary, var, xbins, lumi)
-    if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
+    #if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
+    if (final_state_mode == "ditau"):
       background_dictionary["QCD"] = FF_dictionary["QCD"] # manually include QCD as background
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
