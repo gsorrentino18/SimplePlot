@@ -126,6 +126,7 @@ if __name__ == "__main__":
   print_setup_info(final_state_mode, lumi, jet_mode, testing, DeepTau_version,
                    using_directory, plot_dir,
                    good_events, branches, vars_to_plot)
+                   #"AR_region", branches, vars_to_plot)
 
   file_map = testing_file_map if testing else full_file_map
 
@@ -192,6 +193,7 @@ if __name__ == "__main__":
 
     new_process_dictionary = load_process_from_file(process, using_directory, file_map,
                                               branches, good_events, final_state_mode,
+                                              #branches, AR_region, final_state_mode,
                                               data=("Data" in process), testing=testing)
     if new_process_dictionary == None: continue # skip process if empty
 
@@ -202,57 +204,53 @@ if __name__ == "__main__":
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
                                                                combined_process_dictionary)
 
+  #### JETVETOMAPS TEMP IMPLEMENTATION
+  from correctionlib import _core
+  fname = "../jetvetomaps.json.gz"
+  print(f"fname is : {fname}")
+  if fname.endswith(".json.gz"):
+    import gzip
+    with gzip.open(fname,'rt') as file:
+      data = file.read().strip()
+      evaluator = _core.CorrectionSet.from_string(data)
+  else:
+    evaluator = _core.CorrectionSet.from_file(fname)
+    
+  # 2022 Jet Veto Maps
+  if final_state_mode == "ditau":
+    for process in combined_process_dictionary:
+      bad_events = []
+      eta1_arr = combined_process_dictionary[process]["PlotEvents"]["FS_t1_eta"]
+      phi1_arr = combined_process_dictionary[process]["PlotEvents"]["FS_t1_phi"]
+      eta2_arr = combined_process_dictionary[process]["PlotEvents"]["FS_t2_eta"]
+      phi2_arr = combined_process_dictionary[process]["PlotEvents"]["FS_t2_phi"]
+  
+      to_check = (range(len(eta1_arr)), eta1_arr, phi1_arr, eta2_arr, phi2_arr)
+      for i, eta1, phi1, eta2, phi2 in zip(*to_check):
+        weight = 1
+        if abs(phi1) > 3.141592653589793: phi1 = np.sign(phi1)*3.141592653589792 # put values out of bounds at bounds...
+        if abs(phi2) > 3.141592653589793: phi2 = np.sign(phi2)*3.141592653589792
+  
+        eta1, phi1 = np.float64(eta1), np.float64(phi1) # wild hack, float32s just don't cut it
+        eta2, phi2 = np.float64(eta2), np.float64(phi2)
+  
+        # TODO fix weight check method, also add njets
+        # 15 GeV -- default jet cut
+        # 25 GeV --
+        # 30 GeV -- only veto event if jet in that region 
+        # all jets, veto if in the region at all
+        weight *= evaluator["Winter22Run3_RunE_V1"].evaluate("jetvetomap", eta1, phi1)
+        weight *= evaluator["Winter22Run3_RunE_V1"].evaluate("jetvetomap", eta2, phi2)
+        if weight != 0:
+          bad_events.append(i)
+      print(f"{len(bad_events)} in {process}")
+
+
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
-  '''
-  t1_gen_flav_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_t1_flav"]
-  t2_gen_flav_arr = background_dictionary["DYInc"]["PlotEvents"]["FS_t2_flav"]
-
-  to_use  = (range(len(t1_gen_flav_arr)), t1_gen_flav_arr, t2_gen_flav_arr)
-  genuine, jet_fakes, lep_fakes = [], [], []
-  for i, t1_flav, t2_flav in zip(*to_use):
-    if (t1_flav == 5) and (t2_flav == 5):
-      # genuine tau
-      genuine.append(i)
-    elif (t1_flav == 0) or (t2_flav == 0):
-      # one tau is faked by jet
-      # jet fake
-      jet_fakes.append(i)
-    elif (t1_flav < 5 and t1_flav > 0) or (t2_flav < 5 and t1_flav > 0):
-      # one tau is faked by lepton
-      # lep fake (jet fakes enter category above first due to ordering)
-      # implies also the case where both are faked but one is faked by lepton 
-      # is added to jet fakes, which i think is fine
-      lep_fakes.append(i)
-
-  print("nEvents, genuine, jet fake, lep fake")
-  print(len(genuine), len(jet_fakes), len(lep_fakes),)
-  new_DY_dict = {}
-  new_DY_dict["DYGenuine"]  = {}
-  new_DY_dict["DYJetFakes"] = {}
-  new_DY_dict["DYLepFakes"] = {}
-  new_DY_dict["DYGenuine"]["PlotEvents"]  = {}
-  new_DY_dict["DYJetFakes"]["PlotEvents"] = {}
-  new_DY_dict["DYLepFakes"]["PlotEvents"] = {}
-  '''
-  #for var in vars_to_plot:
-  #  new_DY_dict["DYGenuine"]["PlotEvents"][var]   = background_dictionary["DYInc"]["PlotEvents"][var][genuine]
-  #  new_DY_dict["DYJetFakes"]["PlotEvents"][var]  = background_dictionary["DYInc"]["PlotEvents"][var][jet_fakes]
-  #  new_DY_dict["DYLepFakes"]["PlotEvents"][var]  = background_dictionary["DYInc"]["PlotEvents"][var][lep_fakes]
-
-  #new_DY_dict["DYGenuine"]["Generator_weight"]    = background_dictionary["DYInc"]["Generator_weight"][genuine]
-  #new_DY_dict["DYJetFakes"]["Generator_weight"]   = background_dictionary["DYInc"]["Generator_weight"][jet_fakes]
-  #new_DY_dict["DYLepFakes"]["Generator_weight"]   = background_dictionary["DYInc"]["Generator_weight"][lep_fakes]
-  #new_DY_dict["DYGenuine"]["SF_weight"]    = background_dictionary["DYInc"]["SF_weight"][genuine]
-  #new_DY_dict["DYJetFakes"]["SF_weight"]   = background_dictionary["DYInc"]["SF_weight"][jet_fakes]
-  #new_DY_dict["DYLepFakes"]["SF_weight"]   = background_dictionary["DYInc"]["SF_weight"][lep_fakes]
-
-  #background_dictionary.pop("DYInc") # deletes DYInc
-  #background_dictionary["DYGenuine"]  = new_DY_dict["DYGenuine"]
-  #change everything to genuine and lepfakes, rejecting jet fakes
-  #background_dictionary["DYJetFakes"] = new_DY_dict["DYJetFakes"]
-  #background_dictionary["DYLepFakes"] = new_DY_dict["DYLepFakes"]
+  #all dictionaries
+  
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting
@@ -265,7 +263,6 @@ if __name__ == "__main__":
     hist_ax, hist_ratio = setup_ratio_plot()
 
     h_data = get_binned_data(data_dictionary, var, xbins, lumi)
-    #if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
     if (final_state_mode == "ditau"):
       background_dictionary["QCD"] = FF_dictionary["QCD"] # manually include QCD as background
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
