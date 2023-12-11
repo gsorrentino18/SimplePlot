@@ -27,7 +27,7 @@ def append_lepton_indices(event_dictionary):
   return event_dictionary
 
 
-def append_flavor_indices(event_dictionary, final_state_mode):
+def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
   unpack_flav = ["l1_indices", "l2_indices", "Lepton_tauIdx", "Tau_genPartFlav"]
   unpack_flav = (event_dictionary.get(key) for key in unpack_flav)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_flav]
@@ -71,8 +71,14 @@ def append_flavor_indices(event_dictionary, final_state_mode):
       print(f"No gen matching for that final state ({final_state_mode}), crashing...")
       return None
   
-    if (genuine) or (lep_fake):
+    if (keep_fakes==False) and ((genuine) or (lep_fake)):
       # save genuine background events and lep_fakes, remove jet fakes with gen matching
+      FS_t1_flav.append(t1_flav)
+      FS_t2_flav.append(t2_flav)
+      pass_gen_cuts.append(i)
+
+    if (keep_fakes==True) and ((genuine) or (lep_fake) or (jet_fake)):
+      # save all events and their flavors, even if they are jet fakes
       FS_t1_flav.append(t1_flav)
       FS_t2_flav.append(t2_flav)
       pass_gen_cuts.append(i)
@@ -298,9 +304,13 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
   FF_values = {
     # FS : { "jet_mode" : [intercept, slope] }  
     "ditau" : { 
-      "custom_0j_2p5_FF" : [0.273506, -0.000930995], # quick check with cutoff
-      "custom_1j_2p5_FF" : [0.222382, -0.000994264],
-      "custom_GTE2j_2p5_FF" : [0.230973, -0.000759698],
+      "custom_0j_2p5_FF" :    [0.273506,-0.000930995],#[0.273506, -0.000930995], # quick check with cutoff
+      "custom_1j_2p5_FF" :    [0.243313,-0.000929758],#[0.222382, -0.000994264],
+      "custom_GTE2j_2p5_FF" : [0.222382,-0.000994264],#[0.230973, -0.000759698],
+
+      "custom_0j_2p5_CH" :    [1.14356 ,-0.000254023],
+      "custom_1j_2p5_CH" :    [1.101 ,4.88618e-05],
+      "custom_GTE2j_2p5_CH" : [1.11098,7.22662e-05],
 
       "custom_0j_2p5_check_FF"   : [0.315051, -0.00227768, 1.12693e-05],
       "custom_0j_2p5_check_Clos" : [1.90974, -0.0257612, 0.000156502],
@@ -366,6 +376,12 @@ def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
   FF_weights = []
   bins = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300]
   ditau_weight_map = {
+    # these are all very close to 0.999, which means in the most pessimistic case
+    # you lose 10 events in every 10000 events.
+    # since we have at most 90000 events in the 0j case, the biggest error we can have is
+    # 90 events. This is not big enough to effect plots dramatically, so as long as the
+    # probs are close to 0.999, they don't need to be updated every time
+    # SHOULD update them the final time
     "0j_2p5" : [bins,
           [0.998869, # < 50
            0.999233, 0.999735, 0.999866, 0.999873, 0.999901, 0.999944, 0.999944, 0.999939, 
@@ -401,6 +417,7 @@ def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
   FF_key = jet_mode + "_" + DeepTau_version
 
   intercept, slope = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_FF")
+  OSSS_bias_intercept, OSSS_bias_slope = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_CH")
 
   #intercept, slope = set_FF_values("ditau", FF_key)
   #closure_intercept, closure_slope = set_FF_values("ditau", "Closure_" + DeepTau_version)
@@ -426,10 +443,11 @@ def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
       one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][m_vis_weight_idx]
 
     l1_pt = lep_pt[l1_idx] if lep_pt[l1_idx] < 120.0 else 120.0
-    l2_pt = lep_pt[l2_idx] if lep_pt[l2_idx] < 140.0 else 140.0
+    l2_pt = lep_pt[l2_idx] if lep_pt[l2_idx] < 200.0 else 200.0
+    m_vis = m_vis if m_vis < 350.0 else 350.0
     FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope)
     #FF_weight *= (closure_intercept + lep_pt[l2_idx] * closure_slope)
-    #FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope)
+    FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope)
 
     #FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope + l1_pt*l1_pt*slope2)
     #FF_weight *= (closure_intercept + l2_pt * closure_slope + l2_pt*l2_pt*closure_slope2)
@@ -837,10 +855,20 @@ def apply_HTT_FS_cuts_to_process(process, process_dictionary,
   if len(process_events["run"])==0: return None
 
   process_events = append_lepton_indices(process_events)
-  if "Data" not in process:
+  if ("Data" not in process) and (final_state_mode=="ditau"): # unify with other DMs later
     process_events = append_flavor_indices(process_events, final_state_mode)
     process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts"])
     if (process_events==None or len(process_events["run"])==0): return None
+
+  if ("Data" not in process) and (final_state_mode=="mutau"): # unify with other DMs later
+    if ("TT" in process) or ("WJ" in process):
+      process_events = append_flavor_indices(process_events, final_state_mode, keep_fakes=True)
+      process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts"])
+      if (process_events==None or len(process_events["run"])==0): return None
+    else:
+      process_events = append_flavor_indices(process_events, final_state_mode)
+      process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts"])
+      if (process_events==None or len(process_events["run"])==0): return None
 
   FS_cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version, useMiniIso=useMiniIso)
   if (FS_cut_events==None or len(FS_cut_events["run"])==0): return None 
@@ -883,11 +911,12 @@ def set_good_events(final_state_mode, disable_triggers=False, useMiniIso=False):
   # apply FS cut separately so it can be used with reject_duplicate_events
   if final_state_mode == "ditau":
     #good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
-    triggers = "(HLT_DoubleMediumDeepTauPFTauHPS35_L2NN_eta2p1\
-               | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet60\
-               | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet75\
-               | HLT_VBF_DoubleMediumDeepTauPFTauHPS20_eta2p1\
-               | HLT_DoublePFJets40_Mass500_MediumDeepTauPFTauHPS45_L2NN_MediumDeepTauPFTauHPS20_eta2p1)"
+    #triggers = "(HLT_DoubleMediumDeepTauPFTauHPS35_L2NN_eta2p1\
+    #           | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet60\
+    #           | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet75\
+    #           | HLT_VBF_DoubleMediumDeepTauPFTauHPS20_eta2p1\
+    #           | HLT_DoublePFJets40_Mass500_MediumDeepTauPFTauHPS45_L2NN_MediumDeepTauPFTauHPS20_eta2p1)"
+    triggers = "(HLT_DoubleMediumDeepTauPFTauHPS35_L2NN_eta2p1)"
 
     good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & " + triggers
     if disable_triggers: good_events = good_events.replace(" & (Trigger_ditau)", "")
