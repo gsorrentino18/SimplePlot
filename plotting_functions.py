@@ -472,18 +472,22 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
     h_MC_by_family["QCD"] = {}
     h_MC_by_family["QCD"]["BinnedEvents"] = h_MC_by_process["QCD"]["BinnedEvents"]
   #all_MC_families  = ["JetFakes", "LepFakes", "DY", "TT", "ST", "WJ", "VV"] # determines stack order, far left is bottom
-  all_MC_families  = ["DY", "TT", "ST", "WJ", "VV"] # determines stack order, far left is bottom
+  all_MC_families  = ["TT", "ST", "WJ", "VV", "DY"] # determines stack order, far left is bottom, QCD at bototm
   used_MC_families = []
-  for process in h_MC_by_process:
-    for family in all_MC_families:
+  for family in all_MC_families:
+    for process in h_MC_by_process:
+  #for process in h_MC_by_process:
+  #  for family in all_MC_families:
       if (("WW" in process) or ("WZ" in process) or ("ZZ" in process)) and ("VV" not in used_MC_families):
         used_MC_families.append("VV")
       elif (family in process) and (family not in used_MC_families):
         used_MC_families.append(family)
+
   for family in used_MC_families:
     h_MC_by_family[family] = {}
     h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
   h_backgrounds = h_MC_by_family
+  print(h_MC_by_family)
   # used for ratio plot
   h_summed_backgrounds = 0
   for background in h_backgrounds:
