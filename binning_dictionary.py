@@ -58,7 +58,7 @@ binning_dictionary = {
   "FS_m_vis_tight" : (80, 70, 110), # TODO add this
 
 # common, calculated on the fly
-  "FS_mt"         : (20, 0, 200),
+  "FS_mt"         : (40, 0, 200),
   "nCleanJetGT30" : (8, 0, 8), # GT(E) = Greater Than (Equal to)
   "CleanJetGT30_pt_1"  : (60, 0, 300),
   "CleanJetGT30_pt_2"  : (60, 0, 300),
@@ -68,8 +68,8 @@ binning_dictionary = {
   "CleanJetGT30_eta_3" : (50, -5, 5),
 
 # common, from branches
-  "MET_pt"      : (30, 0, 150),
-  "PuppiMET_pt" : (30, 0, 150),
+  "MET_pt"      : (30, 0, 150), # these are not plotting
+  "PuppiMET_pt" : (50, 0, 150), # these are not plotting
   "nCleanJet"   : (8, 0, 8),
   "CleanJet_pt" : (30, 20, 200),
   "CleanJet_eta": (50, -5, 5),
@@ -77,7 +77,8 @@ binning_dictionary = {
   "HTT_DiJet_dEta_fromHighestMjj"    : (35, 0, 7),
   "HTT_H_pt_using_PUPPI_MET"         : (30, 0, 300),
   "HTT_dR"     : (60, 0, 6),
-  "HTT_m_vis" : (30, 0, 300), # this is m_lep
+  #"HTT_m_vis" : (30, 0, 300), # this is m_lep
+  "HTT_m_vis" : (40, 0, 200), # this is m_lep
   "FS_t1_flav" : (11, 0, 11),
   "FS_t2_flav" : (11, 0, 11),
 }
