@@ -115,6 +115,8 @@ if __name__ == "__main__":
   # there's no place like home :)
   home_dir        = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3PreEEFSSplitSamples/" + final_state_mode
   home_dir        = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3FSSplitSamples/" + final_state_mode
+  # TODO : run this no lepton veto check
+  #home_dir        = "/Volumes/IDrive/HTauTau_Data/2022postEE/"
   using_directory = home_dir
  
   good_events  = set_good_events(final_state_mode)

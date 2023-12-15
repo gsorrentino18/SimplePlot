@@ -79,7 +79,7 @@ full_file_map = {
   "DataMuon" : "Data/Muon*",
   "DataElectron" : "Data/EGamma*",
 
-  "DYInc" : "DY/DY*part*",
+  "DYInc" : "DY/DYJets*part*",
   #"DYJetsToLL_M-50_1J" : "DY/DYJetsToLL_M-50_1J*",
   #"DYJetsToLL_M-50_2J" : "DY/DYJetsToLL_M-50_2J*",
   #"DYJetsToLL_M-50_3J" : "DY/DYJetsToLL_M-50_3J*",
