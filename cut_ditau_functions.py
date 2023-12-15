@@ -1,9 +1,6 @@
 import numpy as np
 
-#from cut_and_study_functions import add_DeepTau_branches, add_trigger_branches
 from branch_functions import add_trigger_branches, add_DeepTau_branches
-
-
 
 def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=False):
   '''
@@ -23,7 +20,7 @@ def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_D
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_ditau = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_tauIdx", 
-                  "Tau_dxy", "Tau_dz", "l1_indices", "l2_indices"]
+                  "Tau_dxy", "Tau_dz", "Tau_decayMode", "l1_indices", "l2_indices"]
   unpack_ditau = add_DeepTau_branches(unpack_ditau, DeepTau_version)
   unpack_ditau = add_trigger_branches(unpack_ditau, final_state_mode="ditau")
   unpack_ditau = (event_dictionary.get(key) for key in unpack_ditau)
@@ -34,7 +31,7 @@ def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_D
   # note these are in the same order as the variables in the first line of this function :)
   # TODO: double-check counts with/without trigger :)
   for i, lep_pt, lep_eta, lep_phi, tau_idx,\
-      tau_dxy, tau_dz, l1_idx, l2_idx, vJet, vMu, vEle,\
+      tau_dxy, tau_dz, tau_decayMode, l1_idx, l2_idx, vJet, vMu, vEle,\
       ditau_trig, ditau_jet_low_trig, ditau_jet_high_trig,\
       ditau_VBFRun2_trig, ditau_VBFRun3_trig in zip(*to_check):
     # assign object pts and etas
@@ -58,7 +55,13 @@ def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_D
     # Medium v Jet, VLoose v Muon, VVVLoose v Ele
     t1passDT   = (vJet[tau_idx[l1_idx]] >= 5 and vMu[tau_idx[l1_idx]] >= 1 and vEle[tau_idx[l1_idx]] >= 1)
     t2passDT   = (vJet[tau_idx[l2_idx]] >= 5 and vMu[tau_idx[l2_idx]] >= 1 and vEle[tau_idx[l2_idx]] >= 1)
-    if (free_pass_AR or (passKinems and t1passDT and t2passDT) or (skip_DeepTau and passKinems and t2passDT)):
+    t1_decayMode = tau_decayMode[tau_idx[l1_idx]]
+    t2_decayMode = tau_decayMode[tau_idx[l2_idx]]
+    good_tau_decayMode = ((t1_decayMode == 11) and (t2_decayMode == 11))
+   
+    if ( free_pass_AR or 
+       (passKinems and t1passDT and t2passDT and good_tau_decayMode) or 
+       (skip_DeepTau and passKinems and t2passDT and good_tau_decayMode)):
       pass_cuts.append(i)
       # TODO update me with the variable names used earlier
       FS_t1_pt.append(lep_pt[l1_idx])
