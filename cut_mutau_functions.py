@@ -11,7 +11,7 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
   '''
   nEvents_precut = len(event_dictionary["Lepton_pt"])
   unpack_mutau = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",
-                  "Muon_dxy", "Muon_dz", "Tau_dxy", "Tau_dz", "Tau_decayMode",
+                  "Muon_dxy", "Muon_dz", "Muon_charge", "Tau_dxy", "Tau_dz", "Tau_decayMode",
                   #"MET_pt", "MET_phi", "Muon_phi",
                   "PuppiMET_pt", "PuppiMET_phi",
                   "Lepton_tauIdx", "Lepton_muIdx", "l1_indices", "l2_indices"]
@@ -21,12 +21,12 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
   unpack_mutau = (event_dictionary.get(key) for key in unpack_mutau)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_mutau] # "*" unpacks a tuple
   pass_cuts, FS_mt = [], []
-  FS_mu_pt, FS_mu_eta, FS_mu_phi, FS_mu_iso, FS_mu_dxy, FS_mu_dz = [], [], [], [], [], []
+  FS_mu_pt, FS_mu_eta, FS_mu_phi, FS_mu_iso, FS_mu_dxy, FS_mu_dz, FS_mu_chg = [], [], [], [], [], [], []
   FS_tau_pt, FS_tau_eta, FS_tau_phi, FS_tau_dxy, FS_tau_dz = [], [], [], [], []
   # note these are in the same order as the variables in the first line of this function :)
       #MET_pt, MET_phi, muon_phi, tau_idx, mu_idx,\
   for i, lep_pt, lep_eta, lep_phi, lep_iso,\
-      mu_dxy, mu_dz, tau_dxy, tau_dz, tau_decayMode,\
+      mu_dxy, mu_dz, mu_chg, tau_dxy, tau_dz, tau_decayMode,\
       MET_pt, MET_phi, tau_idx, mu_idx,\
       l1_idx, l2_idx, vJet, vMu, vEle, trg24mu, trg27mu, crosstrg in zip(*to_check):
 
@@ -54,13 +54,14 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
     muIsoVal   = lep_iso[muLoc]
     muDxyVal   = abs(mu_dxy[muBranchLoc])
     muDzVal    = mu_dz[muBranchLoc]
+    muChgVal   = mu_chg[muBranchLoc]
     tauPtVal   = lep_pt[tauFSLoc] 
     tauEtaVal  = lep_eta[tauFSLoc]
     tauPhiVal  = lep_phi[tauFSLoc]
     tauDxyVal  = abs(tau_dxy[tauBranchLoc])
     tauDzVal   = tau_dz[tauBranchLoc]
     mtVal      = calculate_mt(muPtVal, muPhiVal, MET_pt, MET_phi)
-    passMT     = True #(mtVal < 65.0) #(mtVal < 50.0) #mine
+    passMT     = (mtVal < 65.0) #(mtVal < 50.0) #mine
     #ROOTmtVal  = calculate_mt_pyROOT(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
     #passROOTMT = (ROOTmtVal < 50.0)
 
@@ -95,6 +96,7 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
       FS_mu_iso.append(muIsoVal)
       FS_mu_dxy.append(muDxyVal)
       FS_mu_dz.append(muDzVal)
+      FS_mu_chg.append(muChgVal)
       FS_mt.append(mtVal)
 
   event_dictionary["pass_cuts"] = np.array(pass_cuts)
@@ -104,6 +106,7 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
   event_dictionary["FS_mu_iso"] = np.array(FS_mu_iso)
   event_dictionary["FS_mu_dxy"] = np.array(FS_mu_dxy)
   event_dictionary["FS_mu_dz"]  = np.array(FS_mu_dz)
+  event_dictionary["FS_mu_chg"] = np.array(FS_mu_chg)
   event_dictionary["FS_tau_pt"]  = np.array(FS_tau_pt)
   event_dictionary["FS_tau_eta"] = np.array(FS_tau_eta)
   event_dictionary["FS_tau_phi"] = np.array(FS_tau_phi)
