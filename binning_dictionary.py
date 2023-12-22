@@ -27,6 +27,7 @@ binning_dictionary = {
   "FS_mu_iso"  : (25, 0, 1),
   "FS_mu_dxy"  : (50, 0, 0.05),
   "FS_mu_dz"   : (50, 0, 0.25),
+  "FS_mu_chg"  : (3, -1, 1),
 
   "FS_el_pt"   : (40, 0, 120),
   "FS_el_eta"  : (30, -3, 3),
