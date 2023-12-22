@@ -37,6 +37,7 @@ def plot_data(histogram_axis, xbins, data_info, luminosity,
 def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
             custom=False, color="default", label="MC", fill=True):
   '''
+  TODO update this
   Add background MC histograms to the existing histogram axis. The input 'stack_dictionary'
   contains a list of backgrounds (which should be pre-grouped, normally), the name of which
   determines colors and labels of the stacked output. 
@@ -46,28 +47,36 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
   data array are equal. To stack the plots, the 'bottom'  keyword argument is 
   adjusted each iteration of the loop such that it is the top of the previous histogram. 
   '''
-  previous_histogram_tops = 0
+  #previous_histogram_tops = 0
   weight_per_bin_squared = 0
+  color_array, label_array, stack_array = [], [], []
   for MC_process in stack_dictionary:
     if custom == True:
       pass
     else:
       color, label, _ = set_MC_process_info(MC_process, luminosity)
     current_hist = stack_dictionary[MC_process]["BinnedEvents"]
+    label += f" [{np.sum(current_hist):>.0f}]"
+    current_hist = np.append(current_hist, 0)
+    color_array.append(color)
+    label_array.append(label)
+    stack_array.append(current_hist)
     #print(MC_process) # DEBUG
     # TODO handle variable binning with list of differences
     #print("weight per bin squared")
     #print(weight_per_bin_squared)
     #weight_per_bin_squared += np.array([entry*entry if entry > 0 else 0 for entry in current_hist])
-    label += f" [{np.sum(current_hist):>.0f}]"
-    bars = histogram_axis.bar(xbins[0:-1], current_hist, width=xbins[1]-xbins[0],
-                            color=color, label=label, edgecolor=color if custom else None,
-                            bottom=previous_histogram_tops, fill=fill, align='edge')
+    ##bars = histogram_axis.bar(xbins[0:-1], current_hist, width=xbins[1]-xbins[0],
+    ##                        color=color, label=label, edgecolor="black",#color if custom else None,
+    ##                        bottom=previous_histogram_tops, fill=fill, align='edge')
     #print("current_hist")
     #print(current_hist)
     #print("bars output")
     #print(bars)
-    previous_histogram_tops += current_hist # stack
+    #previous_histogram_tops += current_hist # stack
+
+  xbins = np.append(xbins, xbins[-1]+(xbins[1]-xbins[0]))
+  histogram_axis.stackplot(xbins[0:-1], stack_array, step="post", edgecolor="black", colors=color_array, labels=label_array)
 
   summed_squared_weights = weight_per_bin_squared
   #print("summed_squared_weights")
@@ -487,7 +496,7 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
     h_MC_by_family[family] = {}
     h_MC_by_family[family]["BinnedEvents"] = accumulate_MC_subprocesses(family, h_MC_by_process)
   h_backgrounds = h_MC_by_family
-  print(h_MC_by_family)
+  #print(h_MC_by_family) # DEBUG
   # used for ratio plot
   h_summed_backgrounds = 0
   for background in h_backgrounds:
