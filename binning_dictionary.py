@@ -41,6 +41,7 @@ binning_dictionary = {
   "FS_tau_phi" : (32, -3.2, 3.2),
   "FS_tau_dxy" : (50, 0, 0.20),
   "FS_tau_dz"  : (50, 0, 0.25),
+  "FS_tau_chg" : (3, -1, 1),
 
 # dimuon
   "FS_m1_pt"   : (60, 0, 300),

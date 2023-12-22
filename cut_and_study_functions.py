@@ -865,9 +865,8 @@ def add_final_state_branches(branches_, final_state_mode):
     "ditau"  : ["Lepton_tauIdx", "Tau_dxy", "Tau_dz"],
 
     "mutau"  : ["Muon_dxy", "Muon_dz", "Muon_charge",
-                "Tau_dxy", "Tau_dz",
+                "Tau_dxy", "Tau_dz", "Tau_charge",
                 "Lepton_tauIdx", "Lepton_muIdx",
-                #"MET_pt", "MET_phi", "Muon_phi"],
                 "PuppiMET_pt", "PuppiMET_phi"],
 
     "etau"   : ["Electron_dxy", "Electron_dz",
@@ -920,9 +919,9 @@ final_state_vars = {
                 "FS_t2_pt", "FS_t2_eta", "FS_t2_phi", "FS_t2_dxy", "FS_t2_dz",
                 "FS_t1_flav", "FS_t2_flav"],
 
-    "mutau"  : ["FS_mu_pt", "FS_mu_eta", "FS_mu_phi", "FS_mu_iso", "FS_mu_dxy", "FS_mu_dz",
-                "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz",
-                "FS_mt", "FS_t1_flav", "FS_t2_flav", "FS_mu_chg"],#, "PuppiMET_pt"],
+    "mutau"  : ["FS_mu_pt", "FS_mu_eta", "FS_mu_phi", "FS_mu_iso", "FS_mu_dxy", "FS_mu_dz", "FS_mu_chg",
+                "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz", "FS_tau_chg",
+                "FS_mt", "FS_t1_flav", "FS_t2_flav"],
 
     "etau"   : ["FS_el_pt", "FS_el_eta", "FS_el_phi", "FS_el_iso", "FS_el_dxy", "FS_el_dz",
                 "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz",
