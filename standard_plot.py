@@ -206,6 +206,12 @@ if __name__ == "__main__":
     combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
                                                                combined_process_dictionary)
 
+  # after loop, sort big dictionary into three smaller ones
+  data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
+
+  #all dictionaries
+ 
+
   #### JETVETOMAPS TEMP IMPLEMENTATION
   from correctionlib import _core
   fname = "../jetvetomaps.json.gz"
@@ -247,12 +253,43 @@ if __name__ == "__main__":
           bad_events.append(i)
       print(f"{len(bad_events)} in {process}")
 
+  #### Muon ID/Iso/Trig SFs temp implementation
+  time_print("Adding SFs!")
 
-  # after loop, sort big dictionary into three smaller ones
-  data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
+  from correctionlib import _core
+  fname = "SFs/2022EE_schemaV2.json"
+  fnamehlt = "SFs/ScaleFactors_Muon_Z_Run2022EE_Prompt_abseta_pT_schemaV2.json"
+  evaluator = _core.CorrectionSet.from_file(fname)
+  evaluatorhlt = _core.CorrectionSet.from_file(fnamehlt)
 
-  #all dictionaries
-  
+  for process in background_dictionary:
+    mu_pt_arr  = background_dictionary[process]["PlotEvents"]["FS_mu_pt"] 
+    mu_eta_arr = background_dictionary[process]["PlotEvents"]["FS_mu_eta"] 
+    mu_chg_arr = background_dictionary[process]["PlotEvents"]["FS_mu_chg"] 
+
+    sf_type = "nominal"
+    to_use = (range(len(mu_pt_arr)), mu_pt_arr, mu_eta_arr, mu_chg_arr)
+    SF_weights = []
+    for i, mu_pt, mu_eta, mu_chg in zip(*to_use): 
+      weight = 1
+      if (mu_pt < 15.0): continue
+      if (abs(mu_eta) > 2.4): continue
+      mu_pt = 199.9 if mu_pt >= 200 else mu_pt
+      mu_pt, mu_eta = np.float64(mu_pt), np.float64(mu_eta) # wild hack, float32s just don't cut it
+
+      weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(mu_eta), mu_pt, sf_type)
+      weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(mu_eta), mu_pt, sf_type)
+    
+      # min trig pt is 26 in the SFs, this should apply trig SFs to muons with pt between 25 and 26 only
+      mu_pt = 26.0 if mu_pt < 26.0 else mu_pt
+      weight *= evaluatorhlt["NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight_and_Run2022EE"].evaluate(
+                             np.float64(mu_chg), abs(mu_eta), mu_pt, sf_type)
+
+      SF_weights.append(weight)
+
+
+    background_dictionary[process]["SF_weight"] = np.array(SF_weights)
+
 
   time_print("Processing finished!")
   ## end processing loop, begin plotting
