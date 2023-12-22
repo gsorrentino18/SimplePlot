@@ -36,6 +36,7 @@ def plot_data(histogram_axis, xbins, data_info, luminosity,
 
 def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
             custom=False, color="default", label="MC", fill=True):
+  # TODO handle variable binning with list of differences
   '''
   TODO update this
   Add background MC histograms to the existing histogram axis. The input 'stack_dictionary'
@@ -47,7 +48,6 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
   data array are equal. To stack the plots, the 'bottom'  keyword argument is 
   adjusted each iteration of the loop such that it is the top of the previous histogram. 
   '''
-  #previous_histogram_tops = 0
   weight_per_bin_squared = 0
   color_array, label_array, stack_array = [], [], []
   for MC_process in stack_dictionary:
@@ -62,18 +62,9 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
     label_array.append(label)
     stack_array.append(current_hist)
     #print(MC_process) # DEBUG
-    # TODO handle variable binning with list of differences
     #print("weight per bin squared")
     #print(weight_per_bin_squared)
     #weight_per_bin_squared += np.array([entry*entry if entry > 0 else 0 for entry in current_hist])
-    ##bars = histogram_axis.bar(xbins[0:-1], current_hist, width=xbins[1]-xbins[0],
-    ##                        color=color, label=label, edgecolor="black",#color if custom else None,
-    ##                        bottom=previous_histogram_tops, fill=fill, align='edge')
-    #print("current_hist")
-    #print(current_hist)
-    #print("bars output")
-    #print(bars)
-    #previous_histogram_tops += current_hist # stack
 
   xbins = np.append(xbins, xbins[-1]+(xbins[1]-xbins[0]))
   histogram_axis.stackplot(xbins[0:-1], stack_array, step="post", edgecolor="black", colors=color_array, labels=label_array)
@@ -91,6 +82,13 @@ def plot_MC(histogram_axis, xbins, stack_dictionary, luminosity,
   #_ = make_error_boxes(histogram_axis, xbins[0:-1], previous_histogram_tops, # fake
   #                     abs(xbins[1:]-xbins[0:-1])/2, 10*np.ones(previous_histogram_tops.shape),
   #                     facecolor='grey', edgecolor='none', alpha=0.1)
+
+
+  #histogram_axis.errorbar(xbins[0:-1], previous_histogram_tops, yerr=5, fmt="o", markersize=3) # faked
+  # actually, check if stairs has an error method
+  # TODO : it would be easier to store errors when binning events? probably
+  # USE fill_between axis method for shaded errors
+  # https://stackoverflow.com/questions/60697625/error-bars-as-a-shaded-area-on-matplotlib-pyplot-step
 
 #from https://matplotlib.org/stable/gallery/statistics/errorbars_and_boxes.html#sphx-glr-gallery-statistics-errorbars-and-boxes-py
 def make_error_boxes(ax, xdata, ydata, xerror, yerror, facecolor='r',
@@ -120,11 +118,6 @@ def plot_signal(histogram_axis, xbins, signal_dictionary, luminosity):
     current_hist = signal_dictionary[signal]["BinnedEvents"]
     label += f" [{np.sum(current_hist):>.0f}]"
     stairs = histogram_axis.stairs(current_hist, xbins, color=color, label=label, fill=False)
-  #histogram_axis.errorbar(xbins[0:-1], previous_histogram_tops, yerr=5, fmt="o", markersize=3) # faked
-  # actually, check if stairs has an error method
-  # TODO : it would be easier to store errors when binning events? probably
-  # USE fill_between axis method for shaded errors
-  # https://stackoverflow.com/questions/60697625/error-bars-as-a-shaded-area-on-matplotlib-pyplot-step
 
 '''
 def set_MC_process_info(process, luminosity, scaling=False, signal=False):
@@ -308,6 +301,7 @@ def get_trimmed_Generator_weight_copy(variable, single_background_dictionary, je
     print("gen weight, pass jet cut, and temp weight shapes") # DEBUG
     print(Gen_weight.shape, pass_jet_cut.shape) # DEBUG
   temp_weight = np.take(Gen_weight, pass_jet_cut)
+  print("temp_weight.shape")
   print(temp_weight.shape) # DEBUG
 
   return temp_weight
@@ -385,8 +379,8 @@ def get_binned_data(data_dictionary, variable, xbins_, lumi_):
       data_weights = (2.922/17.61)*data_weights
     if (dataset == "DataMuonEraG") or (dataset=="DataMuonEraGPrompt"):
       data_weights = (2.922/3.06)*data_weights
-    #print(f"For {dataset} using weights:")
-    #print(data_weights)
+    #print(f"For {dataset} using weights:") # DEBUG
+    #print(data_weights) # DEBUG
     h_data_by_dataset[dataset] = {}
     h_data_by_dataset[dataset]["BinnedEvents"] = get_binned_info(dataset, data_variable, 
                                                                  xbins_, data_weights, lumi_)
