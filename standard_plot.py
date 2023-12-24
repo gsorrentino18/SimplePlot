@@ -115,8 +115,7 @@ if __name__ == "__main__":
   # there's no place like home :)
   home_dir        = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3PreEEFSSplitSamples/" + final_state_mode
   home_dir        = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3FSSplitSamples/" + final_state_mode
-  # TODO : run this no lepton veto check
-  #home_dir        = "/Volumes/IDrive/HTauTau_Data/2022postEE/"
+  #home_dir        = "/Volumes/IDrive/HTauTau_Data/2022postEE/" # unskimmed data (i.e. final states combined)
   using_directory = home_dir
  
   good_events  = set_good_events(final_state_mode)
@@ -133,8 +132,11 @@ if __name__ == "__main__":
   file_map = testing_file_map if testing else full_file_map
 
   # add FF weights :) # almost the same as SR, except SS and 1st tau fails iso (applied in AR_cuts)
-  AR_region = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
-  if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
+  AR_region_ditau = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
+  AR_region_mutau = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==13*15) & (Trigger_mutau)"
+  AR_region_etau  = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*15) & (Trigger_etau)"
+
+  if (jet_mode != "Inclusive"):
     time_print(f"Processing ditau AR region!")
     AR_process_dictionary = load_process_from_file("DataTau", using_directory, file_map,
                                             branches, AR_region, final_state_mode,
@@ -149,17 +151,21 @@ if __name__ == "__main__":
       if ("flav" in var): continue
       FF_dictionary["QCD"]["PlotEvents"][var] = cut_events_AR[var]
 
-  if (final_state_mode == "ditau") and (jet_mode == "Inclusive"):
+  if (jet_mode == "Inclusive"):
     temp_FF_dictionary = {}
     for internal_jet_mode in ["0j", "1j", "GTE2j"]:
-      time_print(f"Processing ditau AR region! {internal_jet_mode}")
+      time_print(f"Processing {final_state_mode} AR region! {internal_jet_mode}")
 
       # reload AR dictionary here because it is cut in the next steps
-      AR_process_dictionary = load_process_from_file("DataTau", using_directory, file_map,
+      dataset_dictionary = {"ditau" : "DataTau", "mutau" : "DataMuon", "etau" : "DataElectron"}
+      AR_region_dictionary = {"ditau" : AR_region_ditau, "mutau" : AR_region_mutau}
+      dataset = dataset_dictionary[final_state_mode]
+      AR_region = AR_region_dictionary[final_state_mode]
+      AR_process_dictionary = load_process_from_file(dataset, using_directory, file_map,
                                             branches, AR_region, final_state_mode,
                                             data=True, testing=testing)
 
-      AR_events = AR_process_dictionary["DataTau"]["info"]
+      AR_events = AR_process_dictionary[dataset]["info"]
       cut_events_AR = apply_AR_cut(AR_events, final_state_mode, internal_jet_mode, DeepTau_version)
       temp_FF_dictionary[internal_jet_mode] = {}
       temp_FF_dictionary[internal_jet_mode]["QCD"] = {}
@@ -262,33 +268,34 @@ if __name__ == "__main__":
   evaluator = _core.CorrectionSet.from_file(fname)
   evaluatorhlt = _core.CorrectionSet.from_file(fnamehlt)
 
-  for process in background_dictionary:
-    mu_pt_arr  = background_dictionary[process]["PlotEvents"]["FS_mu_pt"] 
-    mu_eta_arr = background_dictionary[process]["PlotEvents"]["FS_mu_eta"] 
-    mu_chg_arr = background_dictionary[process]["PlotEvents"]["FS_mu_chg"] 
-
-    sf_type = "nominal"
-    to_use = (range(len(mu_pt_arr)), mu_pt_arr, mu_eta_arr, mu_chg_arr)
-    SF_weights = []
-    for i, mu_pt, mu_eta, mu_chg in zip(*to_use): 
-      weight = 1
-      if (mu_pt < 15.0): continue
-      if (abs(mu_eta) > 2.4): continue
-      mu_pt = 199.9 if mu_pt >= 200 else mu_pt
-      mu_pt, mu_eta = np.float64(mu_pt), np.float64(mu_eta) # wild hack, float32s just don't cut it
-
-      weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(mu_eta), mu_pt, sf_type)
-      weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(mu_eta), mu_pt, sf_type)
-    
-      # min trig pt is 26 in the SFs, this should apply trig SFs to muons with pt between 25 and 26 only
-      mu_pt = 26.0 if mu_pt < 26.0 else mu_pt
-      weight *= evaluatorhlt["NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight_and_Run2022EE"].evaluate(
-                             np.float64(mu_chg), abs(mu_eta), mu_pt, sf_type)
-
-      SF_weights.append(weight)
-
-
-    background_dictionary[process]["SF_weight"] = np.array(SF_weights)
+  if ((final_state_mode == "dimuon") or (final_state_mode == "mutau")):
+    for process in background_dictionary:
+      mu_pt_arr  = background_dictionary[process]["PlotEvents"]["FS_mu_pt"] 
+      mu_eta_arr = background_dictionary[process]["PlotEvents"]["FS_mu_eta"] 
+      mu_chg_arr = background_dictionary[process]["PlotEvents"]["FS_mu_chg"] 
+  
+      sf_type = "nominal"
+      to_use = (range(len(mu_pt_arr)), mu_pt_arr, mu_eta_arr, mu_chg_arr)
+      SF_weights = []
+      for i, mu_pt, mu_eta, mu_chg in zip(*to_use): 
+        weight = 1
+        if (mu_pt < 15.0): continue
+        if (abs(mu_eta) > 2.4): continue
+        mu_pt = 199.9 if mu_pt >= 200 else mu_pt
+        mu_pt, mu_eta = np.float64(mu_pt), np.float64(mu_eta) # wild hack, float32s just don't cut it
+  
+        weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(mu_eta), mu_pt, sf_type)
+        weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(mu_eta), mu_pt, sf_type)
+      
+        # min trig pt is 26 in the SFs, this should apply trig SFs to muons with pt between 25 and 26 only
+        mu_pt = 26.0 if mu_pt < 26.0 else mu_pt
+        weight *= evaluatorhlt["NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight_and_Run2022EE"].evaluate(
+                               np.float64(mu_chg), abs(mu_eta), mu_pt, sf_type)
+  
+        SF_weights.append(weight)
+  
+  
+      background_dictionary[process]["SF_weight"] = np.array(SF_weights)
 
 
   time_print("Processing finished!")
@@ -302,7 +309,7 @@ if __name__ == "__main__":
     hist_ax, hist_ratio = setup_ratio_plot()
 
     h_data = get_binned_data(data_dictionary, var, xbins, lumi)
-    if (final_state_mode == "ditau"):
+    if ((final_state_mode == "ditau") or (final_state_mode == "mutau")):
       background_dictionary["QCD"] = FF_dictionary["QCD"] # manually include QCD as background
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 

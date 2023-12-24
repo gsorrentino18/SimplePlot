@@ -3,7 +3,7 @@ import numpy as np # TODO is importing this everywhere slowing things down? does
 from calculate_functions import calculate_mt
 from branch_functions import add_trigger_branches, add_DeepTau_branches
 
-def make_mutau_cut(event_dictionary, DeepTau_version):
+def make_mutau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=False):
   '''
   Works similarly to 'make_ditau_cut'. 
   Notably, the mutau cuts are more complicated, but it is simple to 
@@ -76,13 +76,15 @@ def make_mutau_cut(event_dictionary, DeepTau_version):
     # Medium v Jet, Tight v Muon, VVVLoose v Ele
     #passTauDT  = ((vJet[tauBranchLoc] >= 5) and (vMu[tauBranchLoc] >= 4) and (vEle[tauBranchLoc] >= 1))
     passTauDT  = ((vJet[tauBranchLoc] >= 5) and (vMu[tauBranchLoc] >= 4) and (vEle[tauBranchLoc] >= 2))
+    if skip_DeepTau: passTauDT = False; # makes OR below mutually exclusive
 
     skip_DM2 = (tau_decayMode[tauBranchLoc] != 2)
     #restrict_tau_decayMode = (tau_decayMode[tauBranchLoc] == 0)
 
     #if (passMT and (passTauPtAndEta and (pass25MuPt or pass28MuPt or passMuPtCrossTrigger)) and passTauDT): #mine
     #if (passMT and (passTauPtAndEta and pass25MuPt and passTauDT) and skip_DM2 and restrict_tau_decayMode):
-    if (passMT and (passTauPtAndEta and pass25MuPt and passTauDT) and skip_DM2):
+    if ( (passMT and (passTauPtAndEta and pass25MuPt and passTauDT) and skip_DM2)
+      or (passMT and (passTauPtAndEta and pass25MuPt and skip_DeepTau) and skip_DM2) ):
       pass_cuts.append(i)
       FS_mu_pt.append(muPtVal)
       FS_mu_eta.append(muEtaVal)

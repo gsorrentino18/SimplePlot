@@ -204,9 +204,9 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
   FF_values = {
     # FS : { "jet_mode" : [intercept, slope] }  
     "ditau" : { 
-      "custom_0j_2p5_FF" :    [0.273506,-0.000930995],#[0.273506, -0.000930995], # quick check with cutoff
-      "custom_1j_2p5_FF" :    [0.243313,-0.000929758],#[0.222382, -0.000994264],
-      "custom_GTE2j_2p5_FF" : [0.222382,-0.000994264],#[0.230973, -0.000759698],
+      "custom_0j_2p5_FF" :    [0.273506,-0.000930995],
+      "custom_1j_2p5_FF" :    [0.243313,-0.000929758],
+      "custom_GTE2j_2p5_FF" : [0.222382,-0.000994264],
 
       "custom_0j_2p5_CH" :    [1.14356 ,-0.000254023],
       "custom_1j_2p5_CH" :    [1.101 ,4.88618e-05],
@@ -239,6 +239,15 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
       "0j_2p5"     : [0.037884, 0.000648851],
       "1j_2p5"     : [0.0348384, 0.000630731],
       "GTE2j_2p5"  : [0.0342287, 0.000358899],
+
+      "custom_0j_2p5_FF" :    [0.0262364,-1.88738e-05], # combined fit, by hand
+      "custom_1j_2p5_FF" :    [0.0262364,-1.88738e-05],
+      "custom_GTE2j_2p5_FF" : [0.0262364,-1.88738e-05],
+
+      "custom_0j_2p5_CH"    : [1.1, 0], # ad-hoc scaling
+      "custom_1j_2p5_CH"    : [1.1, 0],
+      "custom_GTE2j_2p5_CH" : [1.1, 0],
+
     },
     "etau"  : {#Dummy values
       "0j_2p5"     : [1, 1], 
@@ -269,7 +278,25 @@ def make_ditau_AR_cut(event_dictionary, DeepTau_version):
   return event_dictionary
 
 
-def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
+def make_mutau_AR_cut(event_dictionary, DeepTau_version):
+  unpack_ditau_AR_vars = ["event", "Lepton_tauIdx", "Lepton_muIdx", "Lepton_iso", "l1_indices", "l2_indices"]
+  unpack_ditau_AR_vars = add_DeepTau_branches(unpack_ditau_AR_vars, DeepTau_version)
+  unpack_ditau_AR_vars = (event_dictionary.get(key) for key in unpack_ditau_AR_vars)
+  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_ditau_AR_vars]
+  pass_AR_cuts = []
+  for i, event, tau_idx, mu_idx, lep_iso, l1_idx, l2_idx, vJet, _, _ in zip(*to_check):
+    # keep indices where tau fails and muon passes iso 
+    mu_lep_idx = l1_idx if mu_idx[l1_idx] != -1 else l2_idx
+    muon_iso = lep_iso[mu_lep_idx]
+    tau_branchIdx  = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
+    if ((vJet[tau_branchIdx] < 5) and (muon_iso<0.15)):
+      pass_AR_cuts.append(i)
+  
+  event_dictionary["pass_AR_cuts"] = np.array(pass_AR_cuts)
+  return event_dictionary
+
+
+def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
   unpack_FFVars = ["Lepton_pt", "HTT_m_vis", "l1_indices", "l2_indices"]
   unpack_FFVars = (event_dictionary.get(key) for key in unpack_FFVars)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_FFVars]
@@ -316,8 +343,8 @@ def add_FF_weights(event_dictionary, jet_mode, DeepTau_version):
   
   FF_key = jet_mode + "_" + DeepTau_version
 
-  intercept, slope = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_FF")
-  OSSS_bias_intercept, OSSS_bias_slope = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_CH")
+  intercept, slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_FF")
+  OSSS_bias_intercept, OSSS_bias_slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_CH")
 
   #intercept, slope = set_FF_values("ditau", FF_key)
   #closure_intercept, closure_slope = set_FF_values("ditau", "Closure_" + DeepTau_version)
@@ -703,16 +730,22 @@ def apply_AR_cut(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
   '''
   protected_branches = ["None"]
   event_dictionary = append_lepton_indices(event_dictionary)
-  if (final_state_mode == "ditau") and (jet_mode != "Inclusive"):
-    event_dictionary = make_ditau_AR_cut(event_dictionary, DeepTau_version)
-    event_dictionary = apply_cut(event_dictionary, "pass_AR_cuts", protected_branches)
-    event_dictionary = apply_jet_cut(event_dictionary, jet_mode)
+  if ((final_state_mode == "ditau") or (final_state_mode == "mutau")) and (jet_mode != "Inclusive"):
     # non-standard FS cut
-    event_dictionary   = make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=True)
-    protected_branches = set_protected_branches(final_state_mode="ditau", jet_mode="none")
+    if (final_state_mode == "ditau"):
+      event_dictionary = make_ditau_AR_cut(event_dictionary, DeepTau_version)
+      event_dictionary = apply_cut(event_dictionary, "pass_AR_cuts", protected_branches)
+      event_dictionary = apply_jet_cut(event_dictionary, jet_mode)
+      event_dictionary = make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=True)
+    if (final_state_mode == "mutau"):
+      event_dictionary = make_mutau_AR_cut(event_dictionary, DeepTau_version)
+      event_dictionary = apply_cut(event_dictionary, "pass_AR_cuts", protected_branches)
+      event_dictionary = apply_jet_cut(event_dictionary, jet_mode)
+      event_dictionary = make_mutau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=True)
+    protected_branches = set_protected_branches(final_state_mode=final_state_mode, jet_mode="none")
     event_dictionary   = apply_cut(event_dictionary, "pass_cuts", protected_branches)
     #
-    event_dictionary = add_FF_weights(event_dictionary, jet_mode, DeepTau_version)
+    event_dictionary = add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version)
   else:
     print(f"{final_state_mode} : {jet_mode} not possible. Continuing without AR or FF method applied.")
   return event_dictionary
@@ -862,7 +895,7 @@ def add_final_state_branches(branches_, final_state_mode):
   Helper function to add only relevant branches to loaded branches based on final state.
   '''
   final_state_branches = {
-    "ditau"  : ["Lepton_tauIdx", "Tau_dxy", "Tau_dz"],
+    "ditau"  : ["Lepton_tauIdx", "Tau_dxy", "Tau_dz", "Tau_charge", "PuppiMET_pt"],
 
     "mutau"  : ["Muon_dxy", "Muon_dz", "Muon_charge",
                 "Tau_dxy", "Tau_dz", "Tau_charge",
@@ -915,8 +948,8 @@ clean_jet_vars = {
 final_state_vars = {
     # can't put nanoaod branches here because this dictionary is used to protect branches created internally
     "none"   : [],
-    "ditau"  : ["FS_t1_pt", "FS_t1_eta", "FS_t1_phi", "FS_t1_dxy", "FS_t1_dz",
-                "FS_t2_pt", "FS_t2_eta", "FS_t2_phi", "FS_t2_dxy", "FS_t2_dz",
+    "ditau"  : ["FS_t1_pt", "FS_t1_eta", "FS_t1_phi", "FS_t1_dxy", "FS_t1_dz", "FS_t1_chg",
+                "FS_t2_pt", "FS_t2_eta", "FS_t2_phi", "FS_t2_dxy", "FS_t2_dz", "FS_t2_chg",
                 "FS_t1_flav", "FS_t2_flav"],
 
     "mutau"  : ["FS_mu_pt", "FS_mu_eta", "FS_mu_phi", "FS_mu_iso", "FS_mu_dxy", "FS_mu_dz", "FS_mu_chg",
