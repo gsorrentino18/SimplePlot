@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
       # reload AR dictionary here because it is cut in the next steps
       dataset_dictionary = {"ditau" : "DataTau", "mutau" : "DataMuon", "etau" : "DataElectron"}
-      AR_region_dictionary = {"ditau" : AR_region_ditau, "mutau" : AR_region_mutau}
+      AR_region_dictionary = {"ditau" : AR_region_ditau, "mutau" : AR_region_mutau, "etau" : AR_region_etau}
       dataset = dataset_dictionary[final_state_mode]
       AR_region = AR_region_dictionary[final_state_mode]
       AR_process_dictionary = load_process_from_file(dataset, using_directory, file_map,
@@ -309,7 +309,7 @@ if __name__ == "__main__":
     hist_ax, hist_ratio = setup_ratio_plot()
 
     h_data = get_binned_data(data_dictionary, var, xbins, lumi)
-    if ((final_state_mode == "ditau") or (final_state_mode == "mutau")):
+    if (final_state_mode != "dimuon"):
       background_dictionary["QCD"] = FF_dictionary["QCD"] # manually include QCD as background
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
     h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
