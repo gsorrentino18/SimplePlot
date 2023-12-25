@@ -3,7 +3,7 @@ import numpy as np # TODO is importing this everywhere slowing things down? does
 from calculate_functions import calculate_mt
 from branch_functions import add_trigger_branches, add_DeepTau_branches
 
-def make_mutau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=False):
+def make_mutau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
   '''
   Works similarly to 'make_ditau_cut'. 
   Notably, the mutau cuts are more complicated, but it is simple to 
@@ -121,3 +121,23 @@ def make_mutau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_D
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after mutau cuts = {nEvents_precut}, {nEvents_postcut}")
   return event_dictionary
+
+
+def make_mutau_AR_cut(event_dictionary, DeepTau_version):
+  unpack_mutau_AR_vars = ["event", "Lepton_tauIdx", "Lepton_muIdx", "Lepton_iso", "l1_indices", "l2_indices"]
+  unpack_mutau_AR_vars = add_DeepTau_branches(unpack_mutau_AR_vars, DeepTau_version)
+  unpack_mutau_AR_vars = (event_dictionary.get(key) for key in unpack_mutau_AR_vars)
+  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_mutau_AR_vars]
+  pass_AR_cuts = []
+  for i, event, tau_idx, mu_idx, lep_iso, l1_idx, l2_idx, vJet, _, _ in zip(*to_check):
+    # keep indices where tau fails and muon passes iso 
+    mu_lep_idx = l1_idx if mu_idx[l1_idx] != -1 else l2_idx
+    muon_iso = lep_iso[mu_lep_idx]
+    tau_branchIdx  = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
+    if ((vJet[tau_branchIdx] < 5) and (muon_iso<0.15)):
+      pass_AR_cuts.append(i)
+  
+  event_dictionary["pass_AR_cuts"] = np.array(pass_AR_cuts)
+  return event_dictionary
+
+

@@ -2,7 +2,7 @@ import numpy as np
 
 from branch_functions import add_trigger_branches, add_DeepTau_branches
 
-def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_DeepTau=False):
+def make_ditau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
   '''
   Use a minimal set of branches to define selection criteria and identify events which pass.
   A separate function uses the generated branch "pass_cuts" to remove the info from the
@@ -63,10 +63,8 @@ def make_ditau_cut(event_dictionary, DeepTau_version, free_pass_AR=False, skip_D
     t1_chg = tau_chg[tau_idx[l1_idx]]
     t2_chg = tau_chg[tau_idx[l2_idx]]
   
-    #TODO look into this 
-    if ( free_pass_AR or 
-       (passKinems and t1passDT and t2passDT and good_tau_decayMode) or 
-       (skip_DeepTau and passKinems and t2passDT and good_tau_decayMode)):
+    if ( (passKinems and t1passDT and t2passDT and good_tau_decayMode) or 
+         (passKinems and skip_DeepTau and t2passDT and good_tau_decayMode) ):
       pass_cuts.append(i)
       # TODO update me with the variable names used earlier
       FS_t1_pt.append(lep_pt[l1_idx])
@@ -136,3 +134,20 @@ def pass_kinems_by_trigger(triggers, t1_pt, t2_pt, t1_eta, t2_eta,
 
   passKinems = (passTrig and passTauKinems and passJetKinems)
   return passKinems
+
+
+def make_ditau_AR_cut(event_dictionary, DeepTau_version):
+  unpack_ditau_AR_vars = ["Lepton_tauIdx", "l1_indices", "l2_indices"]
+  unpack_ditau_AR_vars = add_DeepTau_branches(unpack_ditau_AR_vars, DeepTau_version)
+  unpack_ditau_AR_vars = (event_dictionary.get(key) for key in unpack_ditau_AR_vars)
+  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_ditau_AR_vars]
+  pass_AR_cuts = []
+  for i, tau_idx, l1_idx, l2_idx, vJet, _, _ in zip(*to_check):
+    # keep indices where first tau fails and 2nd passes
+    if (vJet[tau_idx[l1_idx]] < 5) and (vJet[tau_idx[l2_idx]] >= 5):
+      pass_AR_cuts.append(i)
+  
+  event_dictionary["pass_AR_cuts"] = np.array(pass_AR_cuts)
+  return event_dictionary
+
+

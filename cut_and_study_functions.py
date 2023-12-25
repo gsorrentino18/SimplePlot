@@ -6,9 +6,9 @@ import numpy as np
 from calculate_functions import calculate_mt
 from utility_functions   import time_print
 
-from cut_ditau_functions import make_ditau_cut
-from cut_mutau_functions import make_mutau_cut
-from cut_etau_functions  import make_etau_cut
+from cut_ditau_functions import make_ditau_cut, make_ditau_AR_cut
+from cut_mutau_functions import make_mutau_cut, make_mutau_AR_cut
+from cut_etau_functions  import make_etau_cut, make_etau_AR_cut
 from branch_functions    import add_trigger_branches, add_DeepTau_branches
 
 
@@ -173,57 +173,6 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
 
   #return intercept, slope, slope2
   return intercept, slope
-
-
-def make_ditau_AR_cut(event_dictionary, DeepTau_version):
-  unpack_ditau_AR_vars = ["Lepton_tauIdx", "l1_indices", "l2_indices"]
-  unpack_ditau_AR_vars = add_DeepTau_branches(unpack_ditau_AR_vars, DeepTau_version)
-  unpack_ditau_AR_vars = (event_dictionary.get(key) for key in unpack_ditau_AR_vars)
-  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_ditau_AR_vars]
-  pass_AR_cuts = []
-  for i, tau_idx, l1_idx, l2_idx, vJet, _, _ in zip(*to_check):
-    # keep indices where first tau fails and 2nd passes
-    if (vJet[tau_idx[l1_idx]] < 5) and (vJet[tau_idx[l2_idx]] >= 5):
-      pass_AR_cuts.append(i)
-  
-  event_dictionary["pass_AR_cuts"] = np.array(pass_AR_cuts)
-  return event_dictionary
-
-
-def make_mutau_AR_cut(event_dictionary, DeepTau_version):
-  unpack_mutau_AR_vars = ["event", "Lepton_tauIdx", "Lepton_muIdx", "Lepton_iso", "l1_indices", "l2_indices"]
-  unpack_mutau_AR_vars = add_DeepTau_branches(unpack_mutau_AR_vars, DeepTau_version)
-  unpack_mutau_AR_vars = (event_dictionary.get(key) for key in unpack_mutau_AR_vars)
-  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_mutau_AR_vars]
-  pass_AR_cuts = []
-  for i, event, tau_idx, mu_idx, lep_iso, l1_idx, l2_idx, vJet, _, _ in zip(*to_check):
-    # keep indices where tau fails and muon passes iso 
-    mu_lep_idx = l1_idx if mu_idx[l1_idx] != -1 else l2_idx
-    muon_iso = lep_iso[mu_lep_idx]
-    tau_branchIdx  = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
-    if ((vJet[tau_branchIdx] < 5) and (muon_iso<0.15)):
-      pass_AR_cuts.append(i)
-  
-  event_dictionary["pass_AR_cuts"] = np.array(pass_AR_cuts)
-  return event_dictionary
-
-
-def make_etau_AR_cut(event_dictionary, DeepTau_version):
-  unpack_etau_AR_vars = ["event", "Lepton_tauIdx", "Lepton_elIdx", "Lepton_iso", "l1_indices", "l2_indices"]
-  unpack_etau_AR_vars = add_DeepTau_branches(unpack_etau_AR_vars, DeepTau_version)
-  unpack_etau_AR_vars = (event_dictionary.get(key) for key in unpack_etau_AR_vars)
-  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_etau_AR_vars]
-  pass_AR_cuts = []
-  for i, event, tau_idx, ele_idx, lep_iso, l1_idx, l2_idx, vJet, _, _ in zip(*to_check):
-    # keep indices where tau fails and muon passes iso 
-    ele_lep_idx = l1_idx if ele_idx[l1_idx] != -1 else l2_idx
-    ele_iso = lep_iso[ele_lep_idx]
-    tau_branchIdx  = tau_idx[l1_idx] + tau_idx[l2_idx] + 1
-    if ((vJet[tau_branchIdx] < 5) and (ele_iso<0.15)):
-      pass_AR_cuts.append(i)
-  
-  event_dictionary["pass_AR_cuts"] = np.array(pass_AR_cuts)
-  return event_dictionary
 
 
 def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
