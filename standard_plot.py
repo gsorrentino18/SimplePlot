@@ -20,6 +20,8 @@ from plotting_functions    import get_binned_data, get_binned_backgrounds, get_b
 from plotting_functions    import setup_ratio_plot, make_ratio_plot, spruce_up_plot, spruce_up_legend
 from plotting_functions    import plot_data, plot_MC, plot_signal, make_bins
 
+from plotting_functions import get_midpoints
+
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
 from utility_functions     import time_print, make_directory, print_setup_info
 
@@ -325,7 +327,23 @@ if __name__ == "__main__":
     title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]
     title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
     spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode)
-    spruce_up_legend(hist_ax, final_state_mode)
+    spruce_up_legend(hist_ax, final_state_mode, h_data)
+
+    #reposition_legend()
+    #print("h_data_pos")
+    #h_data_pos = []
+    #for x_val, y_val in zip(get_midpoints(xbins), h_data):
+    #  print(h_data_pos)
+    #  h_data_pos = np.append(h_data_pos, (x_val, y_val))
+    #print(h_data_pos)
+    # if data in legend area # h_data, h_backgrounds, h_signals
+    #print("bbox?")
+    # scale up y axis by 10% # 
+    #h_sgnl_pos = [get_midpoints(), h_signals[sig]["BinnedEvents"]]
+    #histogram_axis.set_ylim([0, histogram_axis.get_ylim()[1]*1.2]) # scale top of graph up by 20%
+    # do this twice
+    # try to place on left
+    # if that doesn't work, keep scaling up the y axis until it does
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")
 

@@ -200,7 +200,7 @@ def setup_ratio_plot():
   Define a standard plot format with a plotting area on top, and a ratio area below.
   The plots share the x-axis, and other functions should handle cosmetic additions/subtractions.
   '''
-  gs = gridspec_kw = {'height_ratios': [4, 1], 'hspace': 0}
+  gs = gridspec_kw = {'height_ratios': [4, 1], 'hspace': 0.09}
   fig, (upper_ax, lower_ax) = plt.subplots(nrows=2, sharex=True, gridspec_kw=gridspec_kw)
   return (upper_ax, lower_ax)
 
@@ -217,7 +217,21 @@ def add_CMS_preliminary(axis):
 
 
 def add_final_state_and_jet_mode(axis, final_state_mode, jet_mode):
-  axis.text(0.09, 0.94, final_state_mode + "-" + jet_mode, transform=axis.transAxes, fontsize=12)
+  final_state_str = {
+    "ditau"  : r"${\tau_h}{\tau_h}$",
+    "mutau"  : r"${\mu}{\tau_h}$",
+    "etau"   : r"$e{\tau_h}$",
+    "dimuon" : r"${\mu}{\mu}$",
+  }
+  jet_mode_str = {
+    "Inclusive" : "≥0j",
+    "0j"    : "0j",
+    "1j"    : "1j",
+    "GTE2j" : "≥2j",
+  }
+  axis.text(0.05, 0.92, 
+            final_state_str[final_state_mode] + " : " + jet_mode_str[jet_mode], 
+            transform=axis.transAxes, fontsize=10)
 
 
 def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title, final_state_mode, jet_mode):
@@ -229,26 +243,48 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title, final_
   '''
   add_CMS_preliminary(histogram_axis)
   add_final_state_and_jet_mode(histogram_axis, final_state_mode, jet_mode)
-  histogram_axis.set_title(title, loc='right')
+  #histogram_axis.set_ylim([0, histogram_axis.get_ylim()[1]*1.2]) # scale top of graph up by 20%
+  #histogram_axis.set_title(title, loc='right')
+  histogram_axis.set_title(title, loc='right', y=0.98)
   histogram_axis.set_ylabel("Events / Bin")
   histogram_axis.minorticks_on()
-  histogram_axis.tick_params(which="both", top=True, right=True, direction="inout")
+  histogram_axis.tick_params(which="both", top=True, bottom=True, right=True, direction="in")
 
-  yticks = histogram_axis.yaxis.get_major_ticks()
-  yticks[0].label1.set_visible(False) # hides a zero that overlaps with the upper plot
-  plt.minorticks_on()
+  #yticks = histogram_axis.yaxis.get_major_ticks()
+  #yticks[0].label1.set_visible(False) # hides a zero that overlaps with the upper plot
+  #plt.minorticks_on()
 
-  ratio_plot_axis.set_ylim([0.6, 1.4]) # 0.0, 2.0 also make sense
+  ratio_plot_axis.set_ylim([0.45, 1.55]) # 0.0, 2.0 also make sense
   ratio_plot_axis.set_xlabel(variable_name) # shared axis label
   ratio_plot_axis.set_ylabel("Obs. / Exp.")
   ratio_plot_axis.axhline(y=1, color='grey', linestyle='--')
-  ratio_plot_axis.tick_params(bottom=True, right=True, direction="inout")
+  ratio_plot_axis.minorticks_on()
+  ratio_plot_axis.tick_params(which="both", top=True, bottom=True, right=True, direction="in")
+  ratio_plot_axis.yaxis.set_major_locator(plt.FixedLocator([0.6, 0.8, 1.0, 1.2, 1.4]))
+  ratio_plot_axis.yaxis.set_major_formatter('{x:.1f}')
+  ratio_plot_axis.yaxis.set_minor_locator(plt.MultipleLocator(0.05))
 
 
-def spruce_up_legend(histogram_axis, final_state_mode):
+def spruce_up_legend(histogram_axis, final_state_mode, data_hists):
   # this post has good advice about moving the legend off the plot
   # https://stackoverflow.com/questions/4700614/how-to-put-the-legend-outside-the-plot
-  histogram_axis.legend()
+  # defaults are here, but using these to mimic ROOT defaults 
+  # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.legend.html
+  leg = histogram_axis.legend(loc="upper right", frameon=False, bbox_to_anchor=[0.6, 0.4, 0.4, 0.6],
+                        labelspacing=0.35, handlelength=0.8, handleheight=0.8, handletextpad=0.4)
+
+  # some matplotlib documentation about transforming plotting coordinate systems
+  # https://matplotlib.org/stable/users/explain/artists/transforms_tutorial.html
+  print(leg.get_bbox_to_anchor())
+  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes.inverted()))
+  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData))
+  plt.draw()
+  print(leg.get_bbox_to_anchor())
+  print("transAxes, inverted, transData, inverted")
+  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes))
+  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes.inverted()))
+  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData))
+  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData.inverted())) # this
   if final_state_mode == "dimuon":
     handles, original_labels = histogram_axis.get_legend_handles_labels()
     labels, yields = yields_for_CSV(histogram_axis)
