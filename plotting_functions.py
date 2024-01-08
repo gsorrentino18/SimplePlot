@@ -244,15 +244,12 @@ def spruce_up_plot(histogram_axis, ratio_plot_axis, variable_name, title, final_
   add_CMS_preliminary(histogram_axis)
   add_final_state_and_jet_mode(histogram_axis, final_state_mode, jet_mode)
   #histogram_axis.set_ylim([0, histogram_axis.get_ylim()[1]*1.2]) # scale top of graph up by 20%
-  #histogram_axis.set_title(title, loc='right')
   histogram_axis.set_title(title, loc='right', y=0.98)
   histogram_axis.set_ylabel("Events / Bin")
   histogram_axis.minorticks_on()
   histogram_axis.tick_params(which="both", top=True, bottom=True, right=True, direction="in")
-
   #yticks = histogram_axis.yaxis.get_major_ticks()
   #yticks[0].label1.set_visible(False) # hides a zero that overlaps with the upper plot
-  #plt.minorticks_on()
 
   ratio_plot_axis.set_ylim([0.45, 1.55]) # 0.0, 2.0 also make sense
   ratio_plot_axis.set_xlabel(variable_name) # shared axis label
@@ -275,16 +272,17 @@ def spruce_up_legend(histogram_axis, final_state_mode, data_hists):
 
   # some matplotlib documentation about transforming plotting coordinate systems
   # https://matplotlib.org/stable/users/explain/artists/transforms_tutorial.html
-  print(leg.get_bbox_to_anchor())
-  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes.inverted()))
-  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData))
-  plt.draw()
-  print(leg.get_bbox_to_anchor())
-  print("transAxes, inverted, transData, inverted")
-  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes))
-  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes.inverted()))
-  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData))
-  print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData.inverted())) # this
+  # DEBUG
+  #print(leg.get_bbox_to_anchor())
+  #print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes.inverted()))
+  #print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData))
+  #plt.draw()
+  #print(leg.get_bbox_to_anchor())
+  #print("transAxes, inverted, transData, inverted")
+  #print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes))
+  #print(leg.get_bbox_to_anchor().transformed(histogram_axis.transAxes.inverted()))
+  #print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData))
+  #print(leg.get_bbox_to_anchor().transformed(histogram_axis.transData.inverted())) # this
   if final_state_mode == "dimuon":
     handles, original_labels = histogram_axis.get_legend_handles_labels()
     labels, yields = yields_for_CSV(histogram_axis)
@@ -450,22 +448,34 @@ def accumulate_MC_subprocesses(parent_process, process_dictionary):
   '''
   accumulated_values = 0
   for MC_process in process_dictionary:
-    if get_parent_process(MC_process) == parent_process:
+    skip_process = False
+    if (MC_process == "DYGen"):
+      skip_process = True
+    if (MC_process == "DYLep"):
+      skip_process = True
+    if (MC_process == "DYJet"):
+      skip_process = True
+    if get_parent_process(MC_process, skip_process=skip_process) == parent_process:
       accumulated_values += process_dictionary[MC_process]["BinnedEvents"]
   return accumulated_values
 
 
-def get_parent_process(MC_process):
+def get_parent_process(MC_process, skip_process=False):
   '''
   Given some process, return a corresponding parent_process, effectively grouping
   related processes (i.e. DYInclusive, DY1, DY2, DY3, and DY4 all belong to DY).
   TODO: simplify this code, it is currently written in a brain-dead way
   '''
   parent_process = ""
+  # TODO
+  # pass through for no parent process
+  # this parent process is most helpful for VV, but for the rest...
+  # it would be useful to have a mode where no automatic combining takes place
   #if   "JetFakes" in MC_process:  parent_process = "DYJetFakes" # DEBUG
   #elif "LepFakes" in MC_process:  parent_process = "DYLepFakes" # DEBUG
   #elif "Genuine"  in MC_process:  parent_process = "DY" # DEBUG
-  if "DY" in MC_process: parent_process = "DY"
+  if skip_process: parent_process = MC_process
+  #if "DY" in MC_process: parent_process = "DY"
   elif "WJets" in MC_process:  parent_process = "WJ"
   elif "TT"    in MC_process:  parent_process = "TT"
   elif "ST"    in MC_process:  parent_process = "ST"
@@ -511,7 +521,7 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
     h_MC_by_family["QCD"] = {}
     h_MC_by_family["QCD"]["BinnedEvents"] = h_MC_by_process["QCD"]["BinnedEvents"]
   #all_MC_families  = ["JetFakes", "LepFakes", "DY", "TT", "ST", "WJ", "VV"] # determines stack order, far left is bottom
-  all_MC_families  = ["TT", "ST", "WJ", "VV", "DY"] # determines stack order, far left is bottom, QCD at bototm
+  all_MC_families  = ["TT", "ST", "WJ", "VV", "DYJet", "DYLep", "DYGen"] # determines stack order, far left is bottom, QCD at bototm
   used_MC_families = []
   for family in all_MC_families:
     for process in h_MC_by_process:

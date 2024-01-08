@@ -35,6 +35,7 @@ def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_flav]
   FS_t1_flav, FS_t2_flav = [], []
   pass_gen_cuts, genuine_events, jet_fake_events, lep_fake_events = [], [], [], []
+  event_flavor = []
   for i, l1_idx, l2_idx, tau_idx, tau_flav in zip(*to_check):
     genuine, lep_fake, jet_fake = False, False, False
     t1_flav = -1
@@ -46,10 +47,12 @@ def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
         # genuine tau --> both taus are taus at gen level
         genuine = True
         genuine_events.append(i)
+        event_flavor.append("G")
       elif (t1_flav == 0) or (t2_flav == 0):
         # jet fake --> one tau is faked by jet
         jet_fake = True
         jet_fake_events.append(i)
+        event_flavor.append("J")
       elif (t1_flav < 5 and t1_flav > 0) or (t2_flav < 5 and t1_flav > 0):
         # lep fake --> both taus are faked by lepton
         # event with one tau faking jet enters category above first due to ordering
@@ -57,17 +60,21 @@ def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
         # is added to jet fakes, which i think is fine
         lep_fake = True
         lep_fake_events.append(i)
+        event_flavor.append("L")
     elif ((final_state_mode == "mutau") or (final_state_mode == "etau")):
       t1_flav = tau_flav[tau_idx[l1_idx] + tau_idx[l2_idx] + 1] # update with NanoAODv12 samples
       if (t1_flav == 5):
         genuine = True
-        genuine_events.append(i)
+        #genuine_events.append(i)
+        event_flavor.append("G")
       elif (t1_flav == 0):
         jet_fake = True
-        jet_fake_events.append(i)
+        #jet_fake_events.append(i)
+        event_flavor.append("J")
       elif (t1_flav < 5 and t1_flav > 0):
         lep_fake = True
-        lep_fake_events.append(i)
+        #lep_fake_events.append(i)
+        event_flavor.append("L")
 
     else:
       print(f"No gen matching for that final state ({final_state_mode}), crashing...")
@@ -84,10 +91,11 @@ def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
       FS_t1_flav.append(t1_flav)
       FS_t2_flav.append(t2_flav)
       pass_gen_cuts.append(i)
-
+      
   event_dictionary["FS_t1_flav"] = np.array(FS_t1_flav)
   event_dictionary["FS_t2_flav"] = np.array(FS_t2_flav)
   event_dictionary["pass_gen_cuts"] = np.array(pass_gen_cuts)
+  event_dictionary["event_flavor"]  = np.array(event_flavor)
   return event_dictionary
 
 
@@ -304,36 +312,26 @@ def make_jet_cut(event_dictionary, jet_mode):
       CleanJetGT30_pt_2.append(passingJetsPt[1])
       CleanJetGT30_eta_1.append(passingJetsEta[0])
       CleanJetGT30_eta_2.append(passingJetsEta[1])
-  #    elif passingJets >= 2 and (jet_mode == "GTE2j"):
-  #      pass_2j_cuts.append(i)
-  #      CleanJetGT30_pt_1.append(passingJetsPt[0])
-  #      CleanJetGT30_pt_2.append(passingJetsPt[1])
-  #      CleanJetGT30_eta_1.append(passingJetsEta[0])
-  #      CleanJetGT30_eta_2.append(passingJetsEta[1])
-  #      if passingJets == 3:
-  #        pass_3j_cuts.append(i)
-  #        CleanJetGT30_pt_3.append(passingJetsPt[2])
-  #        CleanJetGT30_eta_3.append(passingJetsEta[2])
-  #      elif passingJets > 3:
-  #        pass
-  #        #print("More than 3 FS jets")
 
   event_dictionary["nCleanJetGT30"]   = np.array(nCleanJetGT30)
 
-  if jet_mode == "Inclusive":
+  if jet_mode == "pass":
+    print("debug jet mode, only filling nCleanJetGT30")
+
+  elif jet_mode == "Inclusive":
     # fill branches like above
     event_dictionary["pass_0j_cuts"]    = np.array(pass_0j_cuts)
     event_dictionary["pass_1j_cuts"]    = np.array(pass_1j_cuts)
     event_dictionary["pass_2j_cuts"]    = np.array(pass_2j_cuts)
-    event_dictionary["pass_3j_cuts"]    = np.array(pass_3j_cuts)
+    #event_dictionary["pass_3j_cuts"]    = np.array(pass_3j_cuts)
     event_dictionary["pass_GTE2j_cuts"] = np.array(pass_GTE2j_cuts)
 
     event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
     event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
-    event_dictionary["CleanJetGT30_pt_3"]  = np.array(CleanJetGT30_pt_3)
+    #event_dictionary["CleanJetGT30_pt_3"]  = np.array(CleanJetGT30_pt_3)
     event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
     event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
-    event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
+    #event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
   
   elif jet_mode == "0j":
     # literally don't do any of the above
@@ -498,8 +496,8 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
     delete_sample = True
     return None
  
-  #print(f"cut branch: {cut_branch}") # DEBUG
-  #print(f"protected branches: {protected_branches}") # DEBUG
+  print(f"cut branch: {cut_branch}") # DEBUG
+  print(f"protected branches: {protected_branches}") # DEBUG
   for branch in event_dictionary:
     if delete_sample:
       pass
@@ -514,7 +512,7 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
       #  event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary["pass_3j_cuts"])
 
     elif ((branch != cut_branch) and (branch not in protected_branches)):
-      #print(f"going to cut {branch}, {len(event_dictionary[branch])}") # DEBUG
+      print(f"going to cut {branch}, {len(event_dictionary[branch])}") # DEBUG
       event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
 
   return event_dictionary
@@ -601,6 +599,14 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version, u
   return event_dictionary
 
 
+def apply_flavor_cut(event_dictionary):
+  # get list of event indices with events matching flavor key
+  event_flavor_array = event_dictionary["Cuts"]["event_flavor"]
+  # cut out other events
+  event_dictionary = apply_cut(event_dictionary, "pass_flav_cut") # no protected branches
+  return event_dictionary
+
+
 def apply_AR_cut(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
   '''
   Organizational function
@@ -642,6 +648,7 @@ def apply_jet_cut(event_dictionary, jet_mode):
   '''
   jet_cut_branch = {
     "Inclusive" : "Inclusive",
+    "pass"      : "Inclusive", #DEBUG
     "0j" : "pass_0j_cuts",
     "1j" : "pass_1j_cuts",
     "2j" : "pass_2j_cuts",
@@ -650,7 +657,7 @@ def apply_jet_cut(event_dictionary, jet_mode):
   }
   event_dictionary   = make_jet_cut(event_dictionary, jet_mode)
   protected_branches = set_protected_branches(final_state_mode="none", jet_mode=jet_mode)
-  if jet_mode == "Inclusive":
+  if jet_mode == "Inclusive" or jet_mode == "pass":
     print("jet mode is Inclusive, no jet cut performed")
   else:
     event_dictionary = apply_cut(event_dictionary, jet_cut_branch[jet_mode], protected_branches)
@@ -671,27 +678,25 @@ def apply_HTT_FS_cuts_to_process(process, process_dictionary,
   if len(process_events["run"])==0: return None
 
   process_events = append_lepton_indices(process_events)
-  if ("Data" not in process) and (final_state_mode=="ditau"): # unify with other DMs later
-    process_events = append_flavor_indices(process_events, final_state_mode)
-    process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts"])
-    if (process_events==None or len(process_events["run"])==0): return None
+  protected_branches = ["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts", "event_flavor"]
 
-  if ("Data" not in process) and ((final_state_mode=="mutau") or (final_state_mode=="etau")): # unify with other DMs later
-    if ("TT" in process) or ("WJ" in process):
-      process_events = append_flavor_indices(process_events, final_state_mode, keep_fakes=True)
-      process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts"])
-      if (process_events==None or len(process_events["run"])==0): return None
-    else:
-      process_events = append_flavor_indices(process_events, final_state_mode)
-      process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts"])
-      if (process_events==None or len(process_events["run"])==0): return None
+  if ("Data" not in process):
+    keep_fakes = False
+    if ("TT" in process) or ("WJ" in process) or ("DY" in process):
+      keep_fakes = True
+    process_events = append_flavor_indices(process_events, final_state_mode, keep_fakes=keep_fakes)
+    process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=protected_branches)
+    if (process_events==None or len(process_events["run"])==0): return None
 
   FS_cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version, useMiniIso=useMiniIso)
   if (FS_cut_events==None or len(FS_cut_events["run"])==0): return None 
+  ### TODO TODO TODO re enable me
   cut_events = apply_jet_cut(FS_cut_events, jet_mode)
+  #cut_events = apply_jet_cut(FS_cut_events, jet_mode="pass") # DEBUG
   if (cut_events==None or len(cut_events["run"])==0): return None
 
   # TODO : want to move to this
+  # re TODO actually want to move to a splitting/copying paradigm instead of modification in place
   #jet_cut_events = apply_jet_cut(process_events, jet_mode)
   #if len(jet_cut_events["run"])==0: return None
   #FS_cut_events = apply_final_state_cut(jet_cut_events, final_state_mode, DeepTau_version, useMiniIso=useMiniIso)
@@ -812,20 +817,8 @@ clean_jet_vars = {
 
     "0j" : ["nCleanJetGT30"],
     "1j" : ["nCleanJetGT30", "CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
-    "2j" : ["nCleanJetGT30",
-      "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
-      "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
-    ],
-    "3j" : ["nCleanJetGT30",
-      #"CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
-      #"CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
-      #"CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
-    ],
-    "GTE2j" : ["nCleanJetGT30",
-      "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
-      "CleanJetGT30_pt_2", "CleanJetGT30_eta_2",
-      #"CleanJetGT30_pt_3", "CleanJetGT30_eta_3",
-    ],
+    "GTE2j" : ["nCleanJetGT30", "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
+            "CleanJetGT30_pt_2", "CleanJetGT30_eta_2"],
 }
 
 final_state_vars = {
@@ -881,7 +874,8 @@ def set_protected_branches(final_state_mode, jet_mode, DeepTau_version="none"):
     # all "HTT_" branches automatically handled, just protecting "FS_" branches which were introduced by a cut
   
   elif final_state_mode == "none":
-    if jet_mode == "Inclusive": # cutting FS branches, but not the jet branches
+    if jet_mode == "Inclusive" or jet_mode=="pass": # cutting FS branches, but not the jet branches
+      jet_mode = "Inclusive"
       protected_branches = ["pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts", "pass_GTE2j_cuts"]
       # should fromHighestMjj branches be protected? it seems not
       protected_branches += clean_jet_vars[jet_mode]

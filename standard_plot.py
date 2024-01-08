@@ -5,6 +5,7 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import gc
+import copy
 
 # explicitly import used functions from user files, grouped roughly by call order and relatedness
 from file_map_dictionary   import testing_file_map, full_file_map, testing_dimuon_file_map, dimuon_file_map
@@ -138,12 +139,17 @@ if __name__ == "__main__":
   AR_region_mutau = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==13*15) & (Trigger_mutau)"
   AR_region_etau  = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*15) & (Trigger_etau)"
 
+  dataset_dictionary = {"ditau" : "DataTau", "mutau" : "DataMuon", "etau" : "DataElectron"}
+  AR_region_dictionary = {"ditau" : AR_region_ditau, "mutau" : AR_region_mutau, "etau" : AR_region_etau}
+  dataset = dataset_dictionary[final_state_mode]
+  AR_region = AR_region_dictionary[final_state_mode]
+
   if (jet_mode != "Inclusive"):
     time_print(f"Processing ditau AR region!")
-    AR_process_dictionary = load_process_from_file("DataTau", using_directory, file_map,
+    AR_process_dictionary = load_process_from_file(dataset, using_directory, file_map,
                                             branches, AR_region, final_state_mode,
                                             data=True, testing=testing)
-    AR_events = AR_process_dictionary["DataTau"]["info"]
+    AR_events = AR_process_dictionary[dataset]["info"]
     cut_events_AR = apply_AR_cut(AR_events, final_state_mode, jet_mode, DeepTau_version)
     FF_dictionary = {}
     FF_dictionary["QCD"] = {}
@@ -159,10 +165,6 @@ if __name__ == "__main__":
       time_print(f"Processing {final_state_mode} AR region! {internal_jet_mode}")
 
       # reload AR dictionary here because it is cut in the next steps
-      dataset_dictionary = {"ditau" : "DataTau", "mutau" : "DataMuon", "etau" : "DataElectron"}
-      AR_region_dictionary = {"ditau" : AR_region_ditau, "mutau" : AR_region_mutau, "etau" : AR_region_etau}
-      dataset = dataset_dictionary[final_state_mode]
-      AR_region = AR_region_dictionary[final_state_mode]
       AR_process_dictionary = load_process_from_file(dataset, using_directory, file_map,
                                             branches, AR_region, final_state_mode,
                                             data=True, testing=testing)
@@ -203,24 +205,58 @@ if __name__ == "__main__":
 
     new_process_dictionary = load_process_from_file(process, using_directory, file_map,
                                               branches, good_events, final_state_mode,
-                                              #branches, AR_region, final_state_mode,
                                               data=("Data" in process), testing=testing)
     if new_process_dictionary == None: continue # skip process if empty
 
     cut_events = apply_HTT_FS_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
-                                       DeepTau_version=DeepTau_version)
+                                              DeepTau_version=DeepTau_version)
     if cut_events == None: continue
 
-    combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
-                                                               combined_process_dictionary)
+
+    # TODO : extendable to jet cuts (something I've meant to do for some time)
+    if "DY" in process:
+      event_flavor_arr = cut_events["event_flavor"]
+      pass_gen_flav, pass_lep_flav, pass_jet_flav = [], [], []
+      for i, event_flavor in enumerate(event_flavor_arr):
+        if event_flavor == "G":
+          pass_gen_flav.append(i)
+        if event_flavor == "L":
+          pass_lep_flav.append(i)
+        if event_flavor == "J":
+          pass_jet_flav.append(i)
+    
+      from cut_and_study_functions import apply_cut, set_protected_branches
+      protected_branches = set_protected_branches(final_state_mode="none", jet_mode="Inclusive")
+      background_gen_deepcopy = copy.deepcopy(cut_events)
+      background_gen_deepcopy["pass_flavor_cut"] = np.array(pass_gen_flav)
+      background_gen_deepcopy = apply_cut(background_gen_deepcopy, "pass_flavor_cut", protected_branches)
+      if background_gen_deepcopy == None: continue
+
+      background_lep_deepcopy = copy.deepcopy(cut_events)
+      background_lep_deepcopy["pass_flavor_cut"] = np.array(pass_lep_flav)
+      background_lep_deepcopy = apply_cut(background_lep_deepcopy, "pass_flavor_cut", protected_branches)
+      if background_lep_deepcopy == None: continue
+
+      background_jet_deepcopy = copy.deepcopy(cut_events)
+      background_jet_deepcopy["pass_flavor_cut"] = np.array(pass_jet_flav)
+      background_jet_deepcopy = apply_cut(background_jet_deepcopy, "pass_flavor_cut", protected_branches)
+      if background_jet_deepcopy == None: continue
+
+      combined_process_dictionary = append_to_combined_processes("DYGen", background_gen_deepcopy, vars_to_plot, 
+                                                                 combined_process_dictionary)
+      combined_process_dictionary = append_to_combined_processes("DYLep", background_lep_deepcopy, vars_to_plot, 
+                                                                 combined_process_dictionary)
+      combined_process_dictionary = append_to_combined_processes("DYJet", background_jet_deepcopy, vars_to_plot, 
+                                                                 combined_process_dictionary)
+      
+    else:
+      combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
+                                                                 combined_process_dictionary)
 
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
 
-  #all dictionaries
- 
-
-  #### JETVETOMAPS TEMP IMPLEMENTATION
+  #### JETVETOMAPS TEMP IMPLEMENTATION for ditau only
   from correctionlib import _core
   fname = "../jetvetomaps.json.gz"
   print(f"fname is : {fname}")
@@ -299,7 +335,6 @@ if __name__ == "__main__":
   
       background_dictionary[process]["SF_weight"] = np.array(SF_weights)
 
-
   time_print("Processing finished!")
   ## end processing loop, begin plotting
 
@@ -328,22 +363,6 @@ if __name__ == "__main__":
     title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
     spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode)
     spruce_up_legend(hist_ax, final_state_mode, h_data)
-
-    #reposition_legend()
-    #print("h_data_pos")
-    #h_data_pos = []
-    #for x_val, y_val in zip(get_midpoints(xbins), h_data):
-    #  print(h_data_pos)
-    #  h_data_pos = np.append(h_data_pos, (x_val, y_val))
-    #print(h_data_pos)
-    # if data in legend area # h_data, h_backgrounds, h_signals
-    #print("bbox?")
-    # scale up y axis by 10% # 
-    #h_sgnl_pos = [get_midpoints(), h_signals[sig]["BinnedEvents"]]
-    #histogram_axis.set_ylim([0, histogram_axis.get_ylim()[1]*1.2]) # scale top of graph up by 20%
-    # do this twice
-    # try to place on left
-    # if that doesn't work, keep scaling up the y axis until it does
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")
 

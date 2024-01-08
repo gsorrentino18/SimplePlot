@@ -75,10 +75,11 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
     if ("Data" in process) and ("flav" in var): continue
     combined_processes[process]["PlotEvents"][var] = cut_events[var]
 
-  for cut in ["pass_cuts", 
+  for cut in ["pass_cuts", "event_flavor",
               "pass_0j_cuts", "pass_1j_cuts", "pass_2j_cuts", "pass_3j_cuts",
               "pass_GTE2j_cuts"]:
     if cut in cut_events.keys():
+      if ("Data" in process) and ("flav" in cut): continue
       combined_processes[process]["Cuts"][cut] = cut_events[cut]
 
   return combined_processes
