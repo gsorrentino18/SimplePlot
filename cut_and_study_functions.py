@@ -319,18 +319,19 @@ def make_jet_cut(event_dictionary, jet_mode):
     print("debug jet mode, only filling nCleanJetGT30")
 
   elif jet_mode == "Inclusive":
+    pass
     # fill branches like above
-    event_dictionary["pass_0j_cuts"]    = np.array(pass_0j_cuts)
-    event_dictionary["pass_1j_cuts"]    = np.array(pass_1j_cuts)
-    event_dictionary["pass_2j_cuts"]    = np.array(pass_2j_cuts)
+    #event_dictionary["pass_0j_cuts"]    = np.array(pass_0j_cuts)
+    #event_dictionary["pass_1j_cuts"]    = np.array(pass_1j_cuts)
+    #event_dictionary["pass_2j_cuts"]    = np.array(pass_2j_cuts)
     #event_dictionary["pass_3j_cuts"]    = np.array(pass_3j_cuts)
-    event_dictionary["pass_GTE2j_cuts"] = np.array(pass_GTE2j_cuts)
+    #event_dictionary["pass_GTE2j_cuts"] = np.array(pass_GTE2j_cuts)
 
-    event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
-    event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
+    #event_dictionary["CleanJetGT30_pt_1"]  = np.array(CleanJetGT30_pt_1)
+    #event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
     #event_dictionary["CleanJetGT30_pt_3"]  = np.array(CleanJetGT30_pt_3)
-    event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
-    event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
+    #event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
+    #event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
     #event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
   
   elif jet_mode == "0j":
