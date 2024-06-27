@@ -4,7 +4,7 @@
 
 # without normtag (deprecated)
 luminosities = {
-  "2022 C&D" : 7.875,
+  "2022 CD"  : 7.875,
   "2022 C"   : 4.953, # 2022 pre EE
   "2022 D"   : 2.922, # 2022 pre EE
   "2022 E"   : 5.672, # 2022 EE
@@ -16,7 +16,7 @@ luminosities = {
 
 # with normtag (default)
 luminosities_with_normtag = {
-  "2022 C&D" : 8.077,
+  "2022 CD"  : 8.077,
   "2022 C"   : 5.0707,
   "2022 D"   : 3.0063,
   "2022 E"   : 5.8783,

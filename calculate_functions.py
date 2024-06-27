@@ -143,3 +143,33 @@ def yields_for_CSV(histogram_axis, desired_order=[]):
           corresponding_yields.append(int(label_yield))
     return reordered_labels, corresponding_yields
 
+
+def hasbit(value, bit):
+  # copied from Dennis' ProcessWeights.py
+  return (value & (1 << bit))>0
+
+def getBin(var, axis):
+  # copied from Dennis' ProcessWeights.py
+  mybin = axis.FindBin(var)
+  nbins = axis.GetNbins()
+  if mybin<1: mybin=1
+  elif mybin>nbins: mybin=nbins
+  return mybin
+
+def highest_mjj_pair(TLorentzVector_Jets):
+  mjj = -999;
+  j1_idx = -1;
+  j2_idx = -1;
+  for j_jet in range(len(TLorentzVector_Jets)):
+    for k_jet in range(len(TLorentzVector_Jets)):
+      #print(j_jet, k_jet)
+      if (k_jet <= j_jet): continue
+      j1 = TLorentzVector_Jets[j_jet]
+      j2 = TLorentzVector_Jets[k_jet]
+      temp_mjj = (j1+j2).M()
+      if (temp_mjj > mjj):
+        mjj = temp_mjj
+        j1_idx = j_jet
+        j2_idx = k_jet
+  if (j1_idx*j2_idx < 0): print("jet index unassigned!")
+  return TLorentzVector_Jets[j1_idx], TLorentzVector_Jets[j2_idx]

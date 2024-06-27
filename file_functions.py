@@ -1,7 +1,7 @@
 import uproot
 import numpy as np
 
-from utility_functions import time_print, text_options
+from utility_functions import time_print, text_options, log_print
 
 ### README ###
 # This file contains the main method to load data from root files
@@ -9,7 +9,9 @@ from utility_functions import time_print, text_options
 # This file also contains methods relevant to sorting samples from files.
 
 
-def load_process_from_file(process, file_directory, file_map, branches, good_events, final_state_mode, data=False, testing=False):
+def load_process_from_file(process, file_directory, file_map, log_file,
+                           branches, good_events, final_state_mode, 
+                           data=False, testing=False):
   '''
   Most important function! Contains the only call to uproot in this library! 
   Loads into memory files relevant to the given 'final_state_mode' by reading
@@ -28,16 +30,19 @@ def load_process_from_file(process, file_directory, file_map, branches, good_eve
   Note: that a numpy array is generated for each loaded process, which corresponds
   to a set of files. 
   '''
-  time_print(f"Loading {file_map[process]}")
+  log_print(f"Loading {file_map[process]}", log_file, time=True)
   file_string = file_directory + "/" + file_map[process] + ".root:Events"
   if data: 
-    branches = [branch for branch in branches if branch != "Generator_weight"]
-    branches = [branch for branch in branches if branch != "Tau_genPartFlav"]
+    # if a branch isn't available in Data, don't try to load it
+    branches_not_in_data = ["Generator_weight", "NWEvents", "Tau_genPartFlav", "Electron_genPartFlav", "Weight_DY_Zpt_LO", "XSecMCweight",
+                            "TauSFweight", "MuSFweight", "ElSFweight", "PUweight", "Weight_TTbar_NNLO", "Pileup_nPU"]
+    for missing_branch in branches_not_in_data:
+      branches = [branch for branch in branches if branch != missing_branch]
   try:
     processed_events = uproot.concatenate([file_string], branches, cut=good_events, library="np")
   except FileNotFoundError:
-    print(text_options["yellow"] + "FILE NOT FOUND! " + text_options["reset"], end="")
-    print(f"continuing without loading {file_map[process]}...")
+    log_print(text_options["yellow"] + "FILE NOT FOUND! " + text_options["reset"], log_file, end="")
+    log_print(f"continuing without loading {file_map[process]}...", log_file)
     return None
   process_list = {}
   process_list[process] = {}
@@ -63,9 +68,16 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
     combined_processes[process] = {
       "PlotEvents": {}, 
       "Cuts": {},
-      "Generator_weight": cut_events["Generator_weight"],
+      "Generator_weight":  cut_events["Generator_weight"],
+      "Weight_DY_Zpt_LO":     cut_events["Weight_DY_Zpt_LO"],
+      "Weight_TTbar_NNLO": cut_events["Weight_TTbar_NNLO"],
+      "TauSFweight": cut_events["TauSFweight"],
+      "MuSFweight":  cut_events["MuSFweight"],
+      "ElSFweight":  cut_events["ElSFweight"],
+      "PUweight"  :  cut_events["PUweight"],
       "SF_weight": np.ones(cut_events["Generator_weight"].shape)
     }
+    #if "DY" in process: combined_processes[process]["Weight_DY_Zpt_by_hand"] = cut_events["Weight_DY_Zpt_by_hand"]
   elif "Data" in process:
     combined_processes[process] = { 
       "PlotEvents": {},

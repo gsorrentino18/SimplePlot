@@ -3,13 +3,87 @@ import numpy as np
 ### README
 # this file contains functions to perform cuts and self-contained studies
 
-from calculate_functions import calculate_mt
-from utility_functions   import time_print
+from calculate_functions import calculate_mt, hasbit, getBin, highest_mjj_pair
+from utility_functions   import time_print, text_options, log_print
 
 from cut_ditau_functions import make_ditau_cut, make_ditau_AR_cut
-from cut_mutau_functions import make_mutau_cut, make_mutau_AR_cut
+from cut_mutau_functions import make_mutau_cut, make_mutau_AR_cut, make_mutau_TnP_cut
 from cut_etau_functions  import make_etau_cut, make_etau_AR_cut
-from branch_functions    import add_trigger_branches, add_DeepTau_branches
+from branch_functions    import add_trigger_branches, add_DeepTau_branches, add_Zpt_branches
+
+# TODO : consider putting this function in a different file and importing it here
+from MC_dictionary import MC_dictionary
+from XSec import XSecRun3 as XSec
+def load_and_store_NWEvents(process, event_dictionary):
+  '''
+  Read the NWEvents value for a sample and store it in the MC_dictionary,
+  overriding the hardcoded values from V11 samples. Delete the NWEvents branch after.
+  '''
+  MC_dictionary[process]["NWEvents"] = event_dictionary["NWEvents"][0]
+  MC_dictionary[process]["XSecMCweight"] = event_dictionary["XSecMCweight"][0]
+  #print(process, MC_dictionary[process]["NWEvents"]) # DEBUG
+  event_dictionary.pop("NWEvents")
+  event_dictionary.pop("XSecMCweight")
+
+def customize_DY(process, final_state_mode):
+  for DYtype in ["DYGen", "DYLep", "DYJet"]:
+    MC_dictionary[DYtype]["XSecMCweight"] = MC_dictionary[process]["XSecMCweight"]
+    MC_dictionary[DYtype]["NWEvents"] = MC_dictionary[process]["NWEvents"]
+  if (process == "DYIncNLO"): # double-check 
+    # overwrite DYGen, DYLep, DYJet values with NLO values
+    for subprocess in ["DYGen", "DYLep", "DYJet"]:
+      MC_dictionary[subprocess]["XSec"]         = XSec["DYJetsToLL_M-50"]
+      MC_dictionary[subprocess]["NWEvents"]     = MC_dictionary["DYIncNLO"]["NWEvents"]
+      MC_dictionary[subprocess]["plot_scaling"] = 1  # override kfactor
+  label_text = { "ditau" : r"$Z{\rightarrow}{\tau_h}{\tau_h}$",
+                 "mutau" : r"$Z{\rightarrow}{\mu}{\tau_h}$",
+                 "etau"  : r"$Z{\rightarrow}{e}{\tau_h}$",
+                 "emu"   : r"$Z{\rightarrow}{e}{\mu}$",}
+  MC_dictionary["DYGen"]["label"] = label_text[final_state_mode]
+
+
+def append_Zpt_weight(event_dictionary):
+  unpack_Zpt = [
+    "nGenPart", "GenPart_pdgId", "GenPart_status", "GenPart_statusFlags",
+    "GenPart_pt", "GenPart_eta", "GenPart_phi", "GenPart_mass",
+  ]
+  unpack_Zpt = (event_dictionary.get(key) for key in unpack_Zpt)
+  Gen_Zpt, Gen_Z_mass, Gen_Zpt_weight = [], [], []
+
+  # could make our own weights like this with a little effort
+  # load 2D ROOT hist from local file
+  from ROOT import TLorentzVector, TFile, TH2
+  zptroot = TFile("SFs/zpt_reweighting_LO_2022.root", "open")
+  zpthist = zptroot.Get("zptmass_histo")
+  for nGen, pdgId, status, statusFlags, pt, eta, phi, mass in zip(*unpack_Zpt):
+    good_lep_vecs = []
+    for iparticle in range(nGen):
+      pdgId_part  = abs(pdgId[iparticle])
+      status_part = status[iparticle]
+      flags_part  = statusFlags[iparticle]
+      if ( ((pdgId_part==11 or pdgId_part==13) and status_part==1 and hasbit(flags_part, 8))
+        or (pdgId_part==15 and status_part==2 and hasbit(flags_part, 8)) ): # 8 : fromHardProcess
+        lep_vec = TLorentzVector() # surprisingly, you can't combine this with the following line
+        lep_vec.SetPtEtaPhiM(pt[iparticle], eta[iparticle], phi[iparticle], mass[iparticle])
+        good_lep_vecs.append(lep_vec)
+    # end loop over particles in event
+    #print(f"Z boson lep cands in event: {len(good_lep_vecs)}") # always 2
+    zmass, zpt = 0.0, 0.0
+    if (len(good_lep_vecs) == 2):
+      zboson = good_lep_vecs[0] + good_lep_vecs[-1] # adding only cands in the list
+      zmass = zboson.M()
+      zpt   = zboson.Pt()
+
+    zptweight = 1.0
+    if not (zmass==0.0 and zpt==0.0):
+      xbin = getBin(zmass, zpthist.GetXaxis())
+      ybin = getBin(zpt, zpthist.GetYaxis())
+      zptweight = zpthist.GetBinContent(xbin, ybin)
+      if zptweight<=0.0: zptweight=1.0
+    Gen_Zpt_weight.append(zptweight)
+
+  event_dictionary["Weight_DY_Zpt_by_hand"] = np.array(Gen_Zpt_weight)
+  return event_dictionary
 
 
 def append_lepton_indices(event_dictionary):
@@ -29,13 +103,42 @@ def append_lepton_indices(event_dictionary):
   return event_dictionary
 
 
+def append_electron_flavor_indices(event_dictionary, final_state_mode):
+  unpack_flav = ["l1_indices", "l2_indices", "Lepton_elIdx", "Lepton_tauIdx", "Electron_genPartFlav"]
+  unpack_flav = (event_dictionary.get(key) for key in unpack_flav)
+  to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_flav]
+  FS_ele_flav= []
+  true_ele = []
+  for i, l1_idx, l2_idx, ele_idx, tau_idx, ele_flav in zip(*to_check):
+    ele = -1
+    if (tau_idx[l1_idx] != -1 and ele_idx[l2_idx] != -1):
+      ele = ele_flav[ele_idx[l2_idx]]
+    elif (tau_idx[l2_idx] != -1 and ele_idx[l1_idx] != -1):
+      ele = ele_flav[ele_idx[l1_idx]]
+    else:
+      print("Should not print :)")
+
+    if (ele ==1 or ele==15): #prompt ele, or ele coming from tau
+      FS_ele_flav.append(ele)
+      true_ele.append(i)
+    elif (ele!=1 or ele!=15):
+      FS_ele_flav.append(ele)
+    else:
+      print(f"No gen matching for that final state ({final_state_mode}), crashing...")
+      return None
+
+  event_dictionary["FS_ele_flav"] = np.array(FS_ele_flav)
+  event_dictionary["true_ele"]  = np.array(true_ele)
+
+  return event_dictionary
+
+
 def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
   unpack_flav = ["l1_indices", "l2_indices", "Lepton_tauIdx", "Tau_genPartFlav"]
   unpack_flav = (event_dictionary.get(key) for key in unpack_flav)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_flav]
   FS_t1_flav, FS_t2_flav = [], []
-  pass_gen_cuts, genuine_events, jet_fake_events, lep_fake_events = [], [], [], []
-  event_flavor = []
+  pass_gen_cuts, event_flavor = [], []
   for i, l1_idx, l2_idx, tau_idx, tau_flav in zip(*to_check):
     genuine, lep_fake, jet_fake = False, False, False
     t1_flav = -1
@@ -46,12 +149,10 @@ def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
       if (t1_flav == 5) and (t2_flav == 5):
         # genuine tau --> both taus are taus at gen level
         genuine = True
-        genuine_events.append(i)
         event_flavor.append("G")
       elif (t1_flav == 0) or (t2_flav == 0):
         # jet fake --> one tau is faked by jet
         jet_fake = True
-        jet_fake_events.append(i)
         event_flavor.append("J")
       elif (t1_flav < 5 and t1_flav > 0) or (t2_flav < 5 and t1_flav > 0):
         # lep fake --> both taus are faked by lepton
@@ -59,21 +160,19 @@ def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
         # implies also the case where both are faked but one is faked by lepton 
         # is added to jet fakes, which i think is fine
         lep_fake = True
-        lep_fake_events.append(i)
         event_flavor.append("L")
     elif ((final_state_mode == "mutau") or (final_state_mode == "etau")):
-      t1_flav = tau_flav[tau_idx[l1_idx] + tau_idx[l2_idx] + 1] # update with NanoAODv12 samples
+      t1_flav = tau_flav[tau_idx[l1_idx] + tau_idx[l2_idx] + 1] # update with NanoAODv12 samples -->is this ok?
       if (t1_flav == 5):
         genuine = True
-        #genuine_events.append(i)
         event_flavor.append("G")
       elif (t1_flav == 0):
         jet_fake = True
-        #jet_fake_events.append(i)
         event_flavor.append("J")
       elif (t1_flav < 5 and t1_flav > 0):
+      #elif (t1_flav == 1):
         lep_fake = True
-        #lep_fake_events.append(i)
+        #print("t1_flav:", t1_flav, "t2_flav:", t2_flav)
         event_flavor.append("L")
 
     else:
@@ -82,16 +181,18 @@ def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
   
     if (keep_fakes==False) and ((genuine) or (lep_fake)):
       # save genuine background events and lep_fakes, remove jet fakes with gen matching
+      # used in all categories because fakes are estimated with FF method
       FS_t1_flav.append(t1_flav)
       FS_t2_flav.append(t2_flav)
       pass_gen_cuts.append(i)
 
     if (keep_fakes==True) and ((genuine) or (lep_fake) or (jet_fake)):
       # save all events and their flavors, even if they are jet fakes
+      # used to split DY to genuine, lep fakes, and jet fakes in all categories
       FS_t1_flav.append(t1_flav)
       FS_t2_flav.append(t2_flav)
       pass_gen_cuts.append(i)
-      
+
   event_dictionary["FS_t1_flav"] = np.array(FS_t1_flav)
   event_dictionary["FS_t2_flav"] = np.array(FS_t2_flav)
   event_dictionary["pass_gen_cuts"] = np.array(pass_gen_cuts)
@@ -99,41 +200,23 @@ def append_flavor_indices(event_dictionary, final_state_mode, keep_fakes=False):
   return event_dictionary
 
 
-def make_TnP_cut(event_dictionary, DeepTau_version, numerator=False):
-  '''
-  '''
-  nEvents_precut = len(event_dictionary["Lepton_pt"])
-  unpack_TnP = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_tauIdx",
-                "l1_indices", "l2_indices"]
-  return event_dictionary
-
-
-def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
+def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version, determining_FF):
   '''
   '''
   # should have aiso/iso as well
   FF_values = {
     # FS : { "jet_mode" : [intercept, slope] }  
     "ditau" : { 
-      "custom_0j_2p5_FF" :    [0.273506,-0.000930995],
-      "custom_1j_2p5_FF" :    [0.243313,-0.000929758],
-      "custom_GTE2j_2p5_FF" : [0.222382,-0.000994264],
 
-      "custom_0j_2p5_CH" :    [1.14356 ,-0.000254023],
-      "custom_1j_2p5_CH" :    [1.101 ,4.88618e-05],
-      "custom_GTE2j_2p5_CH" : [1.11098,7.22662e-05],
+      ### from V12 samples
+      "custom_0j_2p5_FF" :    [0.277605,-0.000507954],
+      "custom_1j_2p5_FF" :    [0.245381,-0.00054067],
+      "custom_GTE2j_2p5_FF" : [0.232493,-0.000626524],
 
-      "custom_0j_2p5_check_FF"   : [0.315051, -0.00227768, 1.12693e-05],
-      "custom_0j_2p5_check_Clos" : [1.90974, -0.0257612, 0.000156502],
-      "custom_0j_2p5_check_CH"   : [1.15254, -0.00342661, 2.08671e-05],
-
-      "custom_1j_2p5_check_FF"   : [0.330999, -0.00374668, 2.47092e-05],
-      "custom_1j_2p5_check_Clos" : [1.56709, -0.0145289, 3.08194e-05],
-      "custom_1j_2p5_check_CH"   : [1.29089, -0.00589395, 3.75957e-05],
-
-      "custom_GTE2j_2p5_check_FF"   : [0.304739, -0.00343086, 1.88761e-05],
-      "custom_GTE2j_2p5_check_Clos" : [1.99696, -0.0322061, 0.000239253],
-      "custom_GTE2j_2p5_check_CH"   : [1.15858, -0.00220756, 1.75213e-05],
+      "custom_0j_2p5_CH" :    [1.03281, 0.000366355], # i think this is an underestimate
+      "custom_1j_2p5_CH" :    [1.08724, 3.92753e-05], # same here
+      "custom_GTE2j_2p5_CH" : [1.11779, 0.000141817],
+      ###
 
       "0j_2p1"      : [0.409537, -0.00166789],
       "1j_2p1"      : [0.338192, -0.00114901],
@@ -175,16 +258,20 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version):
 
     },
   } 
-  intercept = FF_values[final_state_mode][jet_mode_and_DeepTau_version][0]
-  slope     = FF_values[final_state_mode][jet_mode_and_DeepTau_version][1]
-  #slope2    = FF_values[final_state_mode][jet_mode_and_DeepTau_version][2]
+  if (determining_FF == True):
+    print("determining FF dictionary, setting dummy values and not plotting QCD")
+    intercept, slope = 0.2, 1.1
+  else:
+    intercept = FF_values[final_state_mode][jet_mode_and_DeepTau_version][0]
+    slope     = FF_values[final_state_mode][jet_mode_and_DeepTau_version][1]
+    #slope2    = FF_values[final_state_mode][jet_mode_and_DeepTau_version][2]
 
   #return intercept, slope, slope2
   return intercept, slope
 
 
-def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
-  unpack_FFVars = ["Lepton_pt", "HTT_m_vis", "l1_indices", "l2_indices"]
+def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version, determining_FF=False):
+  unpack_FFVars = ["Lepton_pt", "HTT_m_vis", "HTT_Lep_iso", "l1_indices", "l2_indices"]
   unpack_FFVars = (event_dictionary.get(key) for key in unpack_FFVars)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_FFVars]
   FF_weights = []
@@ -196,6 +283,11 @@ def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version
     # 90 events. This is not big enough to effect plots dramatically, so as long as the
     # probs are close to 0.999, they don't need to be updated every time
     # SHOULD update them the final time
+    "Inclusive_2p5" : [bins, # estimated, values not derived
+                 [0.999, # < 50
+                  0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999,
+                  0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999,
+                  0.999, 0.999, 0.999]], # > 200
     "0j_2p5" : [bins,
           [0.998869, # < 50
            0.999233, 0.999735, 0.999866, 0.999873, 0.999901, 0.999944, 0.999944, 0.999939, 
@@ -230,8 +322,8 @@ def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version
   
   FF_key = jet_mode + "_" + DeepTau_version
 
-  intercept, slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_FF")
-  OSSS_bias_intercept, OSSS_bias_slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_CH")
+  intercept, slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_FF", determining_FF)
+  OSSS_bias_intercept, OSSS_bias_slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_CH", determining_FF)
 
   #intercept, slope = set_FF_values("ditau", FF_key)
   #closure_intercept, closure_slope = set_FF_values("ditau", "Closure_" + DeepTau_version)
@@ -241,7 +333,7 @@ def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version
   #closure_intercept, closure_slope, closure_slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_Clos")
   #OSSS_bias_intercept, OSSS_bias_slope, OSSS_bias_slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_CH")
 
-  for i, lep_pt, m_vis, l1_idx, l2_idx in zip(*to_check):
+  for i, lep_pt, m_vis, lep_iso, l1_idx, l2_idx in zip(*to_check):
     if m_vis < bins[0]: # 50
       one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][0] # first weight
     elif m_vis > bins[-3]: # > 200
@@ -274,30 +366,35 @@ def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version
 
 def make_jet_cut(event_dictionary, jet_mode):
   nEvents_precut = len(event_dictionary["Lepton_pt"])
-  unpack_jetVars = ["nCleanJet", "CleanJet_pt", "CleanJet_eta"]
+  unpack_jetVars = ["nCleanJet", "CleanJet_pt", "CleanJet_eta", "CleanJet_phi", "CleanJet_mass"]
   unpack_jetVars = (event_dictionary.get(key) for key in unpack_jetVars)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_jetVars] # "*" unpacks a tuple
   nCleanJetGT30, pass_0j_cuts, pass_1j_cuts, pass_2j_cuts, pass_3j_cuts, pass_GTE2j_cuts = [], [], [], [], [], []
   CleanJetGT30_pt_1, CleanJetGT30_pt_2, CleanJetGT30_pt_3    = [], [], []
   CleanJetGT30_eta_1, CleanJetGT30_eta_2, CleanJetGT30_eta_3 = [], [], []
-  for i, nJet, jet_pt, jet_eta in zip(*to_check):
+  CleanJetGT30_phi_1, CleanJetGT30_phi_2, CleanJetGT30_phi_3 = [], [], []
+  mjj_array, detajj_array = [], []
+  from ROOT import TLorentzVector 
+  for i, nJet, jet_pt, jet_eta, jet_phi, jet_mass in zip(*to_check):
     passingJets = 0
-    passingJetsPt, passingJetsEta = [], []
+    passingJetsPt, passingJetsEta, passingJetsPhi, passingJetsMass = [], [], [], []
     for ijet in range(0, nJet):
       if (jet_pt[ijet] > 30.0) and (jet_eta[ijet] < 4.7):
         passingJets += 1
         passingJetsPt.append(jet_pt[ijet])
         passingJetsEta.append(jet_eta[ijet])
+        passingJetsPhi.append(jet_phi[ijet])
+        passingJetsMass.append(jet_mass[ijet])
     nCleanJetGT30.append(passingJets)
 
     if passingJets == 0: 
       pass_0j_cuts.append(i)
 
     if (passingJets == 1) and (jet_mode == "Inclusive" or jet_mode == "1j"): 
-      # for GTE2j, fill this in block below
       pass_1j_cuts.append(i)
       CleanJetGT30_pt_1.append(passingJetsPt[0])
       CleanJetGT30_eta_1.append(passingJetsEta[0])
+      CleanJetGT30_phi_1.append(passingJetsPhi[0])
 
     if (passingJets == 2) and (jet_mode == "Inclusive" or jet_mode == "2j"):
       pass_2j_cuts.append(i)
@@ -305,13 +402,30 @@ def make_jet_cut(event_dictionary, jet_mode):
       CleanJetGT30_pt_2.append(passingJetsPt[1])
       CleanJetGT30_eta_1.append(passingJetsEta[0])
       CleanJetGT30_eta_2.append(passingJetsEta[1])
+      CleanJetGT30_phi_1.append(passingJetsPhi[0])
+      CleanJetGT30_phi_2.append(passingJetsPhi[1])
+      j1_vec, j2_vec = TLorentzVector(), TLorentzVector() # surprisingly, you can't combine this with the following line
+      j1_vec.SetPtEtaPhiM(passingJetsPt[0], passingJetsEta[0], passingJetsPhi[0], passingJetsMass[0])
+      j2_vec.SetPtEtaPhiM(passingJetsPt[1], passingJetsEta[1], passingJetsPhi[1], passingJetsMass[1])
+      mjj_array.append((j1_vec + j2_vec).M())
+      detajj_array.append(abs(j1_vec.Eta() - j2_vec.Eta()))
 
     if (passingJets >= 2) and (jet_mode == "GTE2j"): 
       pass_GTE2j_cuts.append(i)
+      TLorentzVector_Jets = []
+      for i in range(passingJets):
+        temp_jet_vec = TLorentzVector()
+        temp_jet_vec.SetPtEtaPhiM(passingJetsPt[i], passingJetsEta[i], passingJetsPhi[i], passingJetsMass[i])
+        TLorentzVector_Jets.append(temp_jet_vec)
+      j1_TVec, j2_TVec = highest_mjj_pair(TLorentzVector_Jets)
       CleanJetGT30_pt_1.append(passingJetsPt[0])
       CleanJetGT30_pt_2.append(passingJetsPt[1])
       CleanJetGT30_eta_1.append(passingJetsEta[0])
       CleanJetGT30_eta_2.append(passingJetsEta[1])
+      CleanJetGT30_phi_1.append(passingJetsPhi[0])
+      CleanJetGT30_phi_2.append(passingJetsPhi[1])
+      mjj_array.append((j1_TVec+j2_TVec).M())
+      detajj_array.append(abs(j1_TVec.Eta()-j2_TVec.Eta()))
 
   event_dictionary["nCleanJetGT30"]   = np.array(nCleanJetGT30)
 
@@ -351,6 +465,8 @@ def make_jet_cut(event_dictionary, jet_mode):
     event_dictionary["CleanJetGT30_pt_2"]  = np.array(CleanJetGT30_pt_2)
     event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
     event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
+    event_dictionary["FS_mjj"] = np.array(mjj_array)
+    event_dictionary["FS_detajj"] = np.array(detajj_array)
 
   elif jet_mode == "3j" or jet_mode == "GTE2j":
     # importantly different from inclusive
@@ -363,6 +479,11 @@ def make_jet_cut(event_dictionary, jet_mode):
     event_dictionary["CleanJetGT30_eta_1"] = np.array(CleanJetGT30_eta_1)
     event_dictionary["CleanJetGT30_eta_2"] = np.array(CleanJetGT30_eta_2)
     #event_dictionary["CleanJetGT30_eta_3"] = np.array(CleanJetGT30_eta_3)
+    event_dictionary["CleanJetGT30_phi_1"] = np.array(CleanJetGT30_phi_1)
+    event_dictionary["CleanJetGT30_phi_2"] = np.array(CleanJetGT30_phi_2)
+    #event_dictionary["CleanJetGT30_phi_3"] = np.array(CleanJetGT30_phi_3)
+    event_dictionary["FS_mjj"] = np.array(mjj_array)
+    event_dictionary["FS_detajj"] = np.array(detajj_array)
 
   # can only do this if inclusive
   if jet_mode == "Inclusive":
@@ -482,6 +603,7 @@ def make_run_cut(event_dictionary, good_runs):
 
 
 def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
+  DEBUG = False # set this to true to show print output from this function
   '''
   Remove all entries in 'event_dictionary' not in 'cut_branch' using the numpy 'take' method.
   Branches that are added during previous cut steps are added here because their entries
@@ -493,12 +615,12 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
   '''
   delete_sample = False
   if len(event_dictionary[cut_branch]) == 0:
-    print("All events removed, sample will be deleted")
+    print(text_options["red"] + "ALL EVENTS REMOVED! SAMPLE WILL BE DELETED! " + text_options["reset"])
     delete_sample = True
     return None
  
-  print(f"cut branch: {cut_branch}") # DEBUG
-  print(f"protected branches: {protected_branches}") # DEBUG
+  if DEBUG: print(f"cut branch: {cut_branch}")
+  if DEBUG: print(f"protected branches: {protected_branches}")
   for branch in event_dictionary:
     if delete_sample:
       pass
@@ -513,7 +635,7 @@ def apply_cut(event_dictionary, cut_branch, protected_branches=[]):
       #  event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary["pass_3j_cuts"])
 
     elif ((branch != cut_branch) and (branch not in protected_branches)):
-      print(f"going to cut {branch}, {len(event_dictionary[branch])}") # DEBUG
+      if DEBUG: print(f"going to cut {branch}, {len(event_dictionary[branch])}")
       event_dictionary[branch] = np.take(event_dictionary[branch], event_dictionary[cut_branch])
 
   return event_dictionary
@@ -565,7 +687,7 @@ def study_triggers():
   print(f"Run3 OR/AND: {Run3OR}\t{Run3AND}")
 
 
-def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version, useMiniIso=False):
+def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version, useMiniIso=False, GENMATCHING=False):
   '''
   Organizational function that generalizes call to a (set of) cuts based on the
   final cut. Importantly, the function that rejects events, 'apply_cut',
@@ -574,6 +696,9 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version, u
   # setting inclusive in the jet_mode includes all jet branches in protected branches
   # this is okay because in the current ordering (FS cut then jet cut), no jet branches
   # are event created yet.
+  #if (final_state_mode == "mutau_TnP"):
+  #  protected_branches = set_protected_branches(final_state_mode="mutau_TnP", jet_mode="Inclusive")
+  #else:
   protected_branches = set_protected_branches(final_state_mode=final_state_mode, jet_mode="Inclusive")
   if final_state_mode == "ditau":
     event_dictionary = make_ditau_cut(event_dictionary, DeepTau_version)
@@ -581,9 +706,14 @@ def apply_final_state_cut(event_dictionary, final_state_mode, DeepTau_version, u
   elif final_state_mode == "mutau":
     event_dictionary = make_mutau_cut(event_dictionary, DeepTau_version)
     event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
-  elif final_state_mode == "etau":
-    event_dictionary = make_etau_cut(event_dictionary, DeepTau_version)
+  elif final_state_mode == "mutau_TnP": # special mode for Tau TRG studies
+    event_dictionary = make_mutau_TnP_cut(event_dictionary, DeepTau_version)
     event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
+  elif final_state_mode == "etau":
+    if (GENMATCHING==False):
+      event_dictionary = make_etau_cut(event_dictionary, DeepTau_version)
+      event_dictionary = apply_cut(event_dictionary, "pass_cuts", protected_branches)
+    else: print("Customized event selection")
   elif final_state_mode == "dimuon":
     # old samples need manual lepton veto
     if (useMiniIso == False):
@@ -608,14 +738,17 @@ def apply_flavor_cut(event_dictionary):
   return event_dictionary
 
 
-def apply_AR_cut(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
+def apply_AR_cut(process, event_dictionary, final_state_mode, jet_mode, DeepTau_version, determining_FF):
   '''
   Organizational function
   added 'skip_DeepTau' to apply a partial selection (all but leading tau deeptau reqs)
   '''
   protected_branches = ["None"]
   event_dictionary = append_lepton_indices(event_dictionary)
-  if ((final_state_mode != "dimuon") and (jet_mode != "Inclusive")):
+  if ("Data" not in process):
+    load_and_store_NWEvents(process, event_dictionary)
+    if ("DY" in process): customize_DY(process, final_state_mode)
+  if (final_state_mode != "dimuon"):
     # non-standard FS cut
     if (final_state_mode == "ditau"):
       event_dictionary = make_ditau_AR_cut(event_dictionary, DeepTau_version)
@@ -635,7 +768,9 @@ def apply_AR_cut(event_dictionary, final_state_mode, jet_mode, DeepTau_version):
     protected_branches = set_protected_branches(final_state_mode=final_state_mode, jet_mode="none")
     event_dictionary   = apply_cut(event_dictionary, "pass_cuts", protected_branches)
     #
-    event_dictionary = add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version)
+    event_dictionary = add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version,
+                                      determining_FF=determining_FF)
+    determining_FF = False # paranoid thing to prevent leaking the variable
   else:
     print(f"{final_state_mode} : {jet_mode} not possible. Continuing without AR or FF method applied.")
   return event_dictionary
@@ -665,7 +800,7 @@ def apply_jet_cut(event_dictionary, jet_mode):
   return event_dictionary
 
 
-def apply_HTT_FS_cuts_to_process(process, process_dictionary, 
+def apply_HTT_FS_cuts_to_process(process, process_dictionary, log_file,
                                  final_state_mode, jet_mode="Inclusive", 
                                  DeepTau_version="2p5", useMiniIso=False):
   '''
@@ -674,26 +809,37 @@ def apply_HTT_FS_cuts_to_process(process, process_dictionary,
   Can be extended to hold additional standard cuts (i.e. jets) or the returned
   value can be cut on as needed.
   '''
-  time_print(f"Processing {process}")
+  log_print(f"Processing {process}", log_file)
   process_events = process_dictionary[process]["info"]
   if len(process_events["run"])==0: return None
 
   process_events = append_lepton_indices(process_events)
-  protected_branches = ["FS_t1_flav", "FS_t2_flav", "pass_gen_cuts", "event_flavor"]
+  protected_branches = ["FS_t1_flav", "FS_t2_flav","pass_gen_cuts", "event_flavor"]
 
   if ("Data" not in process):
+    load_and_store_NWEvents(process, process_events)
+    if ("DY" in process): customize_DY(process, final_state_mode) #append_Zpt_weight(process_events)
+    #keep_fakes = True  #remove after SF check
+    #process_events = append_flavor_indices(process_events, final_state_mode, keep_fakes=keep_fakes)
+    #process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=protected_branches)
+    #if (process_events==None or len(process_events["run"])==0): return None
+
     keep_fakes = False
-    if ("TT" in process) or ("WJ" in process) or ("DY" in process):
+    if ((("TT" in process) or ("WJ" in process) or ("DY" in process)) and (final_state_mode=="mutau" or final_state_mode=="etau")):
+      # when FF method is finished/improved no longer need to keep TT and WJ fakes
+      keep_fakes = True
+    if (("DY" in process) and (final_state_mode=="ditau")):
       keep_fakes = True
     process_events = append_flavor_indices(process_events, final_state_mode, keep_fakes=keep_fakes)
     process_events = apply_cut(process_events, "pass_gen_cuts", protected_branches=protected_branches)
+    if ((final_state_mode=="etau") and ("DY" in process)):
+      process_events = append_electron_flavor_indices(process_events, final_state_mode)
+      process_events = apply_cut(process_events, "true_ele")
     if (process_events==None or len(process_events["run"])==0): return None
 
   FS_cut_events = apply_final_state_cut(process_events, final_state_mode, DeepTau_version, useMiniIso=useMiniIso)
   if (FS_cut_events==None or len(FS_cut_events["run"])==0): return None 
-  ### TODO TODO TODO re enable me
   cut_events = apply_jet_cut(FS_cut_events, jet_mode)
-  #cut_events = apply_jet_cut(FS_cut_events, jet_mode="pass") # DEBUG
   if (cut_events==None or len(cut_events["run"])==0): return None
 
   # TODO : want to move to this
@@ -731,26 +877,32 @@ def set_good_events(final_state_mode, disable_triggers=False, useMiniIso=False):
   #     # All SR requirements besides opposite sign
   
   # apply FS cut separately so it can be used with reject_duplicate_events
-  if final_state_mode == "ditau":
-    #good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
-    #triggers = "(HLT_DoubleMediumDeepTauPFTauHPS35_L2NN_eta2p1\
-    #           | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet60\
-    #           | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet75\
-    #           | HLT_VBF_DoubleMediumDeepTauPFTauHPS20_eta2p1\
-    #           | HLT_DoublePFJets40_Mass500_MediumDeepTauPFTauHPS45_L2NN_MediumDeepTauPFTauHPS20_eta2p1)"
-    triggers = "(HLT_DoubleMediumDeepTauPFTauHPS35_L2NN_eta2p1)"
 
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & " + triggers
+  good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (JetMapVeto_EE_30GeV) & (JetMapVeto_HotCold_30GeV)"
+
+  if final_state_mode == "ditau":
+    triggers = "(HLT_DoubleMediumDeepTauPFTauHPS35_L2NN_eta2p1\
+               | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet60\
+               | HLT_DoubleMediumDeepTauPFTauHPS30_L2NN_eta2p1_PFJet75\
+               | HLT_VBF_DoubleMediumDeepTauPFTauHPS20_eta2p1\
+               | HLT_DoublePFJets40_Mass500_MediumDeepTauPFTauHPS45_L2NN_MediumDeepTauPFTauHPS20_eta2p1)"
+    #triggers = "(HLT_DoubleMediumDeepTauPFTauHPS35_L2NN_eta2p1)"
+
+    good_events += " & (abs(HTT_pdgId)==15*15) & " + triggers
     if disable_triggers: good_events = good_events.replace(" & (Trigger_ditau)", "")
 
   elif final_state_mode == "mutau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==13*15) & (Trigger_mutau)"
-    #good_events = "(HTT_SRevent) & (METfilters) & (abs(HTT_pdgId)==13*15) & (Trigger_mutau)"
+    good_events += " & (abs(HTT_pdgId)==13*15) & (Trigger_mutau)"
     if disable_triggers: good_events = good_events.replace(" & (Trigger_mutau)", "")
 
   elif final_state_mode == "etau":
-    good_events = "(HTT_SRevent) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*15) & (Trigger_etau)"
+    #good_events += " & (abs(HTT_pdgId)==11*15) & (HLT_Ele30_WPTight_Gsf | HLT_Ele32_WPTight_Gsf | HLT_Ele35_WPTight_Gsf) & (HLT_Ele24_eta2p1_WPTight_Gsf_LooseDeepTauPFTauHPS30_eta2p1_CrossL1 == 0)"
+    good_events += " & (abs(HTT_pdgId)==11*15) & (HLT_Ele30_WPTight_Gsf | HLT_Ele32_WPTight_Gsf | HLT_Ele35_WPTight_Gsf | HLT_Ele24_eta2p1_WPTight_Gsf_LooseDeepTauPFTauHPS30_eta2p1_CrossL1)"
     if disable_triggers: good_events = good_events.replace(" & (Trigger_etau)", "")
+
+  # non-HTT FS modes
+  elif final_state_mode == "mutau_TnP":
+    good_events = "(METfilters) & (abs(HTT_pdgId)==13*15)"
 
   elif final_state_mode == "dimuon":
     # lepton veto must be applied manually for this final state
@@ -763,19 +915,26 @@ def set_good_events(final_state_mode, disable_triggers=False, useMiniIso=False):
   return good_events
 
 
-def set_branches(final_state_mode, DeepTau_version):
+def set_branches(final_state_mode, DeepTau_version, process="None"):
   common_branches = [
-    "run", "luminosityBlock", "event", "Generator_weight",
+    "run", "luminosityBlock", "event", "Generator_weight", "NWEvents", "XSecMCweight",
+    "TauSFweight", "MuSFweight", "ElSFweight", "Weight_DY_Zpt_LO", "PUweight", "Weight_TTbar_NNLO",
     "FSLeptons", "Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",
+    "Electron_genPartFlav",
     "Tau_genPartFlav", "Tau_decayMode",
-    "nCleanJet", "CleanJet_pt", "CleanJet_eta",
-    "HTT_m_vis", "HTT_dR",
+    "nCleanJet", "CleanJet_pt", "CleanJet_eta", "CleanJet_phi", "CleanJet_mass",
+    "HTT_m_vis", "HTT_dR", "HTT_pT_l1l2", "FastMTT_PUPPIMET_mT", "FastMTT_PUPPIMET_mass",
+    #"Tau_rawPNetVSjet", "Tau_rawPNetVSmu", "Tau_rawPNetVSe",
+    "PV_npvs", "Pileup_nPU",
+    "Electron_mvaNoIso_WP90", "Electron_pfRelIso03_all"
     #"HTT_DiJet_dEta_fromHighestMjj", "HTT_DiJet_MassInv_fromHighestMjj",
   ]
   branches = common_branches
   branches = add_final_state_branches(branches, final_state_mode)
   if final_state_mode != "dimuon": branches = add_DeepTau_branches(branches, DeepTau_version)
   branches = add_trigger_branches(branches, final_state_mode)
+
+  if (process == "DY"): branches = add_Zpt_branches(branches)
   return branches
 
 
@@ -789,12 +948,17 @@ def add_final_state_branches(branches_, final_state_mode):
     "mutau"  : ["Muon_dxy", "Muon_dz", "Muon_charge",
                 "Tau_dxy", "Tau_dz", "Tau_charge",
                 "Lepton_tauIdx", "Lepton_muIdx",
+                "PuppiMET_pt", "PuppiMET_phi", "HTT_Lep_iso"],
+
+    "mutau_TnP"  : ["Muon_dxy", "Muon_dz", "Muon_charge",
+                "Tau_dxy", "Tau_dz", "Tau_charge",
+                "Lepton_tauIdx", "Lepton_muIdx",
                 "PuppiMET_pt", "PuppiMET_phi"],
 
     "etau"   : ["Electron_dxy", "Electron_dz", "Electron_charge", 
                 "Tau_dxy", "Tau_dz", "Tau_charge", 
                 "Lepton_tauIdx", "Lepton_elIdx",
-                "PuppiMET_pt", "PuppiMET_phi"],
+                "PuppiMET_pt", "PuppiMET_phi","HTT_Lep_iso"],
 
     "dimuon" : ["Lepton_pdgId", "Lepton_muIdx",
                 "Muon_dxy", "Muon_dz"],
@@ -818,24 +982,38 @@ clean_jet_vars = {
 
     "0j" : ["nCleanJetGT30"],
     "1j" : ["nCleanJetGT30", "CleanJetGT30_pt_1", "CleanJetGT30_eta_1"],
-    "GTE2j" : ["nCleanJetGT30", "CleanJetGT30_pt_1", "CleanJetGT30_eta_1",
-            "CleanJetGT30_pt_2", "CleanJetGT30_eta_2"],
+    "GTE2j" : ["nCleanJetGT30", 
+               "CleanJetGT30_pt_1", "CleanJetGT30_eta_1", "CleanJetGT30_phi_1",
+               "CleanJetGT30_pt_2", "CleanJetGT30_eta_2", "CleanJetGT30_phi_2",
+               "FS_mjj", "FS_detajj",
+              ],
 }
 
 final_state_vars = {
     # can't put nanoaod branches here because this dictionary is used to protect branches created internally
     "none"   : [],
-    "ditau"  : ["FS_t1_pt", "FS_t1_eta", "FS_t1_phi", "FS_t1_dxy", "FS_t1_dz", "FS_t1_chg",
-                "FS_t2_pt", "FS_t2_eta", "FS_t2_phi", "FS_t2_dxy", "FS_t2_dz", "FS_t2_chg",
-                "FS_t1_flav", "FS_t2_flav"],
+    "ditau"  : ["FS_t1_pt", "FS_t1_eta", "FS_t1_phi", "FS_t1_dxy", "FS_t1_dz", "FS_t1_chg", "FS_t1_DM",
+                "FS_t2_pt", "FS_t2_eta", "FS_t2_phi", "FS_t2_dxy", "FS_t2_dz", "FS_t2_chg", "FS_t2_DM",
+                "FS_t1_flav", "FS_t2_flav", 
+                #"FS_t1_rawPNetVSjet", "FS_t1_rawPNetVSmu", "FS_t1_rawPNetVSe",
+                #"FS_t2_rawPNetVSjet", "FS_t2_rawPNetVSmu", "FS_t2_rawPNetVSe",
+                "FS_t1_DeepTauVSjet", "FS_t1_DeepTauVSmu", "FS_t1_DeepTauVSe", 
+                "FS_t2_DeepTauVSjet", "FS_t2_DeepTauVSmu", "FS_t2_DeepTauVSe", 
+                ],
 
     "mutau"  : ["FS_mu_pt", "FS_mu_eta", "FS_mu_phi", "FS_mu_iso", "FS_mu_dxy", "FS_mu_dz", "FS_mu_chg",
+                "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz", "FS_tau_chg", "FS_tau_DM",
+                "FS_mt", "FS_t1_flav", "FS_t2_flav", 
+                #"FS_tau_rawPNetVSjet", "FS_tau_rawPNetVSmu", "FS_tau_rawPNetVSe"
+                ],
+
+    "mutau_TnP"  : ["FS_mu_pt", "FS_mu_eta", "FS_mu_phi", "FS_mu_iso", "FS_mu_dxy", "FS_mu_dz", "FS_mu_chg",
                 "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz", "FS_tau_chg",
-                "FS_mt", "FS_t1_flav", "FS_t2_flav"],
+                "FS_mt", "FS_t1_flav", "FS_t2_flav", "pass_tag", "pass_probe"],
 
     "etau"   : ["FS_el_pt", "FS_el_eta", "FS_el_phi", "FS_el_iso", "FS_el_dxy", "FS_el_dz", "FS_el_chg",
                 "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz", "FS_tau_chg",
-                "FS_mt", "FS_t1_flav", "FS_t2_flav"],
+                "FS_mt", "FS_t1_flav", "FS_t2_flav", "xtrigger_flag"],
 
     "dimuon" : ["FS_m1_pt", "FS_m1_eta", "FS_m1_phi", "FS_m1_iso", "FS_m1_dxy", "FS_m1_dz",
                 "FS_m2_pt", "FS_m2_eta", "FS_m2_phi", "FS_m2_iso", "FS_m2_dxy", "FS_m2_dz"],
@@ -846,7 +1024,9 @@ def set_vars_to_plot(final_state_mode, jet_mode="none"):
   Helper function to keep plotting variables organized
   Shouldn't this be in  plotting functions?
   '''
-  vars_to_plot = ["HTT_m_vis", "HTT_dR", "PuppiMET_pt"] # common to all final states # TODO add MET here, add Tau_decayMode
+  vars_to_plot = ["HTT_m_vis", "HTT_dR", "HTT_Lep_iso"]
+                  #"HTT_DiJet_MassInv_fromHighestMjj", "HTT_DiJet_dEta_fromHighestMjj"] 
+                  # common to all final states # TODO add MET here, add Tau_decayMode
   FS_vars_to_add = final_state_vars[final_state_mode]
   for var in FS_vars_to_add:
     vars_to_plot.append(var)

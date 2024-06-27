@@ -1,6 +1,7 @@
 import numpy as np
 from datetime import datetime, timezone
 from os import getlogin, path, makedirs
+import sys
 
 ### README
 # this file contains functions to support various print commands
@@ -29,6 +30,13 @@ text_options = {
   "pink"   : "\033[95m",
 }
 
+# hack for simultaneous logging + terminal output
+def log_print(text, log_file, time=False, *args, **kwargs):
+    if (time==True): time_print(text)
+    else: print(text, *args, **kwargs)
+    if log_file:
+        if (time==True): text = datetime.now(timezone.utc).strftime('%H:%M:%S') + ' ' + text
+        log_file.write(str(str(text)+'\n'))
 
 def time_print(*args, **kwargs):
   '''
@@ -44,14 +52,14 @@ def time_print(*args, **kwargs):
   print(f"{time} UTC", *args, **kwargs)
 
 
-def attention(input_string):
+def attention(input_string, log_file):
   '''
   Helper function to print a string in a large font in a central
   position so that it cannot be missed. Blinking text can be added
   if the user enrolls themself by adding their login handle to the if statement. 
   '''
   screen_width, spacer = 76, "-"
-  print("the final state mode is".upper().center(screen_width, spacer))
+  log_print("the final state mode is".upper().center(screen_width, spacer), log_file)
   if getlogin() == "ballmond":
     # can't use normal center function because escape characters contribute to length of string
     center_val = (screen_width - 3*len(input_string))//2
@@ -59,8 +67,8 @@ def attention(input_string):
     s_2 = text_options["bold_italic_blink"] + text_options["yellow"] + input_string + text_options["reset"]
     s_3 = text_options["bold_italic_blink"] + text_options["purple"] + input_string + text_options["reset"]
     s_full = center_val*" " + s_1+s_2+s_3 + center_val*" " 
-    print(s_full)
-  print(input_string.center(screen_width, spacer))
+    log_print(s_full, log_file)
+  log_print(input_string.center(screen_width, spacer), log_file)
 
 
 def make_directory(directory_name, final_state, testing=False):
@@ -70,37 +78,36 @@ def make_directory(directory_name, final_state, testing=False):
   if not path.isdir(directory_name):
     makedirs(directory_name)
   else:
-    directory_name = "alternate_" + directory_name
-    makedirs(directory_name)
-    print("WARNING: directory already exists, putting images in alternate: {directory_name}")
+    print("WARNING: directory already exists, wait one minute.")
+    sys.exit()
   return directory_name
 
 
 def print_setup_info(final_state_mode, lumi, jet_mode, testing, useDeepTauVersion,
                    using_directory, plot_dir,
-                   good_events, branches, vars_to_plot):
+                   good_events, branches, vars_to_plot, log_file):
 
   screen_width, spacer = 76, "-"
-  attention(final_state_mode)
-  print(" other useful info ".upper().center(screen_width, spacer))
-  print(f"LUMI={lumi} \t JET MODE={jet_mode} \t TESTING={testing} \t DeepTauVersion={useDeepTauVersion}")
-  print(spacer*screen_width)
+  attention(final_state_mode, log_file)
+  log_print(" other useful info ".upper().center(screen_width, spacer), log_file)
+  log_print(f"LUMI={lumi} \t JET MODE={jet_mode} \t TESTING={testing} \t DeepTauVersion={useDeepTauVersion}", log_file)
+  log_print(spacer*screen_width, log_file)
 
-  print(" good events pass initial filtering ".upper().center(screen_width, spacer))
-  print(good_events)
-  print()
+  log_print(" good events pass initial filtering ".upper().center(screen_width, spacer), log_file)
+  log_print(good_events, log_file)
+  log_print('', log_file)
 
-  print(" Loading branches ".upper().center(screen_width, spacer))
-  print(branches)
-  print()
+  log_print(" Loading branches ".upper().center(screen_width, spacer), log_file)
+  log_print(branches, log_file)
+  log_print('', log_file)
 
-  print(" Going to plot these variables ".upper().center(screen_width, spacer))
-  print(vars_to_plot)
-  print(spacer*screen_width)
+  log_print(" Going to plot these variables ".upper().center(screen_width, spacer), log_file)
+  log_print(vars_to_plot, log_file)
+  log_print(spacer*screen_width, log_file)
 
-  print(f"CURRENT FILE DIRECTORY : {using_directory}")
-  print(f"OUTPUT  PLOT DIRECTORY : {plot_dir}")
-  print(spacer*screen_width)
+  log_print(f"INPUT  DATA DIRECTORY : {using_directory}", log_file)
+  log_print(f"OUTPUT PLOT DIRECTORY : {plot_dir}", log_file)
+  log_print(spacer*screen_width, log_file)
  
 
 

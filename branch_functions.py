@@ -1,5 +1,14 @@
 from triggers_dictionary import triggers_dictionary
 
+def add_gen_branches(branches_):
+  '''
+  Adding GenParticle branches for gen matching
+  '''
+  GenPart_branches = ["nGenPart", "GenPart_pt", "GenPart_eta", "GenPart_phi", "GenPart_pdgId", "GenPart_status", "GenPart_statusFlags"] 
+  for branch in GenPart_branches:
+    branches_.append(branch)
+  return branches_
+
 def add_trigger_branches(branches_, final_state_mode):
   '''
   Helper function to add HLT branches used by a given final state
@@ -26,4 +35,12 @@ def add_DeepTau_branches(branches_, DeepTauVersion):
 
   return branches_
 
+def add_Zpt_branches(branches_,):
+  Zpt_weight_branches = [
+    "nGenPart", "GenPart_pdgId", "GenPart_status", "GenPart_statusFlags",
+    "GenPart_pt", "GenPart_eta", "GenPart_phi", "GenPart_mass",
+  ]
+  for branch in Zpt_weight_branches:
+    branches_.append(branch)
 
+  return branches_

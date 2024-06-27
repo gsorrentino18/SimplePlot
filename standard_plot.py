@@ -1,5 +1,4 @@
-# Authored by Braden Allmond, Sep 11, 2023
-
+#!/usr/bin/python
 # libraries
 import numpy as np
 import sys
@@ -23,46 +22,10 @@ from plotting_functions    import plot_data, plot_MC, plot_signal, make_bins
 
 from plotting_functions import get_midpoints
 
+from binning_dictionary import label_dictionary
+
 from calculate_functions   import calculate_signal_background_ratio, yields_for_CSV
-from utility_functions     import time_print, make_directory, print_setup_info
-
-def match_objects_to_trigger_bit():
-  '''
-  Current work in progress
-  Using the final state object kinematics, check if the filter bit of a used trigger is matched
-  '''
-  #FS ditau - two taus, match to ditau
-  #FS mutau - one tau, one muon
-  # - if not cross-trig, match muon to filter
-  # - if cross-trig, use cross-trig filters to match both
-  match = False
-  # step 1 check fired triggers
-  # step 2 ensure correct trigger bit is fired
-  # step 3 calculate dR and compare with 0.5
-  dR_trig_offline = calculate_dR(trig_eta, trig_phi, off_eta, off_phi)
-
-def plot_QCD_preview(xbins, h_data, h_summed_backgrounds, h_QCD, h_MC_frac, h_QCD_FF):
-  FF_before_after_ax, FF_info_ax = setup_ratio_plot()
-
-  FF_before_after_ax.set_title("QCD Preview")
-  FF_before_after_ax.set_ylabel("Events / Bin")
-  FF_before_after_ax.minorticks_on()
-
-  FF_before_after_ax.plot(xbins[0:-1], h_data, label="Data",
-                          color="black", marker="o", linestyle='none', markersize=3)
-  FF_before_after_ax.plot(xbins[0:-1], h_summed_backgrounds, label="MC",
-                          color="blue", marker="^", linestyle='none', markersize=3)
-  FF_before_after_ax.plot(xbins[0:-1], h_QCD, label="QCD", 
-                          color="orange", marker="v", linestyle='none', markersize=4)
-
-  FF_info_ax.plot(xbins[0:-1], h_MC_frac, label="1-MC/Data",
-                  color="red", marker="*", linestyle='none', markersize=3)
-  FF_info_ax.plot(xbins[0:-1], h_QCD_FF, label="FF from fit",
-                  color="green", marker="s", linestyle='none', markersize=3)
-  FF_info_ax.axhline(y=1, color='grey', linestyle='--')
-
-  FF_before_after_ax.legend()
-  FF_info_ax.legend()
+from utility_functions     import time_print, make_directory, print_setup_info, log_print
 
 if __name__ == "__main__":
   '''
@@ -98,14 +61,16 @@ if __name__ == "__main__":
   parser.add_argument('--hide_yields', dest='hide_yields', default=False,       action='store_true')
   parser.add_argument('--final_state', dest='final_state', default="mutau",     action='store')
   parser.add_argument('--plot_dir',    dest='plot_dir',    default="plots",     action='store')
-  parser.add_argument('--lumi',        dest='lumi',        default="2022 F&G",  action='store')
+  parser.add_argument('--lumi',        dest='lumi',        default="2022 EFG",  action='store')
   parser.add_argument('--jet_mode',    dest='jet_mode',    default="Inclusive", action='store')
   parser.add_argument('--DeepTau',     dest='DeepTau_version', default="2p5",   action='store')
+  parser.add_argument('--use_NLO',  dest='use_NLO',  default=False,        action='store')
 
   args = parser.parse_args() 
   testing     = args.testing     # False by default, do full dataset unless otherwise specified
   hide_plots  = args.hide_plots  # False by default, show plots unless otherwise specified
   hide_yields = args.hide_yields # False by default, show yields unless otherwise specified
+  use_NLO  = args.use_NLO  # True  by default, use LO DY if False
   lumi = luminosities["2022 G"] if testing else luminosities[args.lumi]
   DeepTau_version = args.DeepTau_version # default is 2p5 [possible values 2p1 and 2p5]
 
@@ -114,43 +79,62 @@ if __name__ == "__main__":
   jet_mode         = args.jet_mode # default Inclusive [possible values 0j, 1j, 2j, GTE2j]
 
   #lxplus_redirector = "root://cms-xrd-global.cern.ch//"
-  eos_user_dir    = "/eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
+  #eos_user_dir    = "/eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
   # there's no place like home :)
-  home_dir        = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3PreEEFSSplitSamples/" + final_state_mode
-  home_dir        = "/Users/ballmond/LocalDesktop/HiggsTauTau/Run3FSSplitSamples/" + final_state_mode
-  #home_dir        = "/Volumes/IDrive/HTauTau_Data/2022postEE/" # unskimmed data (i.e. final states combined)
+  era_modifier_2022 = "preEE" if (("C" in args.lumi) or ("D" in args.lumi)) else "postEE"
+  home_dir        = "/Users/giuliasorrentino/Desktop/htt/SimplePlot/goodSFntuples/HTauTau_2022"+era_modifier_2022+"_step2_" + final_state_mode
+  #home_dir        = "/Users/giuliasorrentino/Desktop/htt/SimplePlot/bugfix_Run3Samples/HTauTau_2022"+era_modifier_2022+"_step2_" + final_state_mode
   using_directory = home_dir
  
-  good_events  = set_good_events(final_state_mode)
+  good_events  = set_good_events(final_state_mode, False)
   branches     = set_branches(final_state_mode, DeepTau_version)
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
-  plot_dir = make_directory("FS_plots/"+args.plot_dir, final_state_mode+"_"+jet_mode, testing=testing)
+  plot_dir_name = "FS_plots_testing/" if testing==True else "FS_plots/"
+  plot_dir = make_directory(plot_dir_name+args.plot_dir, final_state_mode+"_"+jet_mode, testing=testing)
+
+  log_file = open('outputfile.log', 'w')
 
   # show info to user
   print_setup_info(final_state_mode, lumi, jet_mode, testing, DeepTau_version,
                    using_directory, plot_dir,
-                   good_events, branches, vars_to_plot)
-                   #"AR_region", branches, vars_to_plot)
+                   good_events, branches, vars_to_plot, log_file)
 
   file_map = testing_file_map if testing else full_file_map
+  if (use_NLO == True): 
+    file_map.pop("DYInc")
+    file_map.pop("WJetsInc")
+  else: 
+    file_map.pop("DYIncNLO")
+    file_map.pop("WJetsIncNLO")
 
   # add FF weights :) # almost the same as SR, except SS and 1st tau fails iso (applied in AR_cuts)
   AR_region_ditau = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==15*15) & (Trigger_ditau)"
   AR_region_mutau = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==13*15) & (Trigger_mutau)"
-  AR_region_etau  = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*15) & (Trigger_etau)"
+  #AR_region_etau  = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*15) & (HLT_Ele30_WPTight_Gsf | HLT_Ele32_WPTight_Gsf | HLT_Ele35_WPTight_Gsf | HLT_Ele24_eta2p1_WPTight_Gsf_LooseDeepTauPFTauHPS30_eta2p1_CrossL1)"
+  #AR_region_etau  = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*15) & (HLT_Ele30_WPTight_Gsf | HLT_Ele32_WPTight_Gsf | HLT_Ele35_WPTight_Gsf) & (HLT_Ele24_eta2p1_WPTight_Gsf_LooseDeepTauPFTauHPS30_eta2p1_CrossL1 == 0)"
+  AR_region_etau  ="(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*15) & (HLT_Ele30_WPTight_Gsf)"
+  AR_region_emu   = "(HTT_pdgId > 0) & (METfilters) & (LeptonVeto==0) & (abs(HTT_pdgId)==11*13) & (Trigger_emu)"
 
-  dataset_dictionary = {"ditau" : "DataTau", "mutau" : "DataMuon", "etau" : "DataElectron"}
-  AR_region_dictionary = {"ditau" : AR_region_ditau, "mutau" : AR_region_mutau, "etau" : AR_region_etau}
+  dataset_dictionary = {"ditau" : "DataTau", "mutau" : "DataMuon", "etau" : "DataElectron", "emu" : "DataEMu"}
+  reject_dataset_dictionary = {"ditau" : ["DataMuon", "DataElectron", "DataEMu"],
+                               "mutau" : ["DataTau",  "DataElectron", "DataEMu"],
+                               "etau"  : ["DataMuon", "DataTau",      "DataEMu"],
+                               "emu"   : ["DataMuon", "DataElectron", "DataTau"]}
+  AR_region_dictionary = {"ditau" : AR_region_ditau, "mutau" : AR_region_mutau, 
+                          "etau" : AR_region_etau, "emu" : AR_region_emu}
   dataset = dataset_dictionary[final_state_mode]
+  reject_datasets = reject_dataset_dictionary[final_state_mode]
   AR_region = AR_region_dictionary[final_state_mode]
 
-  if (jet_mode != "Inclusive"):
-    time_print(f"Processing ditau AR region!")
-    AR_process_dictionary = load_process_from_file(dataset, using_directory, file_map,
+  do_QCD = True
+  if (jet_mode != "Inclusive") and (do_QCD==True):
+    log_print(f"Processing ditau AR region!", log_file, time=True)
+    AR_process_dictionary = load_process_from_file(dataset, using_directory, file_map, log_file,
                                             branches, AR_region, final_state_mode,
                                             data=True, testing=testing)
     AR_events = AR_process_dictionary[dataset]["info"]
-    cut_events_AR = apply_AR_cut(AR_events, final_state_mode, jet_mode, DeepTau_version)
+    cut_events_AR = apply_AR_cut(dataset, AR_events, final_state_mode, jet_mode, DeepTau_version,
+                                 determining_FF = False)
     FF_dictionary = {}
     FF_dictionary["QCD"] = {}
     FF_dictionary["QCD"]["PlotEvents"] = {}
@@ -159,18 +143,18 @@ if __name__ == "__main__":
       if ("flav" in var): continue
       FF_dictionary["QCD"]["PlotEvents"][var] = cut_events_AR[var]
 
-  if (jet_mode == "Inclusive"):
+  if (jet_mode == "Inclusive") and (do_QCD == True):
     temp_FF_dictionary = {}
     for internal_jet_mode in ["0j", "1j", "GTE2j"]:
-      time_print(f"Processing {final_state_mode} AR region! {internal_jet_mode}")
+      log_print(f"Processing {final_state_mode} AR region! {internal_jet_mode}", log_file, time=True)
 
       # reload AR dictionary here because it is cut in the next steps
-      AR_process_dictionary = load_process_from_file(dataset, using_directory, file_map,
+      AR_process_dictionary = load_process_from_file(dataset, using_directory, file_map, log_file,
                                             branches, AR_region, final_state_mode,
                                             data=True, testing=testing)
-
       AR_events = AR_process_dictionary[dataset]["info"]
-      cut_events_AR = apply_AR_cut(AR_events, final_state_mode, internal_jet_mode, DeepTau_version)
+      cut_events_AR = apply_AR_cut(dataset, AR_events, final_state_mode, internal_jet_mode, DeepTau_version,
+                                   determining_FF = False)
       temp_FF_dictionary[internal_jet_mode] = {}
       temp_FF_dictionary[internal_jet_mode]["QCD"] = {}
       temp_FF_dictionary[internal_jet_mode]["QCD"]["PlotEvents"] = {}
@@ -180,51 +164,47 @@ if __name__ == "__main__":
         temp_FF_dictionary[internal_jet_mode]["QCD"]["PlotEvents"][var] = cut_events_AR[var]
 
     temp_dict = {}
-    temp_dict["QCD"] = {}
-    temp_dict["QCD"]["PlotEvents"] = {}
-    temp_dict["QCD"]["FF_weight"]  = np.concatenate((temp_FF_dictionary["0j"]["QCD"]["FF_weight"], 
-                                                   temp_FF_dictionary["1j"]["QCD"]["FF_weight"],
-                                                   temp_FF_dictionary["GTE2j"]["QCD"]["FF_weight"]))
-    for var in vars_to_plot:
-      if ("flav" in var): continue
-      temp_dict["QCD"]["PlotEvents"][var] = np.concatenate((temp_FF_dictionary["0j"]["QCD"]["PlotEvents"][var],
-                                                            temp_FF_dictionary["1j"]["QCD"]["PlotEvents"][var],
-                                                            temp_FF_dictionary["GTE2j"]["QCD"]["PlotEvents"][var]))
+    if (do_QCD==True):
+      temp_dict["QCD"] = {}
+      temp_dict["QCD"]["PlotEvents"] = {}
+      temp_dict["QCD"]["FF_weight"]  = np.concatenate((temp_FF_dictionary["0j"]["QCD"]["FF_weight"], 
+                                                       temp_FF_dictionary["1j"]["QCD"]["FF_weight"],
+                                                       temp_FF_dictionary["GTE2j"]["QCD"]["FF_weight"]))
+      for var in vars_to_plot:
+        if ("flav" in var): continue
+        temp_dict["QCD"]["PlotEvents"][var] = np.concatenate((temp_FF_dictionary["0j"]["QCD"]["PlotEvents"][var],
+                                                              temp_FF_dictionary["1j"]["QCD"]["PlotEvents"][var],
+                                                              temp_FF_dictionary["GTE2j"]["QCD"]["PlotEvents"][var]))
 
     FF_dictionary = temp_dict
 
   # make and apply cuts to any loaded events, store in new dictionaries for plotting
   combined_process_dictionary = {}
   for process in file_map: 
-
     gc.collect()
-    if   final_state_mode == "ditau"  and (process=="DataMuon" or process=="DataElectron"): continue
-    elif final_state_mode == "mutau"  and (process=="DataTau"  or process=="DataElectron"): continue
-    elif final_state_mode == "etau"   and (process=="DataTau"  or process=="DataMuon"):     continue
-    elif final_state_mode == "dimuon" and not (process=="DataMuon" or "DY" in process): continue
-
-    new_process_dictionary = load_process_from_file(process, using_directory, file_map,
+    if (process in reject_datasets): continue
+    if "DY" in process: branches = set_branches(final_state_mode, DeepTau_version, process="DY") # Zpt handling
+    new_process_dictionary = load_process_from_file(process, using_directory, file_map, log_file,
                                               branches, good_events, final_state_mode,
                                               data=("Data" in process), testing=testing)
+    
     if new_process_dictionary == None: continue # skip process if empty
 
-    cut_events = apply_HTT_FS_cuts_to_process(process, new_process_dictionary, final_state_mode, jet_mode,
+    cut_events = apply_HTT_FS_cuts_to_process(process, new_process_dictionary, log_file, final_state_mode, jet_mode,
                                               DeepTau_version=DeepTau_version)
     if cut_events == None: continue
-
-
     # TODO : extendable to jet cuts (something I've meant to do for some time)
     if "DY" in process:
       event_flavor_arr = cut_events["event_flavor"]
       pass_gen_flav, pass_lep_flav, pass_jet_flav = [], [], []
-      for i, event_flavor in enumerate(event_flavor_arr):
-        if event_flavor == "G":
+      for i, event_flav in enumerate(event_flavor_arr):
+        if event_flav == "G":
           pass_gen_flav.append(i)
-        if event_flavor == "L":
+        if event_flav == "L":
           pass_lep_flav.append(i)
-        if event_flavor == "J":
+        if event_flav == "J":
           pass_jet_flav.append(i)
-    
+
       from cut_and_study_functions import apply_cut, set_protected_branches
       protected_branches = set_protected_branches(final_state_mode="none", jet_mode="Inclusive")
       background_gen_deepcopy = copy.deepcopy(cut_events)
@@ -248,120 +228,104 @@ if __name__ == "__main__":
                                                                  combined_process_dictionary)
       combined_process_dictionary = append_to_combined_processes("DYJet", background_jet_deepcopy, vars_to_plot, 
                                                                  combined_process_dictionary)
-      
-    else:
-      combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, 
-                                                                 combined_process_dictionary)
 
+    #elif ('Data' in process) or (process.find("WJ") != -1):
+    #  combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, combined_process_dictionary)
+    
+    else:
+      combined_process_dictionary = append_to_combined_processes(process, cut_events, vars_to_plot, combined_process_dictionary)
+    #  event_flavor_arr = cut_events["event_flavor"]
+    #  pass_lep_flav, pass_other_flav = [], []
+    #  for i, event_flav in enumerate(event_flavor_arr):
+    #    if event_flav == "L":
+    #      pass_lep_flav.append(i)
+    #    elif (event_flav == "G") or (event_flav == "J"):
+    #      pass_other_flav.append(i)
+    #  #if (process.find("WJ") != -1): print("pass_lep_flav: ", pass_lep_flav)
+    #  #if (process.find("WJ") != -1): print("pass_oter_flav: ", pass_other_flav)
+
+    #  from cut_and_study_functions import apply_cut, set_protected_branches
+    #  protected_branches = set_protected_branches(final_state_mode="none", jet_mode="Inclusive")
+    #  background_lep_deepcopy = copy.deepcopy(cut_events)
+    #  background_lep_deepcopy["pass_flavor_cut"] = np.array(pass_lep_flav)
+    #  background_lep_deepcopy = apply_cut(background_lep_deepcopy, "pass_flavor_cut", protected_branches)
+    #  if background_lep_deepcopy == None:  continue
+
+    #  background_other_deepcopy = copy.deepcopy(cut_events)
+    #  background_other_deepcopy["pass_flavor_cut"] = np.array(pass_other_flav)
+    #  background_other_deepcopy = apply_cut(background_other_deepcopy, "pass_flavor_cut", protected_branches)
+    #  if background_other_deepcopy == None: continue
+
+    #  combined_process_dictionary = append_to_combined_processes(process+'_Lep', background_lep_deepcopy, vars_to_plot, 
+    #                                                             combined_process_dictionary)
+    #  combined_process_dictionary = append_to_combined_processes(process, background_other_deepcopy, vars_to_plot,combined_process_dictionary)
+
+  
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
-
-  #### JETVETOMAPS TEMP IMPLEMENTATION for ditau only
-  from correctionlib import _core
-  fname = "../jetvetomaps.json.gz"
-  print(f"fname is : {fname}")
-  if fname.endswith(".json.gz"):
-    import gzip
-    with gzip.open(fname,'rt') as file:
-      data = file.read().strip()
-      evaluator = _core.CorrectionSet.from_string(data)
-  else:
-    evaluator = _core.CorrectionSet.from_file(fname)
-    
-  # 2022 Jet Veto Maps
-  if final_state_mode == "ditau":
-    for process in combined_process_dictionary:
-      bad_events = []
-      eta1_arr = combined_process_dictionary[process]["PlotEvents"]["FS_t1_eta"]
-      phi1_arr = combined_process_dictionary[process]["PlotEvents"]["FS_t1_phi"]
-      eta2_arr = combined_process_dictionary[process]["PlotEvents"]["FS_t2_eta"]
-      phi2_arr = combined_process_dictionary[process]["PlotEvents"]["FS_t2_phi"]
-  
-      to_check = (range(len(eta1_arr)), eta1_arr, phi1_arr, eta2_arr, phi2_arr)
-      for i, eta1, phi1, eta2, phi2 in zip(*to_check):
-        weight = 1
-        if abs(phi1) > 3.141592653589793: phi1 = np.sign(phi1)*3.141592653589792 # put values out of bounds at bounds...
-        if abs(phi2) > 3.141592653589793: phi2 = np.sign(phi2)*3.141592653589792
-  
-        eta1, phi1 = np.float64(eta1), np.float64(phi1) # wild hack, float32s just don't cut it
-        eta2, phi2 = np.float64(eta2), np.float64(phi2)
-  
-        # TODO fix weight check method, also add njets
-        # 15 GeV -- default jet cut
-        # 25 GeV --
-        # 30 GeV -- only veto event if jet in that region 
-        # all jets, veto if in the region at all
-        weight *= evaluator["Winter22Run3_RunE_V1"].evaluate("jetvetomap", eta1, phi1)
-        weight *= evaluator["Winter22Run3_RunE_V1"].evaluate("jetvetomap", eta2, phi2)
-        if weight != 0:
-          bad_events.append(i)
-      print(f"{len(bad_events)} in {process}")
-
-  #### Muon ID/Iso/Trig SFs temp implementation
-  time_print("Adding SFs!")
-
-  from correctionlib import _core
-  fname = "SFs/2022EE_schemaV2.json"
-  fnamehlt = "SFs/ScaleFactors_Muon_Z_Run2022EE_Prompt_abseta_pT_schemaV2.json"
-  evaluator = _core.CorrectionSet.from_file(fname)
-  evaluatorhlt = _core.CorrectionSet.from_file(fnamehlt)
-
-  if ((final_state_mode == "dimuon") or (final_state_mode == "mutau")):
-    for process in background_dictionary:
-      mu_pt_arr  = background_dictionary[process]["PlotEvents"]["FS_mu_pt"] 
-      mu_eta_arr = background_dictionary[process]["PlotEvents"]["FS_mu_eta"] 
-      mu_chg_arr = background_dictionary[process]["PlotEvents"]["FS_mu_chg"] 
-  
-      sf_type = "nominal"
-      to_use = (range(len(mu_pt_arr)), mu_pt_arr, mu_eta_arr, mu_chg_arr)
-      SF_weights = []
-      for i, mu_pt, mu_eta, mu_chg in zip(*to_use): 
-        weight = 1
-        if (mu_pt < 15.0): continue
-        if (abs(mu_eta) > 2.4): continue
-        mu_pt = 199.9 if mu_pt >= 200 else mu_pt
-        mu_pt, mu_eta = np.float64(mu_pt), np.float64(mu_eta) # wild hack, float32s just don't cut it
-  
-        weight *= evaluator["NUM_MediumID_DEN_TrackerMuons"].evaluate(abs(mu_eta), mu_pt, sf_type)
-        weight *= evaluator["NUM_TightPFIso_DEN_MediumID"].evaluate(abs(mu_eta), mu_pt, sf_type)
-      
-        # min trig pt is 26 in the SFs, this should apply trig SFs to muons with pt between 25 and 26 only
-        mu_pt = 26.0 if mu_pt < 26.0 else mu_pt
-        weight *= evaluatorhlt["NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight_and_Run2022EE"].evaluate(
-                               np.float64(mu_chg), abs(mu_eta), mu_pt, sf_type)
-  
-        SF_weights.append(weight)
-  
-  
-      background_dictionary[process]["SF_weight"] = np.array(SF_weights)
-
-  time_print("Processing finished!")
+  log_print("Processing finished!", log_file, time=True)
   ## end processing loop, begin plotting
 
-  vars_to_plot = [var for var in vars_to_plot if "flav" not in var]
-  for var in vars_to_plot:
-    time_print(f"Plotting {var}")
+  from correctionlib import _core
+  fname = "tau_trigger_DeepTau2018v2p5_2022postEE.json"
+  evaluator = _core.CorrectionSet.from_file(fname)
 
-    xbins = make_bins(var)
+  for process in background_dictionary:
+
+     xtrigger_flag_arr  = background_dictionary[process]["PlotEvents"]["xtrigger_flag"]
+     tau_pt_arr  = background_dictionary[process]["PlotEvents"]["FS_tau_pt"] 
+
+     to_use = (range(len(tau_pt_arr)), tau_pt_arr, xtrigger_flag_arr)
+     tau_hltSF_weights = []
+     for i, tau_pt, xtrigger_flag in zip(*to_use): 
+       weight = 1
+       if (tau_pt < 35.0) or (xtrigger_flag == 0): weight = 1
+       #if (xtrigger_flag == 0): weight = 1
+       else :
+          tau_pt = np.float64(tau_pt) # wild hack, float32s just don't cut it
+          weight *= evaluator["tauTriggerSF"].evaluate(tau_pt, 1, "etau", "Medium", "sf", "nom")
+
+       tau_hltSF_weights.append(weight)
+ 
+     background_dictionary[process]["Tau_hltSF_weight"] = np.array(tau_hltSF_weights)
+
+  vars_to_plot = [var for var in vars_to_plot if "flav" not in var]
+  # remove mvis, replace with mvis_HTT and mvis_SF
+  vars_to_plot.remove("HTT_m_vis")
+  vars_to_plot.append("HTT_m_vis-KSUbinning")
+  vars_to_plot.append("HTT_m_vis-SFbinning")
+
+  for var in vars_to_plot:
+    if (var=="xtrigger_flag"): continue
+    log_print(f"Plotting {var}", log_file, time=True)
+
+    xbins = make_bins(var, final_state_mode)
     hist_ax, hist_ratio = setup_ratio_plot()
 
+    temp_var = var # hack to plot the same variable twice with two different binnings
+    if "HTT_m_vis" in var: var = "HTT_m_vis"
     h_data = get_binned_data(data_dictionary, var, xbins, lumi)
-    if (final_state_mode != "dimuon"):
+    if (final_state_mode != "dimuon") and (do_QCD == True):
       background_dictionary["QCD"] = FF_dictionary["QCD"] # manually include QCD as background
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
-    h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
+    #h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
+    var = temp_var
 
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)
     plot_MC(hist_ax, xbins, h_backgrounds, lumi)
-    plot_signal(hist_ax, xbins, h_signals, lumi)
+    #plot_signal(hist_ax, xbins, h_signals, lumi)
 
     make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
 
     # reversed dictionary search for era name based on lumi 
     title_era = [key for key in luminosities.items() if key[1] == lumi][0][0]
     title = f"{title_era}, {lumi:.2f}" + r"$fb^{-1}$"
-    spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode)
+    
+    #set_x_log = True if "PNet" in var else False
+    set_x_log = False
+    #spruce_up_plot(hist_ax, hist_ratio, label_dictionary[var], title, final_state_mode, jet_mode, set_x_log = set_x_log)
+    spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode, set_x_log = set_x_log)
     spruce_up_legend(hist_ax, final_state_mode, h_data)
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")
@@ -370,8 +334,8 @@ if __name__ == "__main__":
     if (var == "HTT_m_vis"): 
       calculate_signal_background_ratio(h_data, h_backgrounds, h_signals)
       labels, yields = yields_for_CSV(hist_ax, desired_order=["Data", "TT", "WJ", "DY", "VV", "ST", "ggH", "VBF"])
-      print(f"Reordered     Labels: {labels}")
-      print(f"Corresponding Yields: {yields}")
+      log_print(f"Reordered     Labels: {labels}", log_file)
+      log_print(f"Corresponding Yields: {yields}", log_file)
 
   if hide_plots: pass
   else: plt.show()
