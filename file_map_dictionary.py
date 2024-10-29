@@ -31,7 +31,7 @@ testing_file_map = {
 
   #"DYInc" : "DY/DYJets*part1",
   "DYInc"    : "DY/DYJetsToLL_M-50_LO_HTauTau*",
-  "DYIncNLO" : "DY_NLO/DYJetsToLL_M-50_HTauTau*",
+  "DYIncNLO" : "DY/DYJetsToLL_M-50_HTauTau*",
 
   "WJetsInc"    : "WJ/WJetsToLNu_LO_HTauTau*",
   "WJetsIncNLO" : "WJ/WJetsToLNu_HTauTau*",
@@ -52,8 +52,8 @@ testing_file_map = {
   #"ZZTo2Nu2Q" : "VV/ZZTo2Nu2Q*",
   #"ZZTo4L"    : "VV/ZZTo4L*", 
 
-  "VBF"   : "Signal/VBF*private*",
-  "ggH"   : "Signal/ggH*private*",
+  "VBF"   : "Signal/VBF*",
+  "ggH"   : "Signal/ggH*",
 }
 
 compare_eras_file_map = {
@@ -85,53 +85,50 @@ full_file_map = {
   "DataElectron" : "Data/EGamma_Run*",
   "DataEMu"  : "Data/MuonEG_Run*",
 
-  "DYInc" : "DY/DYJetsToLL_M-50_LO_HTauTau*",
-  #"DYJetsToLL_M-50_1J" : "DY/DYJetsToLL_M-50_1J*",
-  #"DYJetsToLL_M-50_2J" : "DY/DYJetsToLL_M-50_2J*",
-  #"DYJetsToLL_M-50_3J" : "DY/DYJetsToLL_M-50_3J*",
-  #"DYJetsToLL_M-50_4J" : "DY/DYJetsToLL_M-50_4J*",
+#  "DYInc" : "DY/DYJetsToLL_M-50_LO_HTauTau*",
 
-  "DYIncNLO" : "DY_NLO/DYJetsToLL_M-50_HTauTau*",
+  #"DYIncNLO_10to50" : "DY/DYJetsToLL_M-10to50_HTauTau*",
+  "DYIncNLO" : "DY/DYJetsToLL_M-50_HTauTau*",
 
-  "TTTo2L2Nu"         : "TT/TTTo2L2Nu*",
-  "TTToFullyHadronic" : "TT/TTToFullyHadronic*",
-  "TTToSemiLeptonic"  : "TT/TTToSemiLeptonic*",
-
-  "ST_s-channel_Tbar"  : "ST/ST_s-channel_antitop*",
-  "ST_t-channel_Tbar"  : "ST/ST_t-channel_antitop*",
-  "ST_TbarWplus_2L2Nu" : "ST/ST_TbarWplus_2L2Nu*",
-  "ST_TbarWplus_4Q"    : "ST/ST_TbarWplus_4Q*",
-  "ST_TbarWplus_LNu2Q" : "ST/ST_TbarWplus_LNu2Q*",
-  "ST_s-channel_T"     : "ST/ST_s-channel_top*",
-  "ST_t-channel_T"     : "ST/ST_t-channel_top*",
-  "ST_TWminus_2L2Nu"   : "ST/ST_TWminus_2L2Nu*", 
-  "ST_TWminus_4Q"      : "ST/ST_TWminus_4Q*",
-  "ST_TWminus_LNu2Q"   : "ST/ST_TWminus_LNu2Q*",
-
-  "WJetsInc"    : "WJ/WJetsToLNu_LO_HTauTau*",
+#  "TTTo2L2Nu"         : "TT/TTTo2L2Nu*",
+#  "TTToFullyHadronic" : "TT/TTToFullyHadronic*",
+#  "TTToSemiLeptonic"  : "TT/TTToSemiLeptonic*",
+#
+#  "ST_s-channel_Tbar"  : "ST/ST_s-channel_antitop*",
+#  "ST_t-channel_Tbar"  : "ST/ST_t-channel_antitop*",
+#  "ST_TbarWplus_2L2Nu" : "ST/ST_TbarWplus_2L2Nu*",
+#  "ST_TbarWplus_4Q"    : "ST/ST_TbarWplus_4Q*",
+#  "ST_TbarWplus_LNu2Q" : "ST/ST_TbarWplus_LNu2Q*",
+#  "ST_s-channel_T"     : "ST/ST_s-channel_top*",
+#  "ST_t-channel_T"     : "ST/ST_t-channel_top*",
+#  "ST_TWminus_2L2Nu"   : "ST/ST_TWminus_2L2Nu*", 
+#  "ST_TWminus_4Q"      : "ST/ST_TWminus_4Q*",
+#  "ST_TWminus_LNu2Q"   : "ST/ST_TWminus_LNu2Q*",
+#
+#  "WJetsInc"    : "WJ/WJetsToLNu_LO_HTauTau*",
   "WJetsIncNLO" : "WJ/WJetsToLNu_HTauTau*",
-  #"WJetsIncNLO" : "WJ/WJetsToLNu_HTauTau*",
-  #"WJetsToLNu_1J" : "WJ/W1JetsToLNu*",
-  #"WJetsToLNu_2J" : "WJ/W2JetsToLNu*",
-  #"WJetsToLNu_3J" : "WJ/W3JetsToLNu*",
-  #"WJetsToLNu_4J" : "WJ/W4JetsToLNu*",
-
-  #"WW"        : "VV/WW*", # WW Inc. available but untested
-  "WWTo2L2Nu" : "VV/WWTo2L2Nu*",
-  "WWTo4Q"    : "VV/WWTo4Q*",
-  "WWToLNu2Q" : "VV/WWToLNu2Q*",
-
-  #"WZ"        : "VV/WZ*", # WZ Inc. available but untested
-  "WZTo3LNu"  : "VV/WZTo3LNu*",
-  "WZTo2L2Q"  : "VV/WZTo2L2Q*",
-  "WZToLNu2Q" : "VV/WZToLNu2Q*",
-
-  #"ZZ"        : "VV/ZZ*", # ZZ Inc. available but untested
-  "ZZTo2L2Nu" : "VV/ZZTo2L2Nu*",
-  "ZZTo2L2Q"  : "VV/ZZTo2L2Q*", 
-  "ZZTo2Nu2Q" : "VV/ZZTo2Nu2Q*",
-  "ZZTo4L"    : "VV/ZZTo4L*", 
-
-  "VBF"   : "Signal/VBF*private*",
-  "ggH"   : "Signal/ggH*private*",
+#  #"WJetsIncNLO" : "WJ/WJetsToLNu_HTauTau*",
+#  #"WJetsToLNu_1J" : "WJ/W1JetsToLNu*",
+#  #"WJetsToLNu_2J" : "WJ/W2JetsToLNu*",
+#  #"WJetsToLNu_3J" : "WJ/W3JetsToLNu*",
+#  #"WJetsToLNu_4J" : "WJ/W4JetsToLNu*",
+#
+#  #"WW"        : "VV/WW*", # WW Inc. available but untested
+#  "WWTo2L2Nu" : "VV/WWTo2L2Nu*",
+#  "WWTo4Q"    : "VV/WWTo4Q*",
+#  "WWToLNu2Q" : "VV/WWToLNu2Q*",
+#
+#  #"WZ"        : "VV/WZ*", # WZ Inc. available but untested
+#  "WZTo3LNu"  : "VV/WZTo3LNu*",
+#  "WZTo2L2Q"  : "VV/WZTo2L2Q*",
+#  "WZToLNu2Q" : "VV/WZToLNu2Q*",
+#
+#  #"ZZ"        : "VV/ZZ*", # ZZ Inc. available but untested
+#  "ZZTo2L2Nu" : "VV/ZZTo2L2Nu*",
+#  "ZZTo2L2Q"  : "VV/ZZTo2L2Q*", 
+#  "ZZTo2Nu2Q" : "VV/ZZTo2Nu2Q*",
+#  "ZZTo4L"    : "VV/ZZTo4L*", 
+#
+#  "VBF"   : "Signal/VBF*",
+#  "ggH"   : "Signal/ggH*",
 }

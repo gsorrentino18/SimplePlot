@@ -33,7 +33,11 @@ def make_etau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
   unpack_etau = ["Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",
                  "Electron_dxy", "Electron_dz", "Electron_charge", "Tau_dxy", "Tau_dz", "Tau_charge", "Tau_decayMode",
                  "PuppiMET_pt", "PuppiMET_phi", "Lepton_tauIdx", "Lepton_elIdx", "l1_indices", "l2_indices",
-                 "Electron_mvaNoIso_WP90", "Electron_pfRelIso03_all"]
+                 "Electron_mvaNoIso_WP90", "Electron_pfRelIso03_all",
+                 "Electron_hoe", "Electron_lostHits", "Electron_mass", "Electron_r9",
+                 "Electron_sieie", "Electron_pfRelIso03_chg", 
+                 "Electron_dr03TkSumPt", "Electron_dr03EcalRecHitSumEt", "Electron_dr03HcalDepth1TowerSumEt"
+                ]
   unpack_etau = add_DeepTau_branches(unpack_etau, DeepTau_version)
   unpack_etau = add_trigger_branches(unpack_etau, final_state_mode="etau")
   unpack_etau = (event_dictionary.get(key) for key in unpack_etau)
@@ -42,12 +46,15 @@ def make_etau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
   pass_cuts, FS_mt = [], []
   FS_el_pt, FS_el_eta, FS_el_phi, FS_el_iso, FS_el_dxy, FS_el_dz, FS_el_chg = [], [], [], [], [], [], []
   FS_tau_pt, FS_tau_eta, FS_tau_phi, FS_tau_dxy, FS_tau_dz, FS_tau_chg = [], [], [], [], [], []
+  FS_el_hoe, FS_el_lostHits, FS_el_mass, FS_el_r9, FS_el_sieie, FS_el_isochg, FS_el_dr03TkSumPt, FS_el_dr03EcalRecHitSumEt, FS_el_dr03HcalDepth1TowerSumEt = [], [], [], [], [], [], [], [], []
+
   xtrigger_flag = []
  
   for i, lep_pt, lep_eta, lep_phi, lep_iso,\
       el_dxy, el_dz, el_chg, tau_dxy, tau_dz, tau_chg, tau_decayMode,\
       MET_pt, MET_phi, tau_idx, el_idx,l1_idx, l2_idx, \
       noIso, el_iso, \
+      el_hoe, el_lostHits, el_mass, el_r9, el_sieie, el_isochg, el_dr03TkSumPt, el_dr03EcalRecHitSumEt, el_dr03HcalDepth1TowerSumEt,\
       vJet, vMu, vEle, trg30el, trg32el, trg35el, crosstrg in zip(*to_check):
 
     # some handling to figure out which FS index applies to what lepton
@@ -74,6 +81,17 @@ def make_etau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
     elDxyVal   = abs(el_dxy[elBranchLoc])
     elDzVal    = el_dz[elBranchLoc]
     elChgVal   = el_chg[elBranchLoc]
+
+    elHoeVal      = el_hoe[elBranchLoc]
+    elLostHitsVal = el_lostHits[elBranchLoc]
+    elMassVal     = el_mass[elBranchLoc]
+    elR9Val       = el_r9[elBranchLoc]
+    elSieieVal    = el_sieie[elBranchLoc]
+    elIsoChgVal   = el_isochg[elBranchLoc]
+    elDr03TkSumPtVal         = el_dr03TkSumPt[elBranchLoc]
+    elDr03EcalRecHitSumEtVal = el_dr03EcalRecHitSumEt[elBranchLoc]
+    elDr03HcalDepth1TowerSumEtVal = el_dr03HcalDepth1TowerSumEt[elBranchLoc]
+
     tauPtVal   = lep_pt[tauFSLoc] 
     tauEtaVal  = lep_eta[tauFSLoc]
     tauPhiVal  = lep_phi[tauFSLoc]
@@ -89,20 +107,21 @@ def make_etau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
     #ROOTmtVal  = calculate_mt_pyROOT(muPtVal, muEtaVal, muPhiVal, mu_M[muLoc], MET_pt, MET_phi)
     #passROOTMT = (ROOTmtVal < 50.0)
 
-    passTauPtAndEta  = ((tauPtVal > 30.0) and (abs(tauEtaVal) < 2.3))
+    passTauPtAndEta  = ((tauPtVal > 30.0) and (abs(tauEtaVal) < 2.5))
     #passTauPtAndEta  = ((tauPtVal > 20.0) and (abs(tauEtaVal) < 2.5)) #TAU CQM
     
-    pass31ElPt   = ((trg30el) and (elPtVal > 31.0) and (abs(elEtaVal) < 2.1)) 
+    pass31ElPt   = ((trg30el) and (elPtVal > 31.0) and (abs(elEtaVal) < 2.5)) 
     #pass33ElPt   = ((trg32el) and (elPtVal > 33.0) and (abs(elEtaVal) < 2.1) and (pfRelIso03_all<0.10)) #TAU CQM 
-    pass33ElPt   = ((trg32el) and (elPtVal > 33.0) and (abs(elEtaVal) < 2.1)) 
-    pass36ElPt   = ((trg35el) and (elPtVal > 36.0) and (abs(elEtaVal) < 2.1)) 
+    pass33ElPt   = ((trg32el) and (elPtVal > 33.0) and (abs(elEtaVal) < 2.5)) 
+    pass36ElPt   = ((trg35el) and (elPtVal > 36.0) and (abs(elEtaVal) < 2.5))
+ 
     # upper bound on cross trigger will change if lower single electron trigger included
     # HLT_Ele24_eta2p1_WPTight_Gsf_LooseDeepTauPFTauHPS30_eta2p1_CrossL1
     passElPtCrossTrigger = ((crosstrg) and ((25.0 < elPtVal < 31.0) and (abs(elEtaVal) < 2.1))
                                        and ((tauPtVal > 35.0)       and (abs(tauEtaVal) < 2.1)) ) 
 
     # Medium v Jet, VLoose v Muon, Tight v Ele
-    passTauDT  = ((vJet[tauBranchLoc] >= 5) and (vMu[tauBranchLoc] >= 4) and (vEle[tauBranchLoc] >= 6)) #ele Tight >=6
+    passTauDT  = ((vJet[tauBranchLoc] >= 5) and (vMu[tauBranchLoc] >= 1) and (vEle[tauBranchLoc] >= 6)) #ele Tight >=6
 
     crosstrg_only = False
     if ((crosstrg==1) and (trg30el==0) and (trg32el==0) and (trg35el==0)): crosstrg_only = True
@@ -110,11 +129,12 @@ def make_etau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
     #if ((passMT and passTauPtAndEta and (pass31ElPt or pass33ElPt or pass36ElPt) and (crosstrg_only==False) and passTauDT)
     #   or (passMT and passTauPtAndEta and (pass31ElPt or pass33ElPt or pass36ElPt) and (crosstrg_only==False) and skip_DeepTau)):
 
-    if ((passMT and passTauPtAndEta and (pass31ElPt) and passTauDT)
-       or (passMT and passTauPtAndEta and (pass31ElPt) and skip_DeepTau)):
+    #if ((passMT and passTauPtAndEta and (pass31ElPt)  and passTauDT)
+    #   or (passMT and passTauPtAndEta and (pass31ElPt) and skip_DeepTau)):
 
-    #if ((passMT and passTauPtAndEta and (pass31ElPt or pass33ElPt or pass36ElPt or passElPtCrossTrigger) and passTauDT)
-    #   or (passMT and passTauPtAndEta and (pass31ElPt or pass33ElPt or pass36ElPt or passElPtCrossTrigger) and skip_DeepTau)):
+    if ((passMT and passTauPtAndEta and (pass31ElPt or pass33ElPt or pass36ElPt) and passTauDT)
+       or (passMT and passTauPtAndEta and (pass31ElPt or pass33ElPt or pass36ElPt) and skip_DeepTau)):
+
       pass_cuts.append(i)
       FS_el_pt.append(elPtVal)
       FS_el_eta.append(elEtaVal)
@@ -123,6 +143,17 @@ def make_etau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
       FS_el_dxy.append(elDxyVal)
       FS_el_dz.append(elDzVal)
       FS_el_chg.append(elChgVal)
+
+      FS_el_hoe.append(elHoeVal) 
+      FS_el_lostHits.append(elLostHitsVal)  
+      FS_el_mass.append(elMassVal) 
+      FS_el_r9.append(elR9Val) 
+      FS_el_sieie.append(elSieieVal)
+      FS_el_isochg.append(elIsoChgVal) 
+      FS_el_dr03TkSumPt.append(elDr03TkSumPtVal) 
+      FS_el_dr03EcalRecHitSumEt.append(elDr03EcalRecHitSumEtVal) 
+      FS_el_dr03HcalDepth1TowerSumEt.append(elDr03HcalDepth1TowerSumEtVal) 
+
       FS_tau_pt.append(tauPtVal)
       FS_tau_eta.append(tauEtaVal)
       FS_tau_phi.append(tauPhiVal)
@@ -148,6 +179,16 @@ def make_etau_cut(event_dictionary, DeepTau_version, skip_DeepTau=False):
   event_dictionary["FS_tau_chg"] = np.array(FS_tau_chg)
   event_dictionary["FS_mt"]      = np.array(FS_mt)
   event_dictionary["xtrigger_flag"] = np.array(xtrigger_flag)
+
+  event_dictionary["FS_el_hoe"]      = np.array(FS_el_hoe)
+  event_dictionary["FS_el_lostHits"] = np.array(FS_el_lostHits)
+  event_dictionary["FS_el_mass"]     = np.array(FS_el_mass)
+  event_dictionary["FS_el_r9"]       = np.array(FS_el_r9)
+  event_dictionary["FS_el_sieie"]    = np.array(FS_el_sieie)
+  event_dictionary["FS_el_isochg"]   = np.array(FS_el_isochg)
+  event_dictionary["FS_el_dr03TkSumPt"]               = np.array(FS_el_dr03TkSumPt)
+  event_dictionary["FS_el_dr03EcalRecHitSumEt"]       = np.array(FS_el_dr03EcalRecHitSumEt)
+  event_dictionary["FS_el_dr03HcalDepth1TowerSumEt"]  = np.array(FS_el_dr03HcalDepth1TowerSumEt)
 
   nEvents_postcut = len(np.array(pass_cuts))
   print(f"nEvents before and after etau cuts = {nEvents_precut}, {nEvents_postcut}")

@@ -206,55 +206,45 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version, determining_FF
   # should have aiso/iso as well
   FF_values = {
     # FS : { "jet_mode" : [intercept, slope] }  
-    "ditau" : { 
+    "etau"  : {
 
-      ### from V12 samples
-      "custom_0j_2p5_FF" :    [0.277605,-0.000507954],
-      "custom_1j_2p5_FF" :    [0.245381,-0.00054067],
-      "custom_GTE2j_2p5_FF" : [0.232493,-0.000626524],
-
-      "custom_0j_2p5_CH" :    [1.03281, 0.000366355], # i think this is an underestimate
-      "custom_1j_2p5_CH" :    [1.08724, 3.92753e-05], # same here
-      "custom_GTE2j_2p5_CH" : [1.11779, 0.000141817],
-      ###
-
-      "0j_2p1"      : [0.409537, -0.00166789],
-      "1j_2p1"      : [0.338192, -0.00114901],
-      "GTE2j_2p1"   : [0.274382, -0.000810031],
-      "Closure_2p1" : [1, -0.001], # dummy values
-      "OSSS_Bias_2p1" : [1, -0.001], # dummy values
-      "0j_2p5"      : [0.277831, -0.000975272],
-      "1j_2p5"      : [0.264218, -0.00121849],
-      "GTE2j_2p5"   : [0.2398, -0.00124643],
-      "Closure_2p5" : [1.0459, -0.00102224],
-      "OSSS_Bias_2p5" : [1, 0], # dummy values
-    },
-    "mutau" : {  # wrong 2p5
-      "0j_2p5"     : [0.037884, 0.000648851],
-      "1j_2p5"     : [0.0348384, 0.000630731],
-      "GTE2j_2p5"  : [0.0342287, 0.000358899],
-
-      "custom_0j_2p5_FF" :    [0.0262364,-1.88738e-05], # combined fit, by hand
-      "custom_1j_2p5_FF" :    [0.0262364,-1.88738e-05],
-      "custom_GTE2j_2p5_FF" : [0.0262364,-1.88738e-05],
-
-      "custom_0j_2p5_CH"    : [1.1, 0], # ad-hoc scaling
-      "custom_1j_2p5_CH"    : [1.1, 0],
-      "custom_GTE2j_2p5_CH" : [1.1, 0],
-
-    },
-    "etau"  : {#Dummy values
       "0j_2p5"     : [1, 1], 
       "1j_2p5"     : [1, 1],
       "GTE2j_2p5"  : [1, 1],
 
-      "custom_0j_2p5_FF" : [0.0483552, -4.68741e-05], # combined fit, by hand
-      "custom_1j_2p5_FF" : [0.0483552, -4.68741e-05],
-      "custom_GTE2j_2p5_FF" : [0.0483552, -4.68741e-05],
+      #PostEE
+      "custom_0j_2p5_FF" : [0.009, 0.0018], #fake factors
+      "custom_1j_2p5_FF" : [0.033, 0.00097],
+      "custom_GTE2j_2p5_FF" : [0.038, 0.00058],
+      
+      "custom_0j_2p5_mvis"    : [1.15, -0.0015], # bias correction as function of mvis
+      "custom_1j_2p5_mvis"    : [1.15, -0.0015],
+      "custom_GTE2j_2p5_mvis" : [1.15, -0.0015],
+      
+      "custom_0j_2p5_iso"    : [1.09, -0.4746], # bias correction as function of isolation
+      "custom_1j_2p5_iso"    : [1.09, -0.4746],
+      "custom_GTE2j_2p5_iso" : [1.09, -0.4746],
+    
+      "custom_0j_2p5_closure"    : [1.47, -0.0068], # closure correction as a function of pT
+      "custom_1j_2p5_closure"    : [1.47, -0.0068],
+      "custom_GTE2j_2p5_closure" : [1.47, -0.0068],
+      
+      #PreEE
+      #"custom_0j_2p5_FF" : [-0.015, 0.0023], #fake factors
+      #"custom_1j_2p5_FF" : [0.00034, 0.0016],
+      #"custom_GTE2j_2p5_FF" : [0.019,  0.00099],
 
-      "custom_0j_2p5_CH"    : [1.1, 0], # ad-hoc scaling
-      "custom_1j_2p5_CH"    : [1.1, 0],
-      "custom_GTE2j_2p5_CH" : [1.1, 0],
+      #"custom_0j_2p5_mvis"    : [1.20, -0.0019], # bias correction as function of mvis
+      #"custom_1j_2p5_mvis"    : [1.20, -0.0019],
+      #"custom_GTE2j_2p5_mvis" : [1.20, -0.0019],
+
+      #"custom_0j_2p5_iso"    : [1.04, -0.467], # bias correction as function of isolation
+      #"custom_1j_2p5_iso"    : [1.04, -0.467],
+      #"custom_GTE2j_2p5_iso" : [1.04, -0.467],
+
+      #"custom_0j_2p5_closure"    : [1.67, -0.008], # closure correction as a function of pT
+      #"custom_1j_2p5_closure"    : [1.67, -0.008],
+      #"custom_GTE2j_2p5_closure" : [1.67, -0.008],
 
     },
   } 
@@ -271,93 +261,72 @@ def set_FF_values(final_state_mode, jet_mode_and_DeepTau_version, determining_FF
 
 
 def add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version, determining_FF=False):
-  unpack_FFVars = ["Lepton_pt", "HTT_m_vis", "HTT_Lep_iso", "l1_indices", "l2_indices"]
+  unpack_FFVars = ["Lepton_pt", "HTT_m_vis", "HTT_Lep_iso", "l1_indices", "l2_indices", "Lepton_tauIdx", "Lepton_elIdx"]
   unpack_FFVars = (event_dictionary.get(key) for key in unpack_FFVars)
   to_check = [range(len(event_dictionary["Lepton_pt"])), *unpack_FFVars]
   FF_weights = []
-  bins = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300]
-  ditau_weight_map = {
-    # these are all very close to 0.999, which means in the most pessimistic case
-    # you lose 10 events in every 10000 events.
-    # since we have at most 90000 events in the 0j case, the biggest error we can have is
-    # 90 events. This is not big enough to effect plots dramatically, so as long as the
-    # probs are close to 0.999, they don't need to be updated every time
-    # SHOULD update them the final time
-    "Inclusive_2p5" : [bins, # estimated, values not derived
-                 [0.999, # < 50
-                  0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999,
-                  0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999,
-                  0.999, 0.999, 0.999]], # > 200
-    "0j_2p5" : [bins,
-          [0.998869, # < 50
-           0.999233, 0.999735, 0.999866, 0.999873, 0.999901, 0.999944, 0.999944, 0.999939, 
-           0.999930, 0.999924, 0.999921, 0.999913, 0.999900, 0.999899, 0.999885, 
-           0.999871, 0.999826, 0.999691]], # > 200
-    "1j_2p5" : [bins,
-          [0.999676, 
-           0.999512, 0.999607, 0.999771, 0.999810, 0.999827, 0.999864, 0.999851, 0.999826, 
-           0.999807, 0.999795, 0.999776, 0.999775, 0.999743, 0.999740, 0.999726, 
-           0.999700, 0.999630, 0.999492]],
-    "GTE2j_2p5" : [bins,
-          [0.999411, 
-           0.999046, 0.999038, 0.999246, 0.999336, 0.999382, 0.999425, 0.999362, 0.999296, 
-           0.999252, 0.999181, 0.999143, 0.999101, 0.999101, 0.999038, 0.999003, 
-           0.998991, 0.998904, 0.998680]],
-    "0j_2p1" : [bins,
-          [0.996032, 
-           0.997514, 0.999023, 0.999554, 0.999771, 0.999772, 0.999850, 0.999858, 
-           0.999850, 0.999843, 0.999824, 0.999811, 0.999792, 0.999783, 0.999781, 0.999735, 
-           0.999683, 0.999594, 0.999428]],
-    "1j_2p1" : [bins,
-          [0.998659, 
-           0.998212, 0.998626, 0.999254, 0.999635, 0.999633, 0.999658, 0.999630, 
-           0.999600, 0.999549, 0.999526, 0.999469, 0.999428, 0.999394, 0.999348, 0.999345, 
-           0.999223, 0.999137, 0.998901]],
-    "GTE2j_2p1" : [bins,
-          [0.997985, 
-           0.997208, 0.997390, 0.998144, 0.998912, 0.998832, 0.998663, 0.998491, 
-           0.998358, 0.998206, 0.998065, 0.998010, 0.997843, 0.997769, 0.997668, 0.997625, 
-           0.997477, 0.997151, 0.997048]],
+  bins = [40, 60, 80, 100, 120, 140, 160, 180, 999999]
+
+  FF_mvis_weights = {
+  # FS_mode : jet_mode : semilep_mode : mvis fake fraction [0, 10, 20, ..., 300]
+  "etau" : {
+    "0j" : {
+      "WJ" : [ 0.0, 0.44948888, 0.48709053, 0.67524474, 0.50798577,
+       0.40759256, 0.41038405, 0.4246403 , 0.42892607, 0.43369386],
+      "QCD" : [0.183483, 0.044200, 0.292518, 0.221791, 0.216506, 0.252396, 0.221537, 0.179232, 0.331143]
+    },
+    "1j" : {
+       "WJ" : [ 0.0, 0.35919842, 0.38588244, 0.43133431, 0.46609478,
+       0.47824467, 0.56399762, 0.51112266, 0.40956644, 0.40627854,
+       0.45590943, 0.62126431, 0.57938354, 0.54590267, 0.42468222],
+       "QCD" : [0.269993, 0.110099, 0.110525, 0.181433, 0.158913, 0.244922, 0.117961, 0.333551, 0.307554]
+    },
+    "GTE2j" : {
+       "WJ" : [ 0.0, 0.35919842, 0.38588244, 0.43133431, 0.46609478,
+       0.47824467, 0.56399762, 0.51112266, 0.40956644, 0.40627854,
+       0.45590943, 0.62126431, 0.57938354, 0.54590267, 0.42468222],
+       "QCD" : [0.382559, 0.288983, 0.308179, 0.364518, 0.335701, 0.317249, 0.297538, 0.347137, 0.422986]
+    },
+  }
   }
   
-  FF_key = jet_mode + "_" + DeepTau_version
-
   intercept, slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_FF", determining_FF)
-  OSSS_bias_intercept, OSSS_bias_slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_CH", determining_FF)
+  OSSS_bias_intercept, OSSS_bias_slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_mvis", determining_FF)
+  closure_intercept, closure_slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_closure", determining_FF)
+  iso_intercept, iso_slope = set_FF_values(final_state_mode, "custom_"+jet_mode+"_2p5_iso", determining_FF)
 
-  #intercept, slope = set_FF_values("ditau", FF_key)
-  #closure_intercept, closure_slope = set_FF_values("ditau", "Closure_" + DeepTau_version)
-  #OSSS_bias_intercept, OSSS_bias_slope = set_FF_values("ditau", "OSSS_Bias_" + DeepTau_version)
+  one_minus_MC_over_data_weight = -999999
+  for i, lep_pt, m_vis, lep_iso, l1_idx, l2_idx, tau_idx, el_idx in zip(*to_check):
 
-  #intercept, slope, slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_FF")
-  #closure_intercept, closure_slope, closure_slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_Clos")
-  #OSSS_bias_intercept, OSSS_bias_slope, OSSS_bias_slope2 = set_FF_values("ditau", "custom_"+jet_mode+"_2p5_check_CH")
+    if m_vis < bins[0]: # 40
+       one_minus_MC_over_data_weight = FF_mvis_weights[final_state_mode][jet_mode]['QCD'][0]
+    else:
+       for bin_index in range(1,9):
+          if (m_vis > bins[bin_index-1] and m_vis < bins[bin_index]):
+             one_minus_MC_over_data_weight = FF_mvis_weights[final_state_mode][jet_mode]['QCD'][bin_index]
+             break
+          else: continue
 
-  for i, lep_pt, m_vis, lep_iso, l1_idx, l2_idx in zip(*to_check):
-    if m_vis < bins[0]: # 50
-      one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][0] # first weight
-    elif m_vis > bins[-3]: # > 200
-      if m_vis > bins[-1]: # > 300
-        one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][-1] # last weight
-      elif bins[-2] < m_vis < bins[-1]: # between 250 and 300
-        one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][-2]
-      elif bins[-3] < m_vis < bins[-2]: # between 200 and 250
-        one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][-3]
-    else: # mvis between 50 and 200
-      m_vis_idx = int(m_vis // 10) - 5 # makes 50 bin zero idx
-      m_vis_weight_idx = m_vis_idx + 1 # 0 in weights is < 50 weight
-      one_minus_MC_over_data_weight = ditau_weight_map[FF_key][1][m_vis_weight_idx]
+    if (tau_idx[l1_idx] != -1 and el_idx[l2_idx] != -1):
+      tauFSLoc = l1_idx
+      elFSLoc  = l2_idx
+    elif (tau_idx[l2_idx] != -1 and el_idx[l1_idx] != -1):
+      tauFSLoc = l2_idx
+      elFSLoc  = l1_idx
 
-    l1_pt = lep_pt[l1_idx] if lep_pt[l1_idx] < 120.0 else 120.0
-    l2_pt = lep_pt[l2_idx] if lep_pt[l2_idx] < 200.0 else 200.0
+    l1_pt = lep_pt[tauFSLoc] if lep_pt[tauFSLoc] < 100.0 else 100.0
+    l2_pt = lep_pt[elFSLoc] if lep_pt[elFSLoc] < 150.0 else 150.0
+    #l1_pt = lep_pt[l1_idx] if lep_pt[l1_idx] < 120.0 else 120.0
+    #l2_pt = lep_pt[l2_idx] if lep_pt[l2_idx] < 200.0 else 200.0
     m_vis = m_vis if m_vis < 350.0 else 350.0
-    FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope)
-    #FF_weight *= (closure_intercept + lep_pt[l2_idx] * closure_slope)
-    FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope)
 
-    #FF_weight = one_minus_MC_over_data_weight*(intercept + l1_pt * slope + l1_pt*l1_pt*slope2)
-    #FF_weight *= (closure_intercept + l2_pt * closure_slope + l2_pt*l2_pt*closure_slope2)
-    #FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope + m_vis*m_vis*OSSS_bias_slope2)
+    if (l1_pt) < 35:
+       FF_weight = 0.01  + l1_pt * 0.00175591 
+    else:
+       FF_weight = (intercept + l1_pt * slope)
+
+    #FF_weight *= one_minus_MC_over_data_weight*(intercept + l1_pt * slope)
+    FF_weight *= (OSSS_bias_intercept + m_vis * OSSS_bias_slope)*(closure_intercept + l2_pt * closure_slope)*(iso_intercept + lep_iso * iso_slope)
 
     FF_weights.append(FF_weight)
   event_dictionary["FF_weight"] = np.array(FF_weights)
@@ -767,7 +736,6 @@ def apply_AR_cut(process, event_dictionary, final_state_mode, jet_mode, DeepTau_
       event_dictionary = make_etau_cut(event_dictionary, DeepTau_version, skip_DeepTau=True)
     protected_branches = set_protected_branches(final_state_mode=final_state_mode, jet_mode="none")
     event_dictionary   = apply_cut(event_dictionary, "pass_cuts", protected_branches)
-    #
     event_dictionary = add_FF_weights(event_dictionary, final_state_mode, jet_mode, DeepTau_version,
                                       determining_FF=determining_FF)
     determining_FF = False # paranoid thing to prevent leaking the variable
@@ -918,7 +886,7 @@ def set_good_events(final_state_mode, disable_triggers=False, useMiniIso=False):
 def set_branches(final_state_mode, DeepTau_version, process="None"):
   common_branches = [
     "run", "luminosityBlock", "event", "Generator_weight", "NWEvents", "XSecMCweight",
-    "TauSFweight", "MuSFweight", "ElSFweight", "Weight_DY_Zpt_LO", "PUweight", "Weight_TTbar_NNLO",
+    "TauSFweight", "MuSFweight", "ElSFweight","ElSFweight_Trig", "ElSFweight_Reco", "ElSFweight_ID", "Weight_DY_Zpt_LO", "Weight_DY_Zpt_NLO", "PUweight", "Weight_TTbar_NNLO",
     "FSLeptons", "Lepton_pt", "Lepton_eta", "Lepton_phi", "Lepton_iso",
     "Electron_genPartFlav",
     "Tau_genPartFlav", "Tau_decayMode",
@@ -926,8 +894,9 @@ def set_branches(final_state_mode, DeepTau_version, process="None"):
     "HTT_m_vis", "HTT_dR", "HTT_pT_l1l2", "FastMTT_PUPPIMET_mT", "FastMTT_PUPPIMET_mass",
     #"Tau_rawPNetVSjet", "Tau_rawPNetVSmu", "Tau_rawPNetVSe",
     "PV_npvs", "Pileup_nPU",
-    "Electron_mvaNoIso_WP90", "Electron_pfRelIso03_all"
-    #"HTT_DiJet_dEta_fromHighestMjj", "HTT_DiJet_MassInv_fromHighestMjj",
+    "Electron_mvaNoIso_WP90", "Electron_pfRelIso03_all",
+    "Electron_hoe", "Electron_lostHits", "Electron_mass", "Electron_r9", "Electron_sieie", "Electron_pfRelIso03_chg",
+    "Electron_dr03TkSumPt", "Electron_dr03EcalRecHitSumEt", "Electron_dr03HcalDepth1TowerSumEt"
   ]
   branches = common_branches
   branches = add_final_state_branches(branches, final_state_mode)
@@ -1013,7 +982,9 @@ final_state_vars = {
 
     "etau"   : ["FS_el_pt", "FS_el_eta", "FS_el_phi", "FS_el_iso", "FS_el_dxy", "FS_el_dz", "FS_el_chg",
                 "FS_tau_pt", "FS_tau_eta", "FS_tau_phi", "FS_tau_dxy", "FS_tau_dz", "FS_tau_chg",
-                "FS_mt", "FS_t1_flav", "FS_t2_flav", "xtrigger_flag"],
+                "FS_mt", "FS_t1_flav", "FS_t2_flav", "xtrigger_flag",
+                "FS_el_hoe", "FS_el_lostHits", "FS_el_mass", "FS_el_r9", "FS_el_sieie", "FS_el_isochg", 
+                "FS_el_dr03TkSumPt", "FS_el_dr03EcalRecHitSumEt", "FS_el_dr03HcalDepth1TowerSumEt"],
 
     "dimuon" : ["FS_m1_pt", "FS_m1_eta", "FS_m1_phi", "FS_m1_iso", "FS_m1_dxy", "FS_m1_dz",
                 "FS_m2_pt", "FS_m2_eta", "FS_m2_phi", "FS_m2_iso", "FS_m2_dxy", "FS_m2_dz"],

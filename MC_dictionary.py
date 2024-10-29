@@ -63,7 +63,7 @@ MC_dictionary = {
 
   "VBF" : {"XSec": XSec["VBF_TauTau"], "NWEvents": 2402853.147599998, 
            "label": "VBF", "color": color_dictionary["VBF"],
-           "plot_scaling" : 500},
+           "plot_scaling" : 100},
 
   #TODO: This is for 2022 pre EE dimuon! Somehow store this info and make it switchable!
   #"DYInc" : {"XSec": XSec["DYJetsToLL_M-50"], "NWEvents": 1925298812420.0,

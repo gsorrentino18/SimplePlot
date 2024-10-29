@@ -82,14 +82,14 @@ if __name__ == "__main__":
   #eos_user_dir    = "/eos/user/b/ballmond/NanoTauAnalysis/analysis/HTauTau_2022_fromstep1_skimmed/" + final_state_mode
   # there's no place like home :)
   era_modifier_2022 = "preEE" if (("C" in args.lumi) or ("D" in args.lumi)) else "postEE"
-  home_dir        = "/Users/giuliasorrentino/Desktop/htt/SimplePlot/goodSFntuples/HTauTau_2022"+era_modifier_2022+"_step2_" + final_state_mode
+  home_dir        = "/Users/giuliasorrentino/Desktop/HLepRareNtuples/HTauTau_2022"+era_modifier_2022+"_Hlep_" + final_state_mode
   #home_dir        = "/Users/giuliasorrentino/Desktop/htt/SimplePlot/bugfix_Run3Samples/HTauTau_2022"+era_modifier_2022+"_step2_" + final_state_mode
   using_directory = home_dir
  
   good_events  = set_good_events(final_state_mode, False)
   branches     = set_branches(final_state_mode, DeepTau_version)
   vars_to_plot = set_vars_to_plot(final_state_mode, jet_mode=jet_mode)
-  plot_dir_name = "FS_plots_testing/" if testing==True else "FS_plots/"
+  plot_dir_name = "/Users/giuliasorrentino/Desktop/HLepRareNtuples/FS_plots_testing/" if testing==True else "/Us/Users/giuliasorrentino/Desktop/HLepRareNtuples/FS_plots/"
   plot_dir = make_directory(plot_dir_name+args.plot_dir, final_state_mode+"_"+jet_mode, testing=testing)
 
   log_file = open('outputfile.log', 'w')
@@ -103,7 +103,7 @@ if __name__ == "__main__":
   if (use_NLO == True): 
     file_map.pop("DYInc")
     file_map.pop("WJetsInc")
-  else: 
+  elif (use_NLO == False): 
     file_map.pop("DYIncNLO")
     file_map.pop("WJetsIncNLO")
 
@@ -259,7 +259,6 @@ if __name__ == "__main__":
     #  combined_process_dictionary = append_to_combined_processes(process+'_Lep', background_lep_deepcopy, vars_to_plot, 
     #                                                             combined_process_dictionary)
     #  combined_process_dictionary = append_to_combined_processes(process, background_other_deepcopy, vars_to_plot,combined_process_dictionary)
-
   
   # after loop, sort big dictionary into three smaller ones
   data_dictionary, background_dictionary, signal_dictionary = sort_combined_processes(combined_process_dictionary)
@@ -267,27 +266,46 @@ if __name__ == "__main__":
   ## end processing loop, begin plotting
 
   from correctionlib import _core
-  fname = "tau_trigger_DeepTau2018v2p5_2022postEE.json"
-  evaluator = _core.CorrectionSet.from_file(fname)
+  fname_tau = "tau_trigger_DeepTau2018v2p5_2022preEE.json"
+  evaluator_tau = _core.CorrectionSet.from_file(fname_tau)
+
+  fname_ele = "CrossEleTauHlt_preEE.json"
+  #fname_ele = "electronHlt.json"
+  evaluator_ele = _core.CorrectionSet.from_file(fname_ele)
 
   for process in background_dictionary:
 
      xtrigger_flag_arr  = background_dictionary[process]["PlotEvents"]["xtrigger_flag"]
-     tau_pt_arr  = background_dictionary[process]["PlotEvents"]["FS_tau_pt"] 
+     tau_pt_arr  = background_dictionary[process]["PlotEvents"]["FS_tau_pt"]
+     tau_eta_arr  = background_dictionary[process]["PlotEvents"]["FS_tau_eta"] 
+     ele_pt_arr  = background_dictionary[process]["PlotEvents"]["FS_el_pt"]
+     ele_eta_arr  = background_dictionary[process]["PlotEvents"]["FS_el_eta"]
 
-     to_use = (range(len(tau_pt_arr)), tau_pt_arr, xtrigger_flag_arr)
+     to_use = (range(len(tau_pt_arr)), tau_pt_arr, ele_pt_arr, tau_eta_arr, ele_eta_arr, xtrigger_flag_arr)
      tau_hltSF_weights = []
-     for i, tau_pt, xtrigger_flag in zip(*to_use): 
-       weight = 1
-       if (tau_pt < 35.0) or (xtrigger_flag == 0): weight = 1
-       #if (xtrigger_flag == 0): weight = 1
-       else :
-          tau_pt = np.float64(tau_pt) # wild hack, float32s just don't cut it
-          weight *= evaluator["tauTriggerSF"].evaluate(tau_pt, 1, "etau", "Medium", "sf", "nom")
+     ele_hltSF_weights = []
 
-       tau_hltSF_weights.append(weight)
+     for i, tau_pt, ele_pt, tau_eta, ele_eta, xtrigger_flag in zip(*to_use): 
+       weight_tau = 1
+       weight_ele = 1
+
+       if (tau_pt < 35.0) or (abs(tau_eta) > 2.1) or (xtrigger_flag == 0): weight_tau = 1
+       else:
+          tau_pt = np.float64(tau_pt) # wild hack, float32s just don't cut it
+          weight_tau *= evaluator_tau["tauTriggerSF"].evaluate(tau_pt, 1, "etau", "Medium", "sf", "nom")
+
+       if (ele_pt > 31.0) or (abs(ele_eta) > 2.1) or (xtrigger_flag == 0): weight_ele = 1
+       else:
+          ele_pt = np.float64(ele_pt) # wild hack, float32s just don't cut it
+          ele_eta = np.float64(ele_eta)
+          #weight_ele *= evaluator_ele["Electron-HLT-SF"].evaluate("2022Re-recoE+PromptFG", "sf", "HLT_SF_Ele24_TightID", ele_eta, ele_pt)
+          weight_ele *= evaluator_ele["Electron-HLT-SF"].evaluate("2022Re-recoBCD", "sf", "HLT_SF_Ele30_MVAiso90ID", ele_eta, ele_pt)
+ 
+       tau_hltSF_weights.append(weight_tau)
+       ele_hltSF_weights.append(weight_ele)
  
      background_dictionary[process]["Tau_hltSF_weight"] = np.array(tau_hltSF_weights)
+     background_dictionary[process]["Ele_hltSF_weight"] = np.array(ele_hltSF_weights)
 
   vars_to_plot = [var for var in vars_to_plot if "flav" not in var]
   # remove mvis, replace with mvis_HTT and mvis_SF
@@ -308,13 +326,13 @@ if __name__ == "__main__":
     if (final_state_mode != "dimuon") and (do_QCD == True):
       background_dictionary["QCD"] = FF_dictionary["QCD"] # manually include QCD as background
     h_backgrounds, h_summed_backgrounds = get_binned_backgrounds(background_dictionary, var, xbins, lumi, jet_mode)
-    #h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
+    h_signals = get_binned_signals(signal_dictionary, var, xbins, lumi, jet_mode) 
     var = temp_var
 
     # plot everything :)
     plot_data(hist_ax, xbins, h_data, lumi)
     plot_MC(hist_ax, xbins, h_backgrounds, lumi)
-    #plot_signal(hist_ax, xbins, h_signals, lumi)
+    plot_signal(hist_ax, xbins, h_signals, lumi)
 
     make_ratio_plot(hist_ratio, xbins, h_data, h_summed_backgrounds)
 
@@ -324,8 +342,8 @@ if __name__ == "__main__":
     
     #set_x_log = True if "PNet" in var else False
     set_x_log = False
-    #spruce_up_plot(hist_ax, hist_ratio, label_dictionary[var], title, final_state_mode, jet_mode, set_x_log = set_x_log)
-    spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode, set_x_log = set_x_log)
+    spruce_up_plot(hist_ax, hist_ratio, label_dictionary[var], title, final_state_mode, jet_mode, set_x_log = set_x_log)
+    #spruce_up_plot(hist_ax, hist_ratio, var, title, final_state_mode, jet_mode, set_x_log = set_x_log)
     spruce_up_legend(hist_ax, final_state_mode, h_data)
 
     plt.savefig(plot_dir + "/" + str(var) + ".png")

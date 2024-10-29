@@ -26,7 +26,7 @@ label_dictionary = {
   "FS_t2_dz"   : r'Sub-leading Tau $D_Z$',
   "FS_t2_chg"  : r'Sub-leading Tau Charge',
   "FS_t2_DM"   : r'Sub-leading Tau Decay Mode',
-
+   
 
   "MET_pt"      : r'MET [GeV]',
   "PuppiMET_pt" : r'PUPPI MET [GeV]',
@@ -43,6 +43,39 @@ label_dictionary = {
   "FastMTT_PUPPIMET_mT" : r'Fast MTT Transverse Mass [GeV]',
   "FastMTT_PUPPIMET_mass" : r'Fast MTT Mass [GeV]',
   "PV_npvs"    : r'Number of Primary Vertices',
+
+  "FS_el_pt"   : r'Ele $p_T$ [GeV]',
+  "FS_el_eta"  : r'Ele $\eta$',
+  "FS_el_phi"  : r'Ele $\phi$',
+  "FS_el_iso"  : r'Ele Isolation',
+  "FS_el_dxy"  : r'Ele $D_{xy}$',
+  "FS_el_dz"   : r'Ele $D_{Z}$',
+  "FS_el_chg"  : r'Electron charge',
+
+  "FS_el_hoe"      : r'Ele H/E',
+  "FS_el_lostHits" : r'Ele Lost Hits',
+  "FS_el_mass"     : r'Elecron mass',
+  "FS_el_r9"      : r'Electron R9',
+  "FS_el_sieie"    : r'Ele $\sigma_{i \eta i \eta}$',
+  "FS_el_isochg"   : r'Ele Charged Isolation',
+  "FS_el_dr03TkSumPt"         : r'Ele dr03TkSumPt',
+  "FS_el_dr03EcalRecHitSumEt" : r'Ele dr03EcalRecHitSumEt',
+  "FS_el_dr03HcalDepth1TowerSumEt" : r'Ele dr03HcalDepth1TowerSumEt',
+
+  "FS_tau_pt"  : r'Tau $p_T$ [GeV]',
+  "FS_tau_eta" : r'Tau $\eta$',
+  "FS_tau_phi" : r'Tau $\phi$',
+  "FS_tau_dxy" : r'Tau $D_{xy}$',
+  "FS_tau_dz"  : r'Tau $D_{Z}$',
+  "FS_tau_chg" : r'Tau charge',
+  "FS_tau_DM"  : r'Tau DM',
+
+  "FS_mt"         : r'Transverse mass',
+  "HTT_dR"     : r'$D_{R}$',
+  "HTT_m_vis-KSUbinning" : r'$m_{vis}$ [GeV]',
+  "HTT_m_vis-SFbinning" :  r'$m_{vis}$ [GeV]' ,
+  "HTT_Lep_iso" : r'Lepton isolation'
+
 }
  
 binning_dictionary = {
@@ -81,14 +114,25 @@ binning_dictionary = {
   "FS_mu_chg"  : (5, -2, 2),
 
   "FS_el_pt_newbins"   : (80, 26, 46), #40, 0, 120
-  "FS_el_pt"   : (75, 25, 100), #40, 0, 120
+  "FS_el_pt"   : (40, 20, 100), #75, 25, 120
   "FS_el_eta"  : (30, -3, 3),
   "FS_el_phi"  : (32, -3.2, 3.2),
-  "FS_el_iso"  : (25, 0, 1),
-  "FS_el_dxy"  : (50, 0, 0.05),
-  "FS_el_dz"   : (50, 0, 0.25),
+  "FS_el_iso"  : (30, 0, 0.3),
+  "FS_el_dxy"  : (30, 0, 0.15),
+  "FS_el_dz"   : (15, 0, 0.15),
   "FS_el_chg"  : (5, -2, 2),
-  "FS_tau_pt"  : (50, 30, 80),#36, 0, 180
+
+  "FS_el_hoe"      : (40,0,0.02),
+  "FS_el_lostHits" : (9,0,8), 
+  "FS_el_mass"     : (40, -0.002, 0.002),
+  "FS_el_r9"      : (25, 0.2, 1.2),
+  "FS_el_sieie"    : (30, 0, 0.05),
+  "FS_el_isochg"   : (30, 0, 0.3),
+  "FS_el_dr03TkSumPt"         : (40, 0,0.4),
+  "FS_el_dr03EcalRecHitSumEt" : (30, 0, 0.3),
+  "FS_el_dr03HcalDepth1TowerSumEt" : (20, 0, 1.0),
+
+  "FS_tau_pt"  : (50, 20, 100),#36, 0, 180
   "FS_tau_pt_newbins"  : (60, 25, 40), #36, 0, 180
   "FS_tau_eta" : (30, -3, 3),
   "FS_tau_phi" : (32, -3.2, 3.2),

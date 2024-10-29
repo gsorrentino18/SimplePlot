@@ -591,13 +591,17 @@ def get_binned_backgrounds(background_dictionary, variable, xbins_, lumi_, jet_m
       process_weights_PU     = background_dictionary[process]["PUweight"]
       process_weights_TauSF  = background_dictionary[process]["TauSFweight"]
       process_weights_TauhltSF  = background_dictionary[process]["Tau_hltSF_weight"]
+      process_weights_ElehltSF  = 1#background_dictionary[process]["Ele_hltSF_weight"]
       process_weights_MuSF   = background_dictionary[process]["MuSFweight"]
-      process_weights_ElSF   = background_dictionary[process]["ElSFweight"]
+      process_weights_ElSF_Trig   = background_dictionary[process]["ElSFweight_Trig"]
+      process_weights_ElSF_Reco   = background_dictionary[process]["ElSFweight_Reco"]
+      process_weights_ElSF_ID   = background_dictionary[process]["ElSFweight_ID"]
       process_weights_DY_Zpt = background_dictionary[process]["Weight_DY_Zpt_LO"] # bugged in V12 samples, always 1
       process_weights_TT_NNLO = background_dictionary[process]["Weight_TTbar_NNLO"]
 
       process_weights = process_weights_gen * process_weights_DY_Zpt * process_weights_PU * process_weights_TT_NNLO * \
-                        process_weights_TauSF * process_weights_MuSF * process_weights_ElSF * process_weights_TauhltSF
+                        process_weights_TauSF * process_weights_MuSF * process_weights_ElSF_Trig* process_weights_ElSF_Reco* process_weights_ElSF_ID * process_weights_TauhltSF*process_weights_ElehltSF
+
     #print("process, variable, variable and weight shapes") # DEBUG 
     #print(process, variable, process_variable.shape, process_weights.shape) # DEBUG
     h_MC_by_process[process] = {}
@@ -647,15 +651,17 @@ def get_binned_signals(signal_dictionary, variable, xbins_, lumi_, jet_mode):
       signal_weights_gen    = signal_dictionary[process]["Generator_weight"]
       signal_weights_PU     = signal_dictionary[process]["PUweight"]
       signal_weights_TauSF  = signal_dictionary[process]["TauSFweight"]
-      signal_weights_TauhltSF  = signal_dictionary[process]["Tau_hltSF_weight"]
+      signal_weights_TauhltSF  = 1#signal_dictionary[process]["Tau_hltSF_weight"]
       signal_weights_MuSF   = signal_dictionary[process]["MuSFweight"]
-      signal_weights_ElSF   = signal_dictionary[process]["ElSFweight"]
+      signal_weights_ElSF_Trig   = signal_dictionary[process]["ElSFweight_Trig"]
+      signal_weights_ElSF_Reco   = signal_dictionary[process]["ElSFweight_Reco"]
+      signal_weights_ElSF_ID   = signal_dictionary[process]["ElSFweight_ID"]
       signal_weights_DY_Zpt = signal_dictionary[process]["Weight_DY_Zpt_LO"] # bugged in V12 samples, always 1
       signal_weights_TT_NNLO = signal_dictionary[process]["Weight_TTbar_NNLO"]
 
       #signal_weights = signal_weights_gen * signal_weights_DY_Zpt * signal_weights_MuSF # for Oceane
       signal_weights = signal_weights_gen * signal_weights_DY_Zpt * signal_weights_PU * signal_weights_TT_NNLO * \
-                       signal_weights_TauSF * signal_weights_MuSF * signal_weights_ElSF * signal_weights_TauhltSF
+                       signal_weights_TauSF * signal_weights_MuSF * signal_weights_ElSF_Trig*signal_weights_ElSF_Reco*signal_weights_ElSF_ID * signal_weights_TauhltSF
     h_signals[process] = {}
     h_signals[process]["BinnedEvents"] = get_binned_info(process, signal_variable,
                                                         xbins_, signal_weights, lumi_)

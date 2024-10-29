@@ -34,8 +34,8 @@ def load_process_from_file(process, file_directory, file_map, log_file,
   file_string = file_directory + "/" + file_map[process] + ".root:Events"
   if data: 
     # if a branch isn't available in Data, don't try to load it
-    branches_not_in_data = ["Generator_weight", "NWEvents", "Tau_genPartFlav", "Electron_genPartFlav", "Weight_DY_Zpt_LO", "XSecMCweight",
-                            "TauSFweight", "MuSFweight", "ElSFweight", "PUweight", "Weight_TTbar_NNLO", "Pileup_nPU"]
+    branches_not_in_data = ["Generator_weight", "NWEvents", "Tau_genPartFlav", "Electron_genPartFlav", "Weight_DY_Zpt_LO", "Weight_DY_Zpt_NLO", "XSecMCweight",
+                            "TauSFweight", "MuSFweight", "ElSFweight", "ElSFweight_Trig", "ElSFweight_Reco", "ElSFweight_ID", "PUweight", "Weight_TTbar_NNLO", "Pileup_nPU"]
     for missing_branch in branches_not_in_data:
       branches = [branch for branch in branches if branch != missing_branch]
   try:
@@ -70,10 +70,14 @@ def append_to_combined_processes(process, cut_events, vars_to_plot, combined_pro
       "Cuts": {},
       "Generator_weight":  cut_events["Generator_weight"],
       "Weight_DY_Zpt_LO":     cut_events["Weight_DY_Zpt_LO"],
+      "Weight_DY_Zpt_NLO":     cut_events["Weight_DY_Zpt_NLO"],
       "Weight_TTbar_NNLO": cut_events["Weight_TTbar_NNLO"],
       "TauSFweight": cut_events["TauSFweight"],
       "MuSFweight":  cut_events["MuSFweight"],
       "ElSFweight":  cut_events["ElSFweight"],
+      "ElSFweight_Trig": cut_events["ElSFweight_Trig"],
+      "ElSFweight_Reco": cut_events["ElSFweight_Reco"],
+      "ElSFweight_ID": cut_events["ElSFweight_ID"],
       "PUweight"  :  cut_events["PUweight"],
       "SF_weight": np.ones(cut_events["Generator_weight"].shape)
     }
